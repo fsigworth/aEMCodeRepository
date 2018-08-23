@@ -150,7 +150,7 @@ h.oldVesicleModel=[];
 h.e1CtrValue=0;
 h.useFirstExposure=1;  % Flag to ignore first exposure in doing masking.
 h.doTrackMembranes=1;
-h.roboTrackMembranes=0;
+h.roboTrackMembranes=1;
 h.makeModelVesicles=1;
 
 % if ~isfield(h,'automaskBeamOn')
@@ -508,12 +508,14 @@ if ok
             disp('Reading the compressed first exposure');
         end;
         e1Image=ReadEMFile(exp1name2);
+        h.e1ImageOffset=0;
     else
         if h.useFirstExposure
             disp(['First exposure not found: ' exp1name]);
             disp(' ...using merged image for an inferior global mask.');
         end;
-        e1Image=h.origImage+5;  % offset it from zero.
+        h.e1ImageOffset=5;
+        e1Image=h.origImage+h.e1ImageOffset;  % offset it from zero.
     end;
     h.exp1Image=DownsampleGeneral(e1Image,h.displaySize/2);
     
@@ -701,10 +703,9 @@ if h.imageLoaded
             showGhosts=h.makeModelVesicles;
     end;
     %     theImage =  repmat(rot90(imscale(imData,256,1e-3)),[1 1 3]);
-    midValue=h.e1CtrValue/(h.mi.doses(1)*h.mi.cpe)-1;
-    theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)),[1 1 3]);
-    
-    nx=size(h.rawImage,1);
+    midValue=(h.e1CtrValue-h.e1ImageOffset)/(h.mi.doses(1)*h.mi.cpe);
+    theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)+128),[1 1 3]);
+      nx=size(h.rawImage,1);
     ny=size(h.rawImage,2);
     
     if showGhosts
