@@ -1,0 +1,131 @@
+Hi Fred,
+Here are a few of the data structures that I think will work well. 
+
+A single structure for each run of the algorithm that has single values for various important sizes:
+
+numberStruct	.nImages
+		.imW            --only one dimension is enough, all images should be square
+		.imH
+		.pixelSize
+		.nTemplates     --can be discovered from the templates array
+		.thetaStep
+		.phiStep
+		.symmetry
+		.ccGridSize     --I'm not sure, should we determine that at the time we determine the domain?
+
+I think data images need the following structures at minimum (the 'gen' sub-structure is only filled for simulated data):
+
+imageStruct.image
+	   .click.x         --should be zero
+		 .y
+		 .vesR
+	   .ctf	.Fimage (imHximW CTF Fourier 'image')   --I'd rather have a pointer to the ctf for the micrograph
+		.phaseFlipped (0 or 1)
+	   	.lambda
+		.Cs
+		.qfactor
+		.defocus
+		.bfactor
+	   .gen	.clickErr.x     --goes into a struct of estimated / assigned values.
+			 .y
+		.psi
+		.theta
+		.phi
+		.r	.total
+			.theta
+			.psi
+		.b	.offset
+			.bobbing		
+		.io
+
+I think it makes the most sense to have the reference templates also share the image structure, though many of the generating parameters will be zero (perhaps empty? I'm not sure which is best for the default setting). 
+                            --in the end, I think the templates don't need anything other than the numberStruct.
+templateStruct	.image				im      --no, I want to keep the big data out of the structs.  Images
+                                                should just be in a stack.  Also, Matlab handles arrays of
+                                                structs very poorly, so we should have struct of arrays.
+	   	.click	.x			0
+		 	.y			0
+		 	.vesR			0
+	   	.ctf	.Fimage			ones
+			.phaseFlipped		1           --I think we should ctf-filter templates as we need them.
+	   		.lambda			0
+			.Cs			0
+			.qfactor		0
+			.defocus		0
+			.bfactor		0
+	   	.gen	.clickErr.x		0
+				 .y		0
+			.psi			0
+			.theta			theta
+			.phi			psi
+			.r	.tot		0
+				.theta		0
+				.psi		0
+			.b	.offset		0
+				.bobbing	0	
+			.io			1/0
+
+I think the parameters we are out to calculate should be kept in their own structure:
+
+paramStruct	.particleStructure
+		.sigma	.noise
+			.rocking
+			.bobbing
+			.click
+		.membraneOffset
+
+In an outer loop this structure can be indexed by iteration, inside a loop only current and new estimates are required.
+
+And I think the most useful files can be kept in a structure too:
+
+fileStruct	.initialStructureFile
+		.filteredStructureFile
+		.imageFile
+		.templatesFile
+		.lastSavedStateFile
+		.temporaryFilesRoot
+
+I think a couple structures are needed for handling data in some intermediate states. Structures indexed by 'i' have the same number of entries as there are images; 'j' for templates, and 'k' for the total number of rotated-image and template comparisons. 
+
+latentPrepStruct(i)	.tems2compare	.temnum
+					.n_psi
+			.sigmas	.dyrso
+				.dxRSO
+				.dyIO
+				.dyRSO
+
+latentIntermediateStruct(i)	.logPrTemImRot(k)
+				.diff(k).x
+					.y
+				.logPrImJoint(ccGridSize,ccGridSize,k)
+				.normalizeImage
+				.ImPrWt2Tem(j) 	
+				?.cc(ccGridSize,ccGridSize,k)
+				?.logPrImCond(ccGridSize,ccGridSize,k)
+				
+	* when ~DEBUG don't store cc,logPrImCond
+
+
+The composite CTFs of the class means will not fit into the above image structure (they don't correspond to individual values of the CTF parameters), so they will get a simpler structure.
+
+classMeanStruct(j)	.mean       --yes, I propose that we keep around a ctf for each micrograph.
+			.ctf
+			.direction
+
+Multiple structures of this type could be combined from different image sets (by matching directions and adding means & phase-flipped ctfs). 
+			
+A structure I haven't yet addressed needs to hold intermediate calculations for all variance calculations. 
+
+sigmaEstimateStruct(i)	.clickErr.x
+				 .y
+			.b
+			.noise
+			?.r
+			?.d
+I'm thinking there could be a better way of organizing this data, but I haven't found anything superior yet.
+
+One unresolved problem is what to do with image and potentially reference template rotations--store them in one of these structures or not? A longer-term issue is what to do when the number of images gets large (these image structures, image rotation-holding structures, and especially the latent probability structures may all challenge memory limits which I'm not sure how to address with these). What are you comfortable holding in memory versus caching to disk?
+
+Cheers,
+ACB
+

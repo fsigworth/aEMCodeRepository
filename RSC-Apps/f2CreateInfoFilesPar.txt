@@ -1,0 +1,9 @@
+% f2CreateInfoFilesPar 2015-01-26 20:39:27
+numExposures = 2
+batchMode = 0
+overwrite = 0
+cameraIndex = 6
+cpe = 50
+kV = 200
+defaultPixA = 1.247
+checkMoviePixA = 0

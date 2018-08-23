@@ -1,0 +1,124 @@
+% ModelMi 2018-07-27 14:32:43
+version = 14
+baseFilename = vp_0001_Aug10_14.58.56
+originalBasePath = /gpfs/ysm/scratch60/fjs2/170810-vpp/
+basePath = /Users/fred/EMWork/Hideki/170810-2/
+moviePath = movie_frames/vp/
+imagePath = Micrograph/
+procPath = Merged/
+infoPath = Info/
+stackPath = Stack/
+tempPath = Temp/
+movieFilename [1x1] cell char:
+    Aug10_14.58.56.tif
+gainRefName = movie_frames/vp/SuperRef_Aug10_14.58.56.dm4
+imageFilenames [1x1] cell char:
+    vp_0001_Aug10_14.58.56ala.mrc
+imageSize = [ 3840          3840 ]
+pixA = 1.05
+kV = 300
+cpe = 0.8
+camera = 5
+tiltAngles = []
+tiltAxis = 0
+frameDose [24x1]:
+         1.13722      1.13722      1.13722      1.13722      1.13722      1.13722      1.13722      1.13722 
+         1.13722      1.13722      1.13722      1.13722      1.13722      1.13722      1.13722      1.13722 
+         1.13722      1.13722      1.13722      1.13722      1.13722      1.13722      1.13722      1.13722 
+frameSets = [ 1            24 ]
+doses = 27.29331
+weights = 1
+ctf [1x1;12] struct:
+    defocus = 0.356476
+    deltadef = -0.016273
+    theta = 0.5864306
+    phi = 0.9758136
+    lambda = 0.01968697
+    ampFactor = 1
+    ccc = 0.157837
+    resLimit = 3.198
+    estB = 30.39
+    Cs = 2.7
+    B = 40
+    alpha = 0.02
+mergeMatrix = []
+particle [1x1;3] struct:
+    picks = []
+    autopickPars [1x20]:
+                   3            8          100          300          150            0           70          100 
+                  50           70            1            1            0            0            0            0 
+                   0            0            0          150 
+    ok = [ 0             0             0             1 ]
+ppVals [1x1;4] struct:
+    membraneOffsetA = 52
+    nAlpha = 36
+    nBeta = 12
+    nGamma = 6
+boxSize = 0
+vesicleModel [73x1]:
+     -0.00125651   0.00211258    0.0199799    0.0537679     0.105803     0.180575     0.266443     0.406025 
+        0.563838     0.741675     0.928897      1.11445      1.28741      1.43784      1.56095      1.65854 
+         1.73402      1.79103        1.749      1.86209       1.8822      1.89147      1.88923      1.87477 
+         1.84745      1.80692      1.75399      1.69034      1.61778       1.5381      1.38905      1.36981 
+         1.28503      1.20938      1.14971      1.11296      1.10551      1.13049      1.18315      1.25551 
+         1.33903       1.4252      1.43606      1.57401      1.63605      1.69127      1.74252      1.79256 
+         1.84362      1.89523      1.94304      1.98178      2.00599       2.0103      1.90032      1.94569 
+         1.87405      1.77796      1.65887      1.51825      1.35828      1.18403      1.00275     0.822158 
+        0.650018     0.493875     0.346023     0.253333     0.163201    0.0933006    0.0387798   0.00359878 
+      -0.0030815 
+vesicle [1x1;13] struct:
+    x = 1724.497
+    y = 400.5892
+    r = 265.9454
+    s = 0.0002882693
+    ok = [ 1             1             1             1 ]
+    shiftX = []
+    shiftY = []
+    extraS = []
+    shiftOk = []
+    af = 0.9995442
+    refined = 1
+    extraPeaks = [ -38.09524      38.09524 ]
+    extraSD = 4.761905
+noiseModelPars = [ 0.09173803    0.05644558     0.2484931     0.6751013           100    0.04478051     0.5855132     0.5866257 ]
+noiseModelCode [17x1] cell char:
+    ag=p(1);
+    af1=p(1);
+    af2=p(2);
+    ag=p(3);
+    sigma=p(4);
+    bf=p(5);
+    s0=p(6);
+    f1exp=p(7);
+    f2exp=p(8);
+    gauss=exp(-f.^2/(2*sigma^2));
+    f1=(.01./f).^f1exp;
+    f1(1)=f1(2);
+    f2=(.01./f).^f2exp;
+    f2(1)=f2(2);
+    b2=1./((f/bf).^2+1);
+    spec=max(0,(ag*gauss+af1).*f1+af2*f2);
+    shot=max(0,s0*b2);
+damageModelCode = .245*f.^-1.665+2.81;
+frameShifts [1x1] cell single:
+frameShifts{1} [24x2]:
+               0        -3.82        -5.49        -6.37        -6.26        -6.18        -5.89        -5.66 
+           -5.45        -5.25        -4.95        -4.68        -4.41        -4.03        -3.75        -3.65 
+           -3.36        -3.35        -2.99        -3.11        -3.02         -2.7        -1.99        -1.87 
+               0        10.18        14.61         16.7        17.44        17.41        17.76        17.76 
+           17.49        17.31        17.03        17.25        16.96        16.77        16.17        15.99 
+           15.83        15.97        16.17        16.44        16.27        16.21        15.08        15.09 
+identifier = 0.09754040499940952d
+notes = 
+log [5x1] cell char:
+    k2CreateInfoFiles 2018-04-21 16:07:08
+    meInverseFilterAuto 2018-04-27 15:26:36
+    rsRefineVesicleFits 2018-04-27 15:28:51
+    meInverseFilterAuto 2018-04-27 15:29:44
+    rsPickingPreprocessor4 2018-04-27 15:30:19
+mieFields [2x1] cell char:
+    vesicle
+    mask
+timestamp [1x1] cell char:
+    2018-07-27 14:32:43
+mbnOffset = 49.52381

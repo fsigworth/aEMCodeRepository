@@ -1,0 +1,12 @@
+
+
+use datevec to format names
+
+
+apart from stack path/stackName we have the run
+Reconstruction/140128_2100/
+    output/
+        vols:   current volumes
+        moi:    current model
+        rings.mrc
+        vols.mat

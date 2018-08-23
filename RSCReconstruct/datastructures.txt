@@ -1,0 +1,54 @@
+
+ri = 
+        radius: 17
+        nTrans: 7
+      softMask: [40x40 double]
+      symmetry: 4
+    useAltImgs: 0
+       volMask: [40x40x40 single]
+     angleStep: [5 5.1852 10]
+      angleMin: [-10 20 0]
+        angleN: [5 28 9]
+        alphas: [-10 -5 0 5 10]
+       alphasI: [-10 -5 0 5 10 170 175 180 185 190]
+          isos: [0 1]
+
+si = 
+     origParticle: [12892x1 uint32]
+     pastParticle: [12892x1 double]
+          miIndex: [12892x1 uint16]
+       miParticle: [12892x1 uint16]
+           alpha0: [12892x1 single]
+           yClick: [12892x1 single]
+         rVesicle: [12892x1 single]
+         sVesicle: [12892x1 single]
+               mi: {1x337 cell}
+           origMi: [1x337 uint16]
+             ctfs: [40x40x337 single]
+             pixA: 6.6507
+          weights: [1 1 1]
+        mbnOffset: 7.8188
+      activeFlags: [12892x1 logical]
+    activeFlagLog: {'rsStackSplit  30-Oct-2014'}
+
+moi = 
+     sigmaN: 0.94823
+     sigmaC: 2
+     sigmaG: 2
+         b0: 0
+      pVols: 1
+    imgAmps: [1x12892 single]
+          a: 0.011175
+      pRefs: 1
+
+roi = 
+        imgAmps: [1x12892 single]
+    pTransUnrot: [7x7x12892 single]
+         pTrans: [7x7x12892 single]
+          varNs: [1x12892 single]
+          pVols: [1x12892 single]
+          logPX: [1x12892 single]
+          pRefs: [252x1x12892 single]
+        pAlphas: [10x12892 single]
+       imgClass: [1x12892 single]
+          imgTA: [3x12892 single]

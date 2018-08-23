@@ -1,0 +1,75 @@
+function MakeJpegsFromEMFiles(OutputDir, binning, display, defaultPixA)
+% function MakeJpegsFromEMFiles(binning, display)
+% For each EM image file (.mrc, .dm3, .img, .hed, .tif)
+% in the current directory, make a .jpg file.  All arguments are optional.
+% If OutputDir is given and is not an empty string, the
+% jpeg files are written there.  The argument binning controls the degree
+% of downsampling.  Its default value is 2.  If display=0 then no display
+% is shown. DefaultPixA controls the labeling of the display.
+% fs July 2009 rev. Apr 2011, Nov 2017
+
+inputExtensions={'.mrc' '.tif' '.dm4'};
+
+disp(['Converting EM files to jpgs in directory ' pwd]);
+
+if nargin<1
+    OutputDir='';
+end;
+len=numel(OutputDir);
+if len>0
+    if OutputDir(len)~='/' % doesn't end with slash
+        OutputDir=[OutputDir '/'];
+    end;
+    disp(['Writing output files to ' OutputDir]);
+end;
+if nargin<2
+    binning=2;
+end;
+if nargin<3
+    display=1;
+end;
+if nargin<4
+    defaultPixA=0;
+    defaultPixA=1.87;
+end;
+d=dir;
+for i=3:numel(d)
+    [~,~,ex]=fileparts(d(i).name);
+    ok=any(strcmp(ex,inputExtensions)); % one of the image file types
+    if ok
+        [mi, pixA, ok]=ReadEMFile(d(i).name);
+    end;
+    ok=ok && size(mi,3)==1;  % don't do stacks
+    if ok
+        disp(d(i).name);
+        m=RemoveOutliers(mi,4);
+        n=size(m,1);
+        if binning>1
+            m=Downsample(m,n/binning);
+        end;
+        ms=uint8(imscale(m));
+        if display
+            n=size(ms);
+            pixA=max(pixA,defaultPixA)*binning;
+            if pixA==0
+                pixA=1;
+                label='pixels';
+            elseif pixA*n(1)>1000
+                pixA=pixA/10;
+                label='nm';
+            else
+                label='Å';
+            end;
+            figure(1); SetGrayscale;
+            imaga((1:n(1))*pixA,(1:n(2))*pixA,ms);
+            title([d(i).name '    original pixel size = ' num2str(pixA/binning) label],'interpreter','none');
+            xlabel(['Dimension, ' label]);
+            drawnow;
+        end;
+        [~, nm]=fileparts(d(i).name);
+        imwrite(ms,[OutputDir nm '.jpg'],'jpg');
+    else
+        disp(['Skipped: ' d(i).name]);
+    end;
+end;
+disp('Done.');

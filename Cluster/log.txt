@@ -1,0 +1,25 @@
+
+                                      < M A T L A B (R) >
+                            Copyright 1984-2015 The MathWorks, Inc.
+                             R2015b (8.6.0.232648) 64-bit (maci64)
+                                          May 18, 2015
+
+ 
+For online documentation, see http://www.mathworks.com/support
+For product information, visit www.mathworks.com.
+ 
+    ----------------------------------------------------
+	Your MATLAB license will expire in 58 days.
+	Please contact your system administrator or
+	go to MathWorks.com to renew this license.
+    ----------------------------------------------------
+
+	Trial License -- for use to evaluate programs for possible purchase as an end-user only.
+
+testlaunch
+>> 
+>> 
+>> exllitll
+>> 
+>> 
+>> exit

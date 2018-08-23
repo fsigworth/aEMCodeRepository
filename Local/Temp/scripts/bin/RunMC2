@@ -1,0 +1,12 @@
+MotionCor2-1.0.0 \
+-InTiff ./ \
+-OutMRC ./Sum_ \
+-Gain ./CountRef.mrc \
+-Patch 5 5 \
+-Serial 1 \
+-InSuffix .tif \
+-RotGain 1 \
+-Gpu 0 1 2 3 \
+-Kv 200 -PixSize 1.53 -FmDose 1.0 \
+-Throw 1 \
+

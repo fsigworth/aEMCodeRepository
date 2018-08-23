@@ -1,0 +1,85 @@
+% function [dxs dys ccs]=meEvalLocalCorrelations(m1,m2c,CPars,npanels,ndis,fig)
+% function [dxs dys ccs]=meEvalLocalCorrelations(m1,m2c,CPars,npanels,ndis,fig)
+% For two aligned images for merging, compute local cross-correlations
+% and return the displacements in each of npanels x npanels parts of the
+% images.  CPars is a two-element array of the CTF parameter structures.
+% ndis the the number of pixels to return in the cross-correlation images
+% ccs.
+% This script can be run after meMergeExposures to check the quality of
+% local alignments.
+
+% CPars=CTFitPars;
+CPars=mi.ctf;
+dsm=2;
+for i=1:2
+    CPars(i).res=dsm*CPars(i).res;
+end;
+npanels=8;
+ndis=128;
+fig=5;
+maxdist=10;
+
+nm=size(m1,1);
+pwexp=1.2; % pre-whitening function exponent.
+
+nu=nm/npanels;
+if ndis>nu
+    ndis=nu;
+end;
+prewhts=Radius(nu).^pwexp;  % f^1 prewhitening
+prewhts(nu/2+1,nu/2+1)=0;
+cu1=single(CTF(nu,CPars(1)));
+cu2=single(CTF(nu,CPars(2)));
+filt=fftshift(sign(cu1).*sign(cu2).*(abs(cu1.*cu2)).*prewhts);
+
+ft2s=ComputeTiledFTs(m2c,nu,0);
+ft1s=ComputeTiledFTs(m1,nu,0);
+[n1 n2 ntx nty]=size(ft2s);
+
+ind=0;
+ctu=nu/2+1;
+ccs=zeros(ndis,ndis,ntx,nty);
+dxs=zeros(ntx,nty);
+dys=dxs;
+for j=1:nty
+    for i=1:ntx
+        ind=ind+1;
+        cc=fftshift(real(ifftn(ft2s(:,:,i,j)...
+            .*conj(ft1s(:,:,i,j)).*filt)));
+        [mx x3 y3]=max2di(cc);
+        dxs(i,j)=x3-ctu;
+        dys(i,j)=y3-ctu;
+        ccs(:,:,i,j)=imscale(Crop(cc,ndis));
+    end;
+end;
+
+if fig>0
+    figure(fig);
+        SetGrayscale;
+
+
+    subplot(1,3,1);
+    set(gca,'XTick',0.5:npanels+0.5);
+    set(gca,'YTick',0.5:npanels+0.5);
+    set(gca,'GridLineStyle','-');
+    grid on;
+    quiver(dxs',dys');
+    distances=sqrt((dxs.^2)+(dys.^2));
+    dxs(distances>maxdist)=0;
+    dys(distances>maxdist)=0;
+    distances=sqrt((dxs.^2)+(dys.^2));
+    
+    xlabel(['Longest arrow is ' num2str(max(distances(:))) ' pixels']);
+    axis tight
+    
+subplot(1,3,2);
+%     figure(fig+1);
+    imacs(ImageArray(ccs));
+    axis off;
+    title(name1,'interpreter','none');
+    subplot(1,3,3);
+    imacs(mc);
+    axis off;
+    
+    
+end

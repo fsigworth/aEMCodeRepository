@@ -1,0 +1,13 @@
+% f2DriftTrackerPar 2015-01-26 20:42:08
+useParfor = 0
+overwrite = 1
+batchMode = 1
+nameAli = al
+doDamageComp = 1
+nameSegment = a
+forceFitting = 1
+doRestoreImages = 1
+fig1Size = [ 1000  700 ]
+dirJpeg = Jpeg/
+doSaveFigures = 1
+startIndex = 1

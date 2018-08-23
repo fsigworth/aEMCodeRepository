@@ -1,0 +1,59 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1265\cocoasubrtf190
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww17920\viewh17780\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural
+
+\f0\fs24 \cf0 How to align images from a Direct Electron camera\
+F. Sigworth 21 Mar 14\
+\
+Using code in DE12DriftCorr directory, which will depend on files from aLibs/\
+\
+There are three scripts to be run.\
+\
+Step 1: MakeJpegsFromDE12Images.m\
+This processes dark and bright references and creates jpeg images for easy looking at data.  Because early on we had trouble with arithmetic overflows in accumulating references, we make our own sums of dark and bright references from raw frames using floating-point numbers.\
+\
+We assume you have already set up the folder structure\
+  expt/Bright/\
+  expt/Dark/\
+  expt/Images/\
+\
+Each of these contains the DE camera raw-image folders, so for example\
+the contents of the Bright folder might be\
+  expt/Bright/DE_20120113_001135_358/         -- one movie directory\
+  expt/Bright/DE_20120113_001135_358/RawImage_0.tif\
+  expt/Bright/DE_20120113_001135_358/RawImage_1.tif\
+and more raw images.  There are typically more movie directories as well.\
+Note: you must have at least two dark-reference movies and two bright-reference movies, as the alignment routine needs independent references.  It is a good idea to take lots of bright references to minimize the shot noise in the reference.\
+\
+When you run MakeJpegsFromDE12Images it first asks you to select the enclosing folder (expt in this example.)  At the end it writes out the following files:\
+  expt/Bright/DE_20120113_001135_358/isum.mat -raw sum of images in movie\
+  expt/Bright/AccumSum.mat      --raw sum of all movies in expt/Bright/\
+  expt/Bright/AccumSumOdd.mat   --raw sum of every other movie\
+\
+Once it has done this for the Bright and Dark folders, their AccumSums\
+are used to do correction of each movie in the Images folder.  An example\
+of files written there for one movie:\
+  expt/Images/DE_20111229_231551_002/isum.mat\
+  expt/Images/DE_20111229_231551_002.mrc\
+  expt/Images/DE_20111229_231551_002.jpg\
+\
+Step 2: MakeMovieStructures.m\
+\
+This program accumulates groups of frames and writes out a data structure containing everything needed for alignment.  The number of raw frames in a group is set by the variable groupN (line 22).  Also you should set the angstroms per pixel variable (pixA, line 20).  Again you select the enclosing folder (expt in this example).  This program reads the references and movies, and writes out files into a Tracking folder, e.g.\
+\
+expt/Tracking/DE_20111229_231551_002-s.mat\
+\
+These contain all the information needed by the alignment program, so you can archive the other directories at this point.\
+\
+\'97make Aligned, Jpeg\
+Step 3: DriftTrackingWholeFrame5.m\
+\
+Again you select the enclosing folder.  This program reads the data from the -s.mat files, and fills two new directories Aligned/ and Jpeg/.  The first contains the aligned and summed stacks as mrc files.  The Jpeg directory contains files with names ending in\
+	-add.jpg  Just the sum of all the frames\
+	-ali.jpg  Sum of the frames after alignment\
+	-align.jpg  Graphics from the alignment program\
+\
+\
+}

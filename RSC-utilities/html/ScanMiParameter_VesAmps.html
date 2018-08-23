@@ -1,0 +1,298 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>ScanMiParameter_VesAmps</title><meta name="generator" content="MATLAB 9.1"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2016-06-28"><meta name="DC.source" content="ScanMiParameter_VesAmps.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><pre class="codeinput"><span class="comment">% ScanMiParameter_VesAmps.m</span>
+<span class="comment">% See how much the ring components contribute to vesicle models.  One</span>
+<span class="comment">% example is stored at 151117/Trends/VesicleRings.jpg</span>
+</pre><p>Have the user select some mi files</p><pre class="codeinput">[fname, pa]=uigetfile({<span class="string">'*mi.txt'</span> <span class="string">'*mi.mat'</span>},<span class="string">'Select mi files to examine'</span>,<span class="string">'multiselect'</span>,<span class="string">'on'</span>);
+<span class="keyword">if</span> ~iscell(fname)
+    fname={fname};
+<span class="keyword">end</span>;
+</pre><p>pick up all the mi structures</p><pre class="codeinput">cd(pa);
+nim=numel(fname);
+v={};
+<span class="keyword">for</span> i=1:nim
+    disp(fname{i});
+    mi=ReadMiFile(fname{i});
+    mis{i,1}=mi;
+<span class="keyword">end</span>;
+</pre><pre class="codeoutput error">Error using cd
+Argument must contain a character vector.
+Error in ScanMiParameter_VesAmps (line 15)
+cd(pa);</pre><pre class="codeinput">save <span class="string">AllMis.mat</span> <span class="string">mis</span>
+<span class="keyword">return</span>
+</pre><p>Get amplitudes</p><pre class="codeinput">ds=4;
+nv=0;
+<span class="keyword">for</span> i=1:nim
+    mi=mis{i,1};
+    niv=numel(mi.vesicle.x);
+    <span class="comment">% multiply the vesicle model by the voxel size.</span>
+
+    <span class="keyword">if</span> niv&gt;0 &amp;&amp; isfield(mi.vesicle,<span class="string">'extraPeaks'</span>) &amp;&amp; numel(mi.vesicle.extraPeaks)&gt;0
+        maxR=max(mi.vesicle.r(all(mi.vesicle.ok,2),1))/ds;
+        n=NextNiceNumber(maxR*3);
+        vx=n/2+1;
+        vy=vx;
+        vd=meDownsampleVesicleModel(mi.vesicleModel,ds)*ds*mi.pixA;
+
+        <span class="keyword">for</span> ind=1:niv
+            <span class="keyword">if</span> all(mi.vesicle.ok(ind,:))
+                nv=nv+1;  <span class="comment">% count of all vesicles</span>
+                <span class="comment">% Get the coordinates and radius, scaled down by ds</span>
+                vr=mi.vesicle.r(ind,:)/ds;
+
+                <span class="comment">% Accumulate the vesicle density</span>
+                <span class="comment">%     sumv=sumv-mi.vesicle.s(ind)*VesicleFromModel(n,vr,vd,[vx vy]);</span>
+                v0=VesicleFromModelGeneral(n,vr,vd,[vx vy],mi.vesicle.s(ind,:,1));
+
+                <span class="comment">% -------------Create extra ring components--------------</span>
+                <span class="comment">% extra amps are part of the s array</span>
+                exAmps=ds*mi.pixA*mi.vesicle.s(ind,:,2:end);
+                exPos=mi.vesicle.extraPeaks/ds;
+                exSigma=mi.vesicle.extraSD/ds;
+                v1=v0+VesicleFromRings(n,exPos,exSigma,vr,[vx vy],exAmps);
+                mulr=50;
+                addr=0;
+                subplot(221);
+                imaga(v0*mulr+addr);
+                subplot(222);
+                imaga(v1*mulr+addr);
+                subplot(224);
+                imaga((v1-v0)*mulr+128);
+                subplot(223);
+                plot([sect(v0) sect(v1)]);
+                axis([0 n 0 5]);
+                drawnow;
+            <span class="keyword">end</span>;
+        <span class="keyword">end</span>;
+    <span class="keyword">end</span>;
+<span class="keyword">end</span>;
+
+
+
+<span class="comment">% &lt;&lt;/Users/fred/EMWork/Hideki/151117/KvLipo80slot3/Trends/VesicleRings.jpg&gt;&gt;</span>
+
+
+
+<span class="comment">% % Get amplitudes</span>
+<span class="comment">% nv=0;</span>
+<span class="comment">% for i=1:nim</span>
+<span class="comment">%     ves=v{i,1};</span>
+<span class="comment">%     niv=numel(ves.x);</span>
+<span class="comment">%     for j=1:niv</span>
+<span class="comment">%         if all(ves.ok(j,:))</span>
+<span class="comment">%             nv=nv+1;</span>
+<span class="comment">%     ves0=ves;</span>
+<span class="comment">%     ves0.extraPeaks=[];</span>
+<span class="comment">%     v=meMakeModelVesicles(mi,n,j,0,0);</span>
+<span class="comment">%     v=</span>
+<span class="comment">%     s1(nv)=ves.s(</span>
+<span class="comment">% e1=zeros(nim,nbins);</span>
+<span class="comment">% eAll=zeros(nim,nbins);</span>
+<span class="comment">% figure(1);</span>
+<span class="comment">% subplot(111);</span>
+<span class="comment">% for i=1:nim</span>
+<span class="comment">%     %     load(fname{i});</span>
+<span class="comment">%     mi=ReadMiFile(fname{i});</span>
+<span class="comment">%     if numel(mi.vesicle.x)&gt;0</span>
+<span class="comment">%             okVes=all(mi.vesicle.ok,2);</span>
+<span class="comment">%             radii=mi.vesicle.r(:,1)*mi.pixA;</span>
+<span class="comment">% %             radii=mi.vesicle.r(:,1);</span>
+<span class="comment">%             val(i,:)=hist(radii,xbins);</span>
+<span class="comment">%</span>
+<span class="comment">%     bar(xbins,val(i,:));</span>
+<span class="comment">%     title(fname{i},'interpreter','none');</span>
+<span class="comment">%     drawnow;</span>
+<span class="comment">%     end;</span>
+<span class="comment">% end;</span>
+<span class="comment">%</span>
+<span class="comment">% bar(xbins,sum(val,1));</span>
+<span class="comment">% xlabel('Vesicle radius, &Aring;');</span>
+<span class="comment">% ylabel('Frequency');</span>
+</pre><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2016b</a><br></p></div><!--
+##### SOURCE BEGIN #####
+% ScanMiParameter_VesAmps.m
+% See how much the ring components contribute to vesicle models.  One
+% example is stored at 151117/Trends/VesicleRings.jpg
+%%
+% 
+% 
+% Have the user select some mi files
+[fname, pa]=uigetfile({'*mi.txt' '*mi.mat'},'Select mi files to examine','multiselect','on');
+if ~iscell(fname)
+    fname={fname};
+end;
+
+%%
+% pick up all the mi structures
+cd(pa);
+nim=numel(fname);
+v={};
+for i=1:nim
+    disp(fname{i});
+    mi=ReadMiFile(fname{i});
+    mis{i,1}=mi;
+end;
+
+%%
+save AllMis.mat mis
+return
+
+%%
+% Get amplitudes
+ds=4;
+nv=0;
+for i=1:nim
+    mi=mis{i,1};
+    niv=numel(mi.vesicle.x);
+    % multiply the vesicle model by the voxel size.
+    
+    if niv>0 && isfield(mi.vesicle,'extraPeaks') && numel(mi.vesicle.extraPeaks)>0
+        maxR=max(mi.vesicle.r(all(mi.vesicle.ok,2),1))/ds;
+        n=NextNiceNumber(maxR*3);
+        vx=n/2+1;
+        vy=vx;
+        vd=meDownsampleVesicleModel(mi.vesicleModel,ds)*ds*mi.pixA;
+        
+        for ind=1:niv
+            if all(mi.vesicle.ok(ind,:))
+                nv=nv+1;  % count of all vesicles
+                % Get the coordinates and radius, scaled down by ds
+                vr=mi.vesicle.r(ind,:)/ds;
+                
+                % Accumulate the vesicle density
+                %     sumv=sumv-mi.vesicle.s(ind)*VesicleFromModel(n,vr,vd,[vx vy]);
+                v0=VesicleFromModelGeneral(n,vr,vd,[vx vy],mi.vesicle.s(ind,:,1));
+                
+                % REPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH-Create extra ring componentsREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASHREPLACE_WITH_DASH_DASH
+                % extra amps are part of the s array
+                exAmps=ds*mi.pixA*mi.vesicle.s(ind,:,2:end);
+                exPos=mi.vesicle.extraPeaks/ds;
+                exSigma=mi.vesicle.extraSD/ds;
+                v1=v0+VesicleFromRings(n,exPos,exSigma,vr,[vx vy],exAmps);
+                mulr=50;
+                addr=0;
+                subplot(221);
+                imaga(v0*mulr+addr);
+                subplot(222);
+                imaga(v1*mulr+addr);
+                subplot(224);
+                imaga((v1-v0)*mulr+128);
+                subplot(223);
+                plot([sect(v0) sect(v1)]);
+                axis([0 n 0 5]);
+                drawnow;
+            end;
+        end;
+    end;
+end;
+
+
+
+% <</Users/fred/EMWork/Hideki/151117/KvLipo80slot3/Trends/VesicleRings.jpg>>
+
+
+
+% % Get amplitudes
+% nv=0;
+% for i=1:nim
+%     ves=v{i,1};
+%     niv=numel(ves.x);
+%     for j=1:niv
+%         if all(ves.ok(j,:))
+%             nv=nv+1;
+%     ves0=ves;
+%     ves0.extraPeaks=[];
+%     v=meMakeModelVesicles(mi,n,j,0,0);
+%     v=
+%     s1(nv)=ves.s(
+% e1=zeros(nim,nbins);
+% eAll=zeros(nim,nbins);
+% figure(1);
+% subplot(111);
+% for i=1:nim
+%     %     load(fname{i});
+%     mi=ReadMiFile(fname{i});
+%     if numel(mi.vesicle.x)>0
+%             okVes=all(mi.vesicle.ok,2);
+%             radii=mi.vesicle.r(:,1)*mi.pixA;
+% %             radii=mi.vesicle.r(:,1);
+%             val(i,:)=hist(radii,xbins);
+%
+%     bar(xbins,val(i,:));
+%     title(fname{i},'interpreter','none');
+%     drawnow;
+%     end;
+% end;
+%
+% bar(xbins,sum(val,1));
+% xlabel('Vesicle radius, Å');
+% ylabel('Frequency');
+
+##### SOURCE END #####
+--></body></html>

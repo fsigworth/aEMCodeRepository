@@ -1,0 +1,27 @@
+% MergeImagesPar 2015-01-26 21:07:16
+
+mergeMode = 1  % normal; 3:make merged ctf same as 1st exposure's; 2: same but phase-flipped
+overwrite = 1  % That is, don't skip if merging was already done
+doWriteInfo = 1 % write out mi file when merging is done.
+forceFitting = 1 % don't skip if alignment was alread done
+initialDefoci = [ 1.5   8 ]
+ignoreOldCTFs = 0 % don't use existing defocus values in ctf fitting
+mcDS = 2  % downsampling of merged image
+
+ctfOptions [1x1;5] struct:
+    lowB = 1
+    spFromWholeMicrograph = 1
+    maxRes = 7.5
+    minRes = 20
+    B = 40
+
+% defaults
+nZeros = 1
+useCircMask = 1
+doMakeDirectories = 1
+makeJpegs = 1
+batchMode = 1
+mergeJPath = Merged/jpeg/
+filtPath = Merged/filtered/
+ctfJPath = Merged/filtered/jpeg/
+

@@ -1,0 +1,166 @@
+% rtOnlineDisply.m
+tempDir='temp/';
+imageDir='Micrograph/';
+jpegDir='Jpeg/';
+infoDir='Info/';
+kV=300;
+mode=2;
+pixA=1.1;
+times=0;
+defoci=0;
+maxRepeat=100; % 500 seconds max. waiting.
+
+disp('Getting the first movie');
+[firstName,inPath]=uigetfile('*.*','Select a movie file');
+cd(inPath);
+
+[pa,nm,ex]=fileparts(firstName);
+namePattern=ex;
+
+nameList=cell(0);
+timeList=[];
+
+CheckAndMakeDir(tempDir, 1);
+CheckAndMakeDir(imageDir, 1);
+CheckAndMakeDir(jpegDir, 1);
+CheckAndMakeDir(infoDir,1);
+
+
+mi0=meCreateMicrographInfoStruct14;
+mi0.pixA=pixA;
+% mi0.movieFilename{1}=nameList{end};
+mi0.tempPath=tempDir;
+mi0.imagePath=imageDir;
+mi0.procPath=imageDir;
+mi0.jpegPath=jpegDir;
+mi0.kV=kV;
+mi0.cpe=0.8;
+mi0.namePattern='.tif';
+mi0.moviePath='';
+
+doRepeat=1;
+miIndex=0;
+
+while doRepeat
+    ok=0;
+    repeatCount=0;
+    while ~ok
+        [nameList,timeList,ok]=rtFindNextMovie(nameList,timeList,namePattern,mode);
+        if ~ok
+            pause(5);
+        end;
+        repeatCount=repeatCount+1;
+    end;
+    doRepeat=repeatCount<maxRepeat;
+    
+    miIndex=miIndex+1;
+    times(miIndex)=timeList(end);
+    
+    mi=mi0;
+    mi.movieFilename{1}=nameList{end};
+    [pa,nm,ex]=fileparts(mi.movieFilename{1});
+    mi.baseFilename=nm;
+    mi.imageFilenames{1}=[nm 'ali.mrc'];
+    
+    pars=struct;
+    mi=rtMC2Runner(mi,pars);
+    if isnumeric(mi) % MC2 run was unsuccessful.
+        disp('MotionCor2 run was unsuccessful.');
+        break;
+    end;
+    m=ReadMRC([mi.imagePath mi.imageFilenames{1}]);
+    n0=size(m);
+    n=NextNiceNumber(n0,5,8);
+    m1=Crop(m,n,0,mean(m(:))); % expand to nice size
+    m1s=Downsample(m1,n/4);
+    
+    mysubplot(122);
+    imags(m1s);
+    axis off;
+    title(mi.movieFilename{1}, 'interpreter','none');
+    
+    mysubplot(2,4,1);
+    plot(mi.frameShifts{1});
+    grid on;
+    ylabel('Shift, pixels');
+%     drawnow;
+    
+    gPars=struct;
+    [mi,epaVals,ctfImage,ctfVals]=rtGctfRunner(mi,gPars);
+    if isnumeric(mi)
+        disp('Skipping');
+        break
+    end;
+    
+    % put this onto the drift plot
+    title(['Res limit: ' num2str(ctfVals.RES_LIMIT,3) 'Å']);
+
+    
+    mysubplot(2,4,2);
+    imags(ctfImage);
+    axis off;
+    title(['\delta = ' num2str(mi.ctf.defocus,3) '\mum  astig = ' num2str(abs(mi.ctf.deltadef),3) '\mum']);
+    
+    mysubplot(4,2,5);
+    scl4=1/max(abs(epaVals.epaBkgSub));
+    plot(1./epaVals.resolution,[epaVals.ctfSim.^2 scl4*epaVals.epaBkgSub epaVals.ccc 0*epaVals.ccc]);
+    
+    defoci(miIndex)=mi.ctf.defocus;
+    mysubplot(4,2,7);
+    relTimes=(times-min(times))*24;
+    plot(relTimes,defoci);
+    ylabel('Defocus, \mum');
+    xlabel('Time, hr');
+    
+    drawnow;
+    
+    jpegName=[mi.jpegPath mi.baseFilename '.jpg'];
+    print(jpegName,'-djpeg');
+    
+    WriteMiFile(mi,[infoDir mi.baseFilename 'mi.txt']);
+    
+    
+end;  % big while
+
+
+
+function [nameList,timeList,ok]=rtFindNextMovie(nameList,timeList,pattern,mode)
+ok=0;
+d=dir;
+j=0;
+names=cell(0);
+times=[];
+for i=1:numel(d)
+    nameOk=numel(strfind(d(i).name,pattern));
+    if ~d(i).isdir && nameOk
+        j=j+1;
+        names{j}=d(i).name;
+        times(j)=d(i).datenum;
+    end;
+end;
+if j==0
+    return
+end;
+switch mode
+    case 1  % just pick the last
+        [newTime,newInd]=max(times);
+        if numel(timeList)<1 || newTime>max(timeList)
+            timeList(end+1,1)=newTime;
+            nameList{end+1,1}=d(newInd).name;
+            ok=1;
+        end;
+    case 2  % starting from the beginning, work forward.
+        if numel(timeList)>0
+            oldTime=timeList(end);
+        else
+            oldTime=0;
+        end;
+        [sortedTimes,sortedIndices]=sort(times);
+        newInd=sortedIndices(find(sortedTimes>oldTime,1,'first'));
+        if numel(newInd)>0
+            timeList(end+1,1)=times(newInd);
+            nameList{end+1,1}=names{newInd};
+            ok=1;
+        end;
+end
+end

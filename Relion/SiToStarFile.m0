@@ -1,0 +1,180 @@
+% SiToStarFile
+% Create .star and .mrcs files from our si.mat and stack.mrc files.
+
+dataName='images';
+stackSuffix0='stack.mrc';
+stackSuffix='stack.mrcs';
+modName='a1';
+unsubToo=1;  % include the unsubtracted stack
+cropSize=0;  % no cropping
+setWeights=0; % change weights in mi file copy
+doNormalize=1;  % run NormalizeImages
+doGlobalNorm=0;
+minSD=.01;  % criterion for including image
+
+shiftParticle=0; % shift the intracellular domain to center.
+ctrOffsetA=24;  % IC domain center relative to old particle center
+detPixel=5;     % pixel size in um
+ampContrast=.1;  % if nonzero, override ctf(1).alpha value with this.
+
+activeIndex=inf;
+reverseContrast=0;
+
+% Put up a file selector for *si.mat,
+disp('Getting an si file.');
+[siName, siPath]=uigetfile('*si.mat','Select si file');
+if ~isnumeric(siPath)  % user hasn't clicked Cancel
+    cd(siPath);
+end;
+disp(siName);
+si=load(siName);
+si=si.si;
+nim=numel(si.miIndex);
+afIndex=min(activeIndex,size(si.activeFlags,2));
+activeFlags=si.activeFlags(:,afIndex);
+
+fprintf('Active flag set %d, %d active out of %d.\n',afIndex,sum(activeFlags),numel(activeFlags));
+% Read the stack data
+[pa,nm,ex]=fileparts(siName);
+if numel(nm)<3
+    error('si name is too short');
+end;
+datName=[nm(1:end-2) stackSuffix0];
+disp(['Reading ' datName]);
+imgs0=ReadMRC(datName);
+
+% Crop the stack
+if cropSize >0 && cropSize<size(imgs0,1)
+    disp(['Cropping to ' num2str(cropSize) ' pixels.']);
+else
+    cropSize=size(imgs0,1);
+end;
+    imgs=Crop(imgs0,cropSize,1);
+        
+    
+% Output file names
+stackName=[nm(1:end-2) modName stackSuffix];
+starName=[nm(1:end-2) modName '.star'];
+disp(['Output files: ' starName ' ' stackName]);
+%%
+
+fi=fopen(starName,'w');
+% fi=1;
+
+fprintf(fi,'%s %s\n#\n','# Original stack name: ',siName);
+fprintf(fi,'data_%s\n',dataName);
+
+fprintf(fi,'loop_\n');
+fprintf(fi,'_rlnImageName\n');
+fprintf(fi,'_rlnDefocusU\n');
+fprintf(fi,'_rlnDefocusV\n');
+fprintf(fi,'_rlnDefocusAngle\n');
+fprintf(fi,'_rlnVoltage\n');
+fprintf(fi,'_rlnAmplitudeContrast\n');
+fprintf(fi,'_rlnSphericalAberration\n');
+fprintf(fi,'_rlnMagnification\n');
+fprintf(fi,'_rlnDetectorPixelSize\n');
+fprintf(fi,'_rlnCtfFigureOfMerit\n');
+fprintf(fi,'_rlnGroupNumber\n');
+if unsubToo
+   fprintf(fi,'_rlnReconstructImageName\n');
+end;
+if phasePlate
+    fprintf(fi,'_rlnPhi');
+end;
+
+sinBetas=zeros(nim,1);
+mag=detPixel*10000/si.pixA;
+imgs0=imgs;
+% ---------------need to fix unsub image stack selection and writing.---
+i=0; % counter of valid images
+activeJs=false(nim,1);
+for j=1:nim
+    q=imgs(:,:,j);
+    s=std(q(:));
+    if activeFlags(j) && s>=minSD % some signal
+        activeJs(j)=true;
+        i=i+1;
+        mi=si.mi{si.miIndex(i)};
+        imgs0(:,:,i)=imgs(:,:,j);
+        if any(setWeights)
+            mi.weights=setWeights;
+        end;
+        ds=si.pixA/mi.pixA;
+        if shiftParticle
+            coords=mi.particle.picks(si.miParticle(i),:);
+            rsoSign=sign(coords(7)-.5);  % +1 for rso, -1 for iso
+            sinBeta=min(1,si.yClick(i)/(si.rVesicle(i)-rsoSign*si.mbnOffset));
+            partShift=rsoSign*ctrOffsetA/si.pixA*sinBeta;
+            yClick=si.yClick(i)-partShift;
+            imgs(:,:,i)=Crop(circshift(imgs0(:,:,i),round([0 partShift])),cropSize);
+        else
+            alpha0=0;
+        end;
+        ctf=mi.ctf(1);
+        defocus=ctf.defocus;
+        deltadef=ctf.deltadef;        
+        imgName=sprintf('%05d@%s',i,stackName);
+        imgUName=sprintf('%05d@%s',i,stackUName);
+        defU=round((defocus+deltadef)*1e4);
+        defV=round((defocus-deltadef)*1e4);
+        ang=mod(ctf.theta*180/pi-alpha0,180);
+        kV=mi.kV;
+        if ampContrast>0
+            alpha=ampContrast;
+        else
+            alpha=ctf.alpha;
+        end;
+        Cs=ctf.Cs;
+        fom=si.sVesicle(i)*100;  % figure of merit is vesicle amplitude *100
+        gn=si.miIndex(i);
+        if unsubToo
+            fprintf(fi,'%s %d %d %6.2f %g %5.3f %g %g %g %g %g %s\n',imgName,defU,defV,ang,kV,alpha,Cs,mag,detPixel,fom,gn,imgUName);
+        else
+            fprintf(fi,'%s %d %d %6.2f %g %5.3f %g %g %g %g %g\n',imgName,defU,defV,ang,kV,alpha,Cs,mag,detPixel,fom,gn);
+        end;
+        
+    else
+        disp([num2str([j i]) ' skipped.  SD= ' num2str(s)]);
+    end;
+end;
+fprintf(fi,'\n');
+fclose(fi);
+imgs0=imgs0(:,:,1:i);
+disp(['Total images ' num2str(i)]);
+%%
+if doNormalize
+    [normImgs,vars]=NormalizeImages(imgs0,1,0,doGlobalNorm);  % global normalization
+    disp(['Variance before normalization: ' num2str(median(vars))]);
+else
+    normImgs=imgs0;
+    vars=std(imgs0(:))^2;
+    disp(['Image variance: ' num2str(vars)]);
+end;
+
+if reverseContrast
+    normImgs=-normImgs;
+end;
+upperThresh=10;  % beyond 10 sds is an outlier!
+lowerThresh=-10;
+normImgs(normImgs>upperThresh)=upperThresh;
+normImgs(normImgs<lowerThresh)=lowerThresh;
+
+disp(['Writing ' stackName]);
+WriteMRC(normImgs,si.pixA,stackName);
+
+
+% 
+% 
+% data_images
+% loop_
+% _rlnImageName
+% _rlnDefocusU
+% _rlnDefocusV
+% _rlnDefocusAngle
+% _rlnVoltage
+% _rlnAmplitudeContrast
+% _rlnSphericalAberration
+% 000001@/lmb/home/scheres/data/VP7/all_images.mrcs 13538 13985 109.45 300 0.15 2
+% 000002@/lmb/home/scheres/data/VP7/all_images.mrcs 13293 13796 109.45 300 0.15 2
+% 000003@/lmb/home/scheres/data/VP7/all_images.mcrs 13626 14085 109.45 300 0.15 2

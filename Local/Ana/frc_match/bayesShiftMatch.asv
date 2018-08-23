@@ -1,0 +1,12 @@
+function maxIndex=bayesShiftMatch(img1,img2,maxShift,sigma)
+    perf=[];
+    shiftArray=[];
+    for shift=1:maxShift,
+        img1=circshift(img1,1,1);
+        perf=[perf exp(-sum((img1(:)-img2(:)).^2)/(2*sigma^2))];
+        shiftArray=[shiftArray shift
+    end
+    perf=perf/sum(perf);
+    
+
+

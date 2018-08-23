@@ -1,0 +1,12 @@
+function infoName=meSaveMiFile(mi,writeText)
+% assumes that we a
+if nargin<2
+    writeText=false;
+end;
+if writeText
+    infoName=[mi.infoPath mi.baseFilename 'mi.txt'];
+    WriteMiText(mi,infoName);
+else
+    infoName=[mi.infoPath mi.baseFilename 'mi.mat'];
+    save(fullName,'mi');
+end;

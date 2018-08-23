@@ -1,0 +1,7 @@
+% This is a test of reading structures
+a =   This is some text with leading and trailing  
+b = 3.14159265344444
+c = 1.2222d
+array = [10 10 10]
+d [2x1x2]:
+1 2 3 4
