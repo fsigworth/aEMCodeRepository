@@ -2,7 +2,7 @@ function MergeImages(miNames,mpars)
 % function MergeImages(miNames,mpars)
 % can also be called by
 %   MergeImages(parFileName)
-%   MergeImages
+%   MergeImages % put up file selector and use defaults
 % Same as the old MergeImages, but operates on already extant mi files,
 % reading names from the cell array miNames or putting up a file selector.
 % This is a version that works in parallel on Louise nodes.
