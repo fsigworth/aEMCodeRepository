@@ -1,4 +1,4 @@
-% VesicleFinder.m
+function VesicleFinder(fileList);
 % fileList={'a';'b'};
 
 % non-gui version of Vesicle_finding_GUI
@@ -28,6 +28,7 @@ sav.black=-2;
 sav.white=.5;
 sav.automaskFixed=0;
 sav.initTheVesicles=0;
+sav.eraseOldPicks=0;
 
 % State variables
 h.sav=sav;
@@ -67,7 +68,7 @@ h.varianceMap=single(0);
 h.axes1ButtonDown=false;
 h.markedVesicleIndex=0;
 h.findInMask=1;
-h.eraseOldPicks=0;
+% h.eraseOldPicks=0;
 h.borderFraction=256;  % relative size of merged-image border is 1/256 ------------
 h.theImage=[];
 h.manualMaskDiameter=0;
@@ -96,16 +97,26 @@ h.axes3=axes(f1, 'units','pixels','position', [960+60 100 320 320]);
 
 
 %%% read a context file to get the parameters h.sav
-% Find our local directory
+% Try first the current directory, then the code directory.
 pa=fileparts(which('Vesicle_finding_GUI'));
-% Retrieve parameters from VesiclePara.mat in the local directory
-if exist([pa '/VFContext.mat'],'file')
-    disp('Loading VFContext.mat');
-    sav=load([pa '/VFContext.mat']);
-    h.sav=sav.sav;
-    %%%%%%
-    h.sav.initTheVesicles=1;
+localName='VFContext.mat';
+rootName=[AddSlash(pa) localName];
+
+if exist('VFContext.mat','file');  % try to find the local one.
+    disp(['Loading ' localName]);
+    sav=load(localName);
+elseif exist(rootName,'file')
+    disp(['Loading ' rootName]);
+    sav=load(rootName);
+    disp(['Saving a local copy of ' localName]);
+    save(localName,'sav');  % store a local copy.
+else
+    error([localName ' or ' rootName ': file not found']);
 end;
+h.sav=sav.sav;
+
+%     %%%%%%
+%     h.sav.initTheVesicles=1;
 
 h.imageFileTypes={'m.mrc' 'mf.mrc' 'm.jpg' 'mf.jpg'};  % allowed types of
 % images to load based on mi file.
@@ -119,7 +130,8 @@ h=LoadFile(h);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Robo-fit loop
-while h.imageLoaded
+ok=1;
+while ok
     %         delete the old automask
     h=NewAutomask(h,false);
     h.doTrackMembranes=0;
@@ -159,7 +171,7 @@ if isfield(h.mi,'mask')&&(numel(h.mi.mask)>h.maskIndex)
     h.mi.mask=h.mi.mask(1:h.maskIndex);
 end;
 
-if h.eraseOldPicks
+if h.sav.eraseOldPicks
     h.mi.particle.picks=[];
     mi=h.mi;
 else
@@ -175,11 +187,16 @@ end
 
 
 function h=LoadFile(h)
+
 % We'll read an mi file
 disp('LoadFile');
 if h.batchMode
     h.fileIndex=h.fileIndex+1;
     infoPath='';
+    if h.fileIndex>numel(h.fileList)
+        h.imageLoaded=false;
+        return
+    end;
     fileName=h.fileList{h.fileIndex};
 end;
 
@@ -451,8 +468,10 @@ if h.imageLoaded
     end;
     %     theImage =  repmat(rot90(imscale(imData,256,1e-3)),[1 1 3]);
     midValue=h.e1CtrValue/(h.mi.doses(1)*h.mi.cpe)-1;
-    theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)),[1 1 3]);
-    
+%     theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)),[1 1 3]);
+% We just autoscale the image.
+    theImage =  repmat(rot90(imscale(imData,256,.0001)),[1 1 3]);
+ 
     nx=size(h.rawImage,1);
     ny=size(h.rawImage,2);
     
@@ -566,6 +585,9 @@ function [h, ok]=LoadAnotherMiFile(h,offset)
     h.miChanged=0;
     h.fileIndex=h.fileIndex+offset;
     infoPath='';
+    if h.fileIndex> numel(h.fileList)
+        return
+    end;
     fileName=h.fileList{h.fileIndex};
     disp(['Reading ' fileName]);
     [mi,nameRead]=ReadMiFile([infoPath fileName]);
@@ -950,4 +972,4 @@ end
 
 
 % 
-
+end

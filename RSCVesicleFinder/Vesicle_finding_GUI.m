@@ -97,6 +97,7 @@ sav.black=.6;
 sav.white=1.2;
 sav.automaskFixed=0;
 sav.initTheVesicles=0;
+sav.eraseOldPicks=0;
 
 % State variables
 h.sav=sav;
@@ -140,7 +141,7 @@ h.varianceMap=single(0);
 h.axes1ButtonDown=false;
 h.markedVesicleIndex=0;
 h.findInMask=1;
-h.eraseOldPicks=0;
+% h.eraseOldPicks=0;
 h.borderFraction=256;  % relative size of merged-image border is 1/256 ------------
 h.theImage=[];
 h.manualMaskDiameter=0;
@@ -231,7 +232,8 @@ set(h.edit_beamY,'string',num2str(h.sav.beamPars(2)));
 set(h.edit_beamR,'string',num2str(h.sav.beamPars(3)));
 
 set(h.FindInMaskButton,'value',h.findInMask);
-set(h.EraseOldPicksButton,'value',h.eraseOldPicks);
+h.sav.eraseOldPicks=0;  %%%%%
+set(h.EraseOldPicksButton,'value',h.sav.eraseOldPicks);
 set(h.textFilename,'string','---');
 
 
@@ -276,6 +278,8 @@ if active
     disp('RoboFit ended.');
         guidata(hObject,h);
     end;
+else
+    disp('RoboFit stopping...');
 end;
 end
 
@@ -360,7 +364,7 @@ if isfield(h.mi,'mask')&&(numel(h.mi.mask)>h.maskIndex)
     h.mi.mask=h.mi.mask(1:h.maskIndex);
 end;
 % mi=h.mi;
-if h.eraseOldPicks
+if h.sav.eraseOldPicks
     h.mi.particle.picks=[];
     mi=h.mi;
 else
@@ -793,7 +797,10 @@ if h.imageLoaded
         hold on
         for i=1:nv
             r1=h.mi.vesicle.r(i,:)/h.ds0;
-            [x,y]=CircleLineSegments(h.mi.vesicle.r(i,:)/h.ds0,min(10,100/r1(1)));
+            if r1(1)<1
+                continue
+            end;
+            [x,y]=CircleLineSegments(r1,min(10,100/r1(1)));
             x=double(x+h.mi.vesicle.x(i)/h.ds0+1);
             y=double(y+ny-h.mi.vesicle.y(i)/h.ds0+1);
             if goodVes(i)
@@ -1860,8 +1867,8 @@ function EraseOldPicksButton_Callback(hObject, eventdata, h)
 % hObject    handle to EraseOldPicksButton (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
-h.eraseOldPicks=1-h.eraseOldPicks;
-set(hObject,'Value',h.eraseOldPicks);
+h.sav.eraseOldPicks=1-h.sav.eraseOldPicks;
+set(hObject,'Value',h.sav.eraseOldPicks);
 guidata(hObject,h);
 end
 
