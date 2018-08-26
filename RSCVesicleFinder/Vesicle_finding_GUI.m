@@ -1192,7 +1192,7 @@ if numel(h.exp1Image)>1 && ~any(isnan(h.exp1Image(:))) % Something there
     med=abs(median(exp1f(:)));  % make sure it's positive, should be.
     bins=.75*med:med/200:1.25*med;
     e1Hist=hist(exp1f(:),bins);
-    [e1Val,e1Mode]=max(e1Hist);
+    [e1Val,~]=max(e1Hist);
     e1Upper=find(e1Hist>e1Val/2,1,'last');
     %     sigma5=5*(e1Upper-e1Mode+.5);
 %     e1Ctr=bins(e1Mode);

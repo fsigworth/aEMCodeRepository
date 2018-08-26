@@ -149,7 +149,7 @@ while ok
 
     h=NewAutomask(h);
         print('-djpeg',[h.jpegDir h.mi.baseFilename 'vf.jpg']);
-    [h ok]=LoadAnotherMiFile(h,1);
+    [h, ok]=LoadAnotherMiFile(h,1);
 end;
 return  % ---------------end of Main----------------
 
@@ -334,8 +334,8 @@ if ok
     %     if h.maskIndex<3 % no audomasking has been done
     %         set(h.togglebutton_Automask,'value',true);
     %     end;
-else
-    msgbox(['Can''t find the image ' imageBasename],'ok');
+% else
+%     msgbox(['Can''t find the image ' imageBasename],'ok');
 end;
 end
 
@@ -714,13 +714,17 @@ end
 function h=InitAutomask(h)
 h.maskIndex=max(h.maskIndex,3);  % Show this mask
 m=h.rawImage-h.goodVesImage-h.badVesImage;
-m=Downsample(m,size(m)/2);
-h.ifImage=meCTFInverseFilter(m,h.mi,1,0,0);  % totally inverse filtered
+if all(size(m)>1) % an actual image
+    m=Downsample(m,size(m)/2);
+    
+    h.ifImage=meCTFInverseFilter(m,h.mi,1,0,0);  % totally inverse filtered
 % h.ifImageFlat=GaussFilt(meCTFInverseFilter(m,h.mi,1,0,.0005),.05);
-h.ifImageComp=GaussFilt(meCTFInverseFilter(m,h.mi,1,.0005,.0005),.1);
+    h.ifImageComp=GaussFilt(meCTFInverseFilter(m,h.mi,1,.0005,.0005),.1);
+else
+    disp(['*** size of m is ' num2str(size(m))]);
 end
 
-function h=NewAutomask(h,active)
+ffunction h=NewAutomask(h,active)
 if nargin<2
     active=true;
 end;
