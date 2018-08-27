@@ -201,6 +201,7 @@ else % m is a string, 'next' or 'end'
     switch lower(m)
         case 'next'
             maxN=mi;        % pick up the alternate arguments.
+            mi=t.mi;  % in case we need it....
             thresh=rPars;
  thresh(4)=thresh(1) * 0.5;  % arbitrary factor!!!
 % thresh(3)=thresh(2)/20;

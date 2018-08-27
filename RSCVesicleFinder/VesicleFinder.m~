@@ -1,15 +1,13 @@
 function VesicleFinder(fileList,mpars);
 % non-gui version of Vesicle_finding_GUI
 % e.g. fileList={'ami.txt';'bmi.txt'};
-% e.g. pars.sav.vesicleAmps=[6e-4 2e-3 0];
 
 if nargin<2
     mpars=struct;
 end;
 
-disp('VesicleFinder startup.');
-
-
+disp('VesicleFinder s
+% pars.vesicleAmps=[2e-3 5e-3 0];
 
 % Replace any given pars with the default amPars
 % % pars=SetOptionValues(pars,mpars);
