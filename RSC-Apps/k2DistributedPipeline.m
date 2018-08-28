@@ -1,29 +1,34 @@
-% k2DistributedPipeline.m
+% k2DistributedPipvveline.m
 % Run the processing pipeline for K2 or F2 movies.
 % This is assumed to run after running k2CreateInfoFiles or f2CreateInfoFiles
 % on one worker so
 % we only read the mi files, not create them.
 
 f2Mode        =0;  % 0 means k2 data
-serialMode    =1;   % go through all the steps before moving to next micrograph
+serialMode    =0;   % go through all the steps before moving to next micrograph
 %checkLogs     =0;  % not yet in use.
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
-doMerge       =1;
+doMerge       =0;
 doDownsampleMergedImages=0;  % job 1 does downsampling
 allDownsampleMergedImages=0;  % all workers do downsampling.
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =0;
-doPrelimInverseFilter =1;
-doRefineVesicles      =1;
+doFindVesicles        =1;
+%***
+findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
+findVesicleDirs={'KvLipo121_2w10_v3.5/';'KvLipo121_2w10_v3.6/';
+                 'KvLipo121_2w10_v3.7/';'KvLipo121_2w10_v3.8/'};
+%***
+doPrelimInverseFilter =0;
+doRefineVesicles      =0;
 %%% minRefineVesiclesSequence=0;  % 0 if don't consider.
 minRefineVesiclesSequence=inf;
-doInverseFilter       =1;
+doInverseFilter       =0;
 doPickingPreprocessor =0;
 %%workingDir='/ysm-gpfs/pi/cryoem/krios/20180226/Kv_1/'
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
-workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w10_v2/'
+workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w10_v3/'
 %workingDir='/gpfs/ysm/scratch60/fjs2/180226/Kv_1SelW10/';
 %workingDir='/ysm-gpfs/scratch60/fjs2/170926Nelli/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/171031Nelli/'
@@ -227,9 +232,16 @@ while iName(end)<=numJobNames
         fpars.useUnsubImage=1;
         meInverseFilterAuto(ourNames,fpars);
     end;
-    % find vesicles (sequence 4)
-    if doFindVesicles && logSequence(4)<=logSequence(3)
-        VesicleFinder(ourNames);
+    % find vesicles (sequence 4) *****************
+%    if doFindVesicles && logSequence(4)<=logSequence(3)
+    if doFindVesicles
+        for i=1:numel(findVesicleAmps)
+            vfpars.sav.vesicleAmps=[findVesicleAmps(i) 2e-3 0];
+            cd('..');
+            cd(findVesicleDirs{i});
+            disp(pwd);
+            VesicleFinder(ourNames,vfpars);
+        end;
     end;
     % refine vesicles (sequence 5)
     if doRefineVesicles && (logSequence(5)<logSequence(4) ...

@@ -4,7 +4,7 @@ maxSlopeSq=1;
 maxClosure=5;
 maxS1Ratio=10;
 displayOn=0;
-
+minRadiusA=80; % vesicles smaller than this won't be tracked at all.
 
 ds1=1;
 mi=h.mi;
@@ -36,6 +36,9 @@ for ind=1:nv;
     cx=mi.vesicle.x(ind)/ds+1;
     cy=mi.vesicle.y(ind)/ds+1;
     cr=mi.vesicle.r(ind,1)/ds;
+    if cr<minRadiusA/pixA % skip small vesicles
+        continue
+    end;
     % r0=ceil(shiftWidthA/pixA); % shift of polar coordinates to include the peak
     r0=round(cr);
     mi1=mi;
