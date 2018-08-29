@@ -249,7 +249,7 @@ else % m is a string, 'next' or 'end'
                         t.mi.vesicle.x(t.nfound,1)=(jx-1)*t.ds+1;
                         t.mi.vesicle.y(t.nfound,1)=(jy-1)*t.ds+1;
                         t.mi.vesicle.s(t.nfound,1)=ampi/(1-fracMasked);
-                        t.mi.vesicle.ok(t.nfound,1:4)=[1 flag flag flag];  % flag indicates a vesicle in bounds.
+                        t.mi.vesicle.ok(t.nfound,1:4)=[1 flag 0 0];  % flag indicates a vesicle in bounds.
                         vref=ampi*circshift(t.rrefs(:,:,refi),round([jx jy]-nsx/2-1));
                         t.umodel=t.umodel+Crop(vref,t.ns0);  % approximate model
                     end;
@@ -263,7 +263,7 @@ else % m is a string, 'next' or 'end'
                 
                 subplot(2,3,3);
                 plot(t.mi.vesicle.r(:,1)*t.mi.pixA,t.mi.vesicle.s(:,1),'k.');
-                xlabel('Vesicle radius, Å');
+                xlabel('Vesicle radius, ï¿½');
                 ylabel('Image amplitude');
                 drawnow;
             end;

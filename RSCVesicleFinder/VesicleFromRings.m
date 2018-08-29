@@ -1,5 +1,5 @@
-function [v,wi]=VesicleFromRings(n,exPos,exSigma,r,org,exAmps)
-% function [v,wi]=VesicleFromRings(n,exPos,exSigma,r,org,exAmps)
+function [v,wi]=VesicleFromRings(n,exPos,exSigma,r,org,exAmps,doCrossSection)
+% function [v,wi]=VesicleFromRings(n,exPos,exSigma,r,org,exAmps,doCrossSection)
 % Compute the 'ring' vesicle model based on the complex radius expansion
 % like VesicleFromModelGeneral, but consisting only of the sum of nxc rings
 % of positions (in pixels, relative to nominal radius expansion r) if the 1 x nxc array
@@ -61,7 +61,7 @@ for i=1:nxc
 % %     vdx=Gaussian(nvdx,1,exSigma,cvdx);
     r1=r;
 % %     r1(1)=r1(1)+exPos(i);
-    vArray(:,i)=reshape(VesicleFromModelGeneral(n1,r1,vdx,org1),n2,1);
+    vArray(:,i)=reshape(VesicleFromModelGeneral(n1,r1,vdx,org1,0,doCrossSection),n2,1);
 end;
 
 if (returnRingArray && nargout>1) || ~returnRingArray  % compute the complex exponential

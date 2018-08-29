@@ -42,3 +42,9 @@ W0=real(Rp.*sqrt(a0^2-Rp.^2)+a0^2*asin(Rp/a0)...
 W=(W1-W0);  % don't divide by 2 because we have 2 hemispheres.
 
 % W=2*real(sqrt(a1^2-R.^2)-sqrt(a0^2-R.^2));
+% 
+% %% alternate code for cross-section
+% 
+% W1=max(0,min(1,a1-R));
+% W0=max(0,min(1,a0-R));
+% W=W1-W0;

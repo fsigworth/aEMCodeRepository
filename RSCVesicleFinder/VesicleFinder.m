@@ -242,7 +242,7 @@ return  % ---------------end of Main----------------
 
     function mis=ZeroOutVesicles(mis,h)
         % Initialize all the vesicle fields in the mi structure
-        % membrane model
+        % Also initializes the membrane model
         vLipid=h.sav.membranePars(1);
         thk=h.sav.membranePars(2);
         rise=h.sav.membranePars(3);
@@ -812,6 +812,7 @@ return  % ---------------end of Main----------------
         if isfield(mi1,'mask')
             mi1.mask=mi1.mask(1:h.maskIndex); % collapse the mask array
         end;
+        % Initialize the vesicle finder
         mi1=rsFindVesicles3(h.rawImage, mi1, rPars, h.findInMask);
         %%
         minAmp=h.sav.vesicleAmps(1);

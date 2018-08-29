@@ -1,4 +1,4 @@
-function W = VesicleFromModel(n,a,model,org,term2)
+function W = VesicleFromModel(n,a,model,org,term2,doCrossSection)
 %  function W = VesicleFromModel(n,a,model,org,term2)
 % Given a density cross-section vector 'model', construct the density of a
 % spherical vesicle in an image of size n, with radius a and center org.
@@ -25,6 +25,9 @@ if nargin<4
 end;
 if nargin<5
     term2=0;
+end;
+if nargin<6
+    doCrossSection=false;
 end;
 
 org=org(:)';  % make it a row vector
@@ -57,6 +60,16 @@ else
 end;
 % dr=1;%%%%%
 
+if doCrossSection
+    for i=2:nm
+    b=model(i-1)-model(i);
+    r0=a+(i-mctr-.5)*dr;
+    if r0>0 && abs(b)>tol*maxDensity
+        W1=W1+b*max(0,min(1,(r0-r)*dr));
+    end;
+    end;
+else  % 3D density projection
+    
 rm=r-.5*dr;
 rp=r+.5*dr;
 for i=2:nm
@@ -68,6 +81,10 @@ for i=2:nm
                   -rm.*sqrt(r0^2-rm.^2)-r0^2*atan(rm./(sqrt(r0^2-rm.^2))));
     end;
 end;
+
+end;
+
+
 if n1<n
     W=ExtractImage(W1,round(org),n,1);  % insert the image into the larger one.
 else

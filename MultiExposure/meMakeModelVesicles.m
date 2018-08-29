@@ -1,6 +1,6 @@
-function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW)
-% function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW)
-% function v=meMakeModelVesicles(mi,img,vindex,doCTF,doPW)
+function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
+% function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
+% function v=meMakeModelVesicles(mi,img,vindex,doCTF,doPW,doCrossSection)
 % Given the info structure mi, make a CTF-filtered, scaled vesicle model
 % for each vindex value in the mi.vesicle arrays; default is every one for
 % which mi.vesicle.ok==1.
@@ -59,6 +59,9 @@ end;
 if nargin<5
     doPW=0;
 end;
+if nargin<6
+    doCrossSection=false;
+end;
 
 if numel(n)~=2
     n=[1 1]*n;
@@ -82,7 +85,8 @@ for k=1:nim
     
     % Accumulate the vesicle density
 %     sumv=sumv-mi.vesicle.s(ind)*VesicleFromModel(n,vr,vd,[vx vy]);
-    sumv=sumv-VesicleFromModelGeneral(n,vr,vd,[vx vy],mi.vesicle.s(ind,:,1));
+    sumv=sumv-VesicleFromModelGeneral(n,vr,vd,[vx vy], ...
+        mi.vesicle.s(ind,:,1),doCrossSection);
 
     % -------------Create extra ring components--------------
 if isfield(mi.vesicle,'extraPeaks') && numel(mi.vesicle.extraPeaks)>0
@@ -98,7 +102,7 @@ if isfield(mi.vesicle,'extraPeaks') && numel(mi.vesicle.extraPeaks)>0
     if any(exAmps(:))
         exPos=mi.vesicle.extraPeaks/ds;
         exSigma=mi.vesicle.extraSD/ds;
-        sumv=sumv-VesicleFromRings(n,exPos,exSigma,vr,[vx vy],exAmps);
+        sumv=sumv-VesicleFromRings(n,exPos,exSigma,vr,[vx vy],exAmps,doCrossSection);
     end;
 end;
 

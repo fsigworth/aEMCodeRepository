@@ -2,7 +2,9 @@ function path=ViterbiPath(p0,B,A)
 % function path=ViterbiPath(p0,B,A)
 % given ni states and nt time points, p0 is the ni x 1 initial probability
 % vector; B is the ni x nt observable probability, and A is a 1 x nk vector
-% representing a row of (if nk=3) the tridiagonal matrix.
+% representing a row of (if nk=3) the tridiagonal transition matrix.
+%
+% Example arguments:
 % B=[ 1 0 0 0 0 0 0 0
 %     1 0 0 0 0 0 0 0
 %     0 1 0 0 0 0 0 0

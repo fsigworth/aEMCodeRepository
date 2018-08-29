@@ -1,4 +1,4 @@
-function W = VesicleFromModelGeneral(n,a,model,org,aw)
+function W = VesicleFromModelGeneral(n,a,model,org,aw,doCrossSection)
 % function W = VesicleFromModelGeneral(n,a,model,org,aw)
 % Given a density cross-section vector 'model', construct the density of a
 %  vesicle in an image of size n, with radius a and center org.
@@ -37,6 +37,10 @@ end;
 if nargin<5
     aw=1;
 end;
+if nargin<6
+    doCrossSection=false;
+end;
+
 a=a(:); % make it a column vector;
 nterms=numel(a);
 
@@ -50,7 +54,7 @@ aw=aw(:);
 % Handle the case that it is a spherical vesicle after all
 % --no high-order terms in radius or weights
 if nterms<2 || (all(a(2:end)==0) && all(aw(2:end)==0))
-    W=aw(1)*VesicleFromModel(n,a(1),model,org);
+    W=aw(1)*VesicleFromModel(n,a(1),model,org,0,doCrossSection);
     return
 end;
 
@@ -102,7 +106,7 @@ rNom=real(wi*a);  % nominal radius of shells, 2D function, as a function of thet
 rDeriv=real(wi*(1i*a.*(0:nterms-1)'));  % derivative of a wrt theta
 thkFactor=sqrt((rDeriv./rNom).^2+1);
 
-if rBoundFactor>0
+if rBoundFactor>0 && ~doCrossSection
     % Compute the smoothing function for angular dependences
     rBound=(rNom-mctr*thkFactor)*rBoundFactor;
     argSm=min(1,r./rBound);
@@ -124,13 +128,26 @@ W1=zeros(n2,1,'single');
 %     aDeriv=sin/cos so 1/cos=sqrt(aDeriv^2+1)
 % rD2d=reshape(rDeriv,n1);
 % rNom2d=reshape(rNom,n1);
-for i=2:nm
-    r0=rNomSm+(i-mctr-.5)*thkFactor;  % corrected radius as a fcn of theta.
-    r02=r0.^2;  %max(0,reshape(r0,n1)).^2;
-    b=model(i-1)-model(i);
-    if abs(b)>tol*maxDensity  % A significant change in density
-        W1=W1+b*real(rp.*sqrt(r02-rp2)+r02.*atan(rp./(sqrt(r02-rp2)))...
-                    -rm.*sqrt(r02-rm2)-r02.*atan(rm./(sqrt(r02-rm2))));
+if doCrossSection
+    
+    
+    
+    for i=2:nm
+        r0=rNomSm+(i-mctr-.5)*thkFactor;  % corrected radius as a fcn of theta.
+        b=model(i-1)-model(i);
+        if abs(b)>tol*maxDensity  % A significant change in density
+            W1=W1+b*max(0,min(1,r0-r));
+        end;
+    end;
+else
+    for i=2:nm
+        r0=rNomSm+(i-mctr-.5)*thkFactor;  % corrected radius as a fcn of theta.
+        r02=r0.^2;  %max(0,reshape(r0,n1)).^2;
+        b=model(i-1)-model(i);
+        if abs(b)>tol*maxDensity  % A significant change in density
+            W1=W1+b*real(rp.*sqrt(r02-rp2)+r02.*atan(rp./(sqrt(r02-rp2)))...
+                -rm.*sqrt(r02-rm2)-r02.*atan(rm./(sqrt(r02-rm2))));
+        end;
     end;
 end;
 W1=reshape(W1.*real(wiSm*aw),n1);  % impose the weighting
