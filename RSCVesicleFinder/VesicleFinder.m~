@@ -165,7 +165,6 @@ for fIndex=1:numel(fileList)
         h=DoFindMore(h);
         
         h=NewAutomask(h);
-        h=CloseFile(h);
         jpegName=[h.jpegDir h.mi.baseFilename 'vf.jpg'];
         disp(['Saving ' jpegName]);
         print('-djpeg',jpegName);

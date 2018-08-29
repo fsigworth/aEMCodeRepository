@@ -1,9 +1,5 @@
 function mi2=TrackVesicleMembrane(h);
 
-% mi2=h.mi;
-% return
-% %%%%%%%%%%%%%%%
-
 maxSlopeSq=1;
 maxClosure=5;
 maxS1Ratio=10;
@@ -67,7 +63,6 @@ for ind=startInd:nv;
         hold on;  % draw the initial vesicle path
         plot(xi,yi,'b-');
         hold off;
-        title(ind);
     end;
     maskOverlap=any(xi<1|xi>nx|yi<1|yi>nx);
     if ~maskOverlap
@@ -203,9 +198,9 @@ for ind=startInd:nv;
     f(:,1)=sum(v2x(:));
     f(:,2)=v2x(:);
     sVals=LinLeastSquares(f,mx(:));
-disp([ind s1 sVals(2)]);
     s1=sVals(2);
-%     s1=1; %%%%%%%%%
+    
+    s1=1 %%%%%%%%%
     
     if displayOn
         subplot(233);
