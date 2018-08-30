@@ -37,8 +37,8 @@ sav.beamPars=[0 0 100];  % X, Y and R
 sav.black=-2;
 sav.white=.5;
 sav.automaskFixed=0;
-sav.initTheVesicles=0;
-sav.eraseOldPicks=0;
+sav.initTheVesicles=1;
+sav.eraseOldPicks=1;
 
 % State variables
 h.sav=sav;
@@ -149,12 +149,12 @@ for fIndex=1:numel(fileList)
     if imageOk
         disp('Automatic vesicle finding:');
         %         delete the old automask
-% %         h=NewAutomask(h,false);
-% %         disp('Automask off');
-% %         h.doTrackMembranes=0;
-% %         h=DoFind(h);
-% %         h=DoFindMore(h);
-% %         %%         Make a new automask
+        h=NewAutomask(h,false);
+        disp('Automask off');
+        h.doTrackMembranes=0;
+        h=DoFind(h);
+        h=DoFindMore(h);
+        %%         Make a new automask
         disp('Automask on.');
         h=InitAutomask(h);
         h=NewAutomask(h,true);
@@ -164,7 +164,7 @@ for fIndex=1:numel(fileList)
         h=DoFind(h);
         h=DoFindMore(h);
         
-        h=NewAutomask(h);
+%         h=NewAutomask(h);
         h=CloseFile(h);
         jpegName=[h.jpegDir h.mi.baseFilename 'vf.jpg'];
         disp(['Saving ' jpegName]);
@@ -776,6 +776,7 @@ return  % ---------------end of Main----------------
     end
 
 
+% --------------------------finding---------------------------
 
     function h=DoFind(h)
         if h.sav.initTheVesicles && ~h.findingStarted
@@ -923,6 +924,7 @@ return  % ---------------end of Main----------------
                 *vLipid;  % units of V
         end;
         rPars=h.sav.vesicleRadii;
+        % in this case we use the raw vesicle image for finding.
         mi1=rsFindVesicles3(h.rawImage-h.rawVesImage, h.mi, rPars, h.findInMask);
         prevNFound=numel(mi1.vesicle.x);
         %%
@@ -945,7 +947,7 @@ return  % ---------------end of Main----------------
             xs2=rPars(2);
             xs=[xs1    xs1    xs2    xs2    xs1];
             ys=[minAmp maxAmp maxAmp minAmp minAmp];
-            if numel(mi1.vesicle.ok)<4  % not even one row present
+            if numel(mi1.vesicle.ok)<4
                 mi1.vesicle.ok=false(1,4); % make sure there are enough elements
             end;
             goodVes=all(mi1.vesicle.ok(1:nves,1:2),2);
@@ -979,11 +981,11 @@ return  % ---------------end of Main----------------
         mi1.vesicle.extraSD=0;
         mi1.vesicle.extraS=[];
         
-        % Additional vesicles are marked 'false' in the 4th column.
+        % Additional vesicles are marked 'false' in the 3rd-4th column.
         totalNFound=numel(mi1.vesicle.x);
         if totalNFound>prevNFound
             disp([num2str(totalNFound-prevNFound) ' additional vesicles found...']);
-            mi1.vesicle.ok(prevNFound+1:totalNFound,4)=false;
+            mi1.vesicle.ok(prevNFound+1:totalNFound,3:4)=false;
         end;
         
         h.mi=mi1;

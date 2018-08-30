@@ -14,7 +14,7 @@ function mi2=TrackVesicleMembrane(h);
     % h.sav.vesicleAmps
 % The returned mi2 structure has updated values exclusively in mi2.vesicle
 
-displayOn=1; % Show intermediate results on a second figure
+displayOn=0; % Show intermediate results on a second figure
 maxSlopeSq=1;
 maxClosure=5;
 maxS1Ratio=10;
@@ -246,9 +246,9 @@ for ind=startInd:nv;
         % Mark our vesicle ok if it meets the criteria
         r01=mi2.vesicle.r(ind,1)*mi2.pixA;
         s01=mi2.vesicle.s(ind,1);
-        mi2.vesicle.ok(ind,2)=(r01>=h.sav.vesicleRadii(1) && r01<=h.sav.vesicleRadii(2) ...
+        flag=(r01>=h.sav.vesicleRadii(1) && r01<=h.sav.vesicleRadii(2) ...
             && s01>=h.sav.vesicleAmps(1) && s01<=h.sav.vesicleAmps(2));
-        
+        mi2.vesicle.ok(ind,:)=[1 flag 0 0];
         % blank all vesicles whose centers overlap with our new vesicle.
         vesMask=VesicleMaskGeneral(n,mi2.vesicle.r(ind,:)/ds,0,[mi2.vesicle.x(ind) mi2.vesicle.y(ind)]/ds+1);
         nBlanked=0;
@@ -273,14 +273,15 @@ for ind=startInd:nv;
             hold off;
         end;
     end;
-    drawnow;
-%     pause
-    
+    if displayOn
+        drawnow;
+    end;
 end; % loop over vesicle index
 
 if displayOn
     figure(oldFig);
 end;
+
 
 disp([num2str(numRefined) ' vesicles refined of ' num2str(nv)]);
 

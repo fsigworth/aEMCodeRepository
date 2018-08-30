@@ -248,7 +248,7 @@ else % m is a string, 'next' or 'end'
                         flag=single((fracMasked<.2) && (refri>=radiusThresh*t.rmin)...
                          && (refri<=t.rmax) && ampi>thresh(1)/(1-fracMasked)*rDecay);
                         flag=flag & t.mask(jx,jy) & nccv>thresh(4);
-                        t.nfound=t.nfound+1; %%%%% increment nfound
+                        t.nfound=t.nfound+1;
                         t.mi.vesicle.r(t.nfound,1)=refri*t.ds;
                         t.mi.vesicle.x(t.nfound,1)=(jx-1)*t.ds+1;
                         t.mi.vesicle.y(t.nfound,1)=(jy-1)*t.ds+1;

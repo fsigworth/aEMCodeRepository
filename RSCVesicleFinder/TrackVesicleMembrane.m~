@@ -55,7 +55,7 @@ for ind=startInd:nv;
     cx=mi.vesicle.x(ind)/ds+1;
     cy=mi.vesicle.y(ind)/ds+1;
     cr=mi.vesicle.r(ind,1)/ds;
-    if cr<minRadiusA/pixA % skip small vesicles
+    if ~mi.vesicle.ok(ind,1) || cr<minRadiusA/pixA % skip nonexistent or small vesicles
         continue
     end;
     % r0=ceil(shiftWidthA/pixA); % shift of polar coordinates to include the peak
@@ -115,11 +115,9 @@ for ind=startInd:nv;
     
     % initial probability at the theta origin
 %     p0=circshift(Gaussian(nx/2,1,r0/2,nx/4+1),round(r0-nx/4-1));
-    p0=circshift(Gaussian(nx/2,1,r0/8,nx/4+1),round(r0-nx/4-1));
+    p0=circshift(Gaussian(nx/2,1,r0/4,nx/4+1),round(r0-nx/4));
     
     %% Track the path
-    nTerms=4;
-    
     a=.1;
     A=[a 1-2*a a]; % transition matrix
     path=ViterbiPath(p0,pccP0,A);
@@ -128,7 +126,7 @@ for ind=startInd:nv;
     
     if displayOn
         subplot(234);
-        imags(pccP0');
+        imags(ccP0');
         hold on;
         plot(path,'linewidth',2);
         hold off;
@@ -146,6 +144,7 @@ for ind=startInd:nv;
 
 %     Make a Fourier expansion of the path, shifting the origin to force
 %     the 1st-order term to zero.
+    nTerms=4;
     thetas=(0:nt-1)'*2*pi/nt;
     px=cos(thetas).*pathsh;
     py=sin(thetas).*pathsh;
@@ -155,7 +154,7 @@ for ind=startInd:nv;
     cy1=(max(py)+min(py))/2;
     
     
-    for j=1:5
+    for j=1:5 % iterations of origin shifting
         th1=atan2(py-cy1,px-cx1);  % thetas of our points
         th1(th1<0)=2*pi+th1(th1<0);
         th1(1)=0;
@@ -247,9 +246,9 @@ for ind=startInd:nv;
         % Mark our vesicle ok if it meets the criteria
         r01=mi2.vesicle.r(ind,1)*mi2.pixA;
         s01=mi2.vesicle.s(ind,1);
-        mi2.vesicle.ok(ind,2)=(r01>=h.sav.vesicleRadii(1) && r01<=h.sav.vesicleRadii(2) ...
+        flag=(r01>=h.sav.vesicleRadii(1) && r01<=h.sav.vesicleRadii(2) ...
             && s01>=h.sav.vesicleAmps(1) && s01<=h.sav.vesicleAmps(2));
-        
+        mi2.vesicle.ok(ind,:)=[1 flag 0 0];
         % blank all vesicles whose centers overlap with our new vesicle.
         vesMask=VesicleMaskGeneral(n,mi2.vesicle.r(ind,:)/ds,0,[mi2.vesicle.x(ind) mi2.vesicle.y(ind)]/ds+1);
         nBlanked=0;
@@ -274,13 +273,14 @@ for ind=startInd:nv;
             hold off;
         end;
     end;
-    drawnow;
-%     pause
-    
+    if displayOn
+        drawnow;
+    end;
 end; % loop over vesicle index
 
 if displayOn
     figure(oldFig);
+end;
 end;
 
 disp([num2str(numRefined) ' vesicles refined of ' num2str(nv)]);
