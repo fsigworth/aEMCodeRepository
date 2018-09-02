@@ -243,12 +243,14 @@ for ind=startInd:nv;
         mi2.vesicle.s(ind,1:nes)=s1*mi1.vesicle.s;
         mi2.vesicle.x(ind)=mi.vesicle.x(ind)+ds*cx1;
         mi2.vesicle.y(ind)=mi.vesicle.y(ind)+ds*cy1;
-        % Mark our vesicle ok if it meets the criteria
+        % Mark our vesicle ok if it meets the criteria.  ok(ind,3) is set
+        % if tracking was successful.
         r01=mi2.vesicle.r(ind,1)*mi2.pixA;
         s01=mi2.vesicle.s(ind,1);
         flag=(r01>=h.sav.vesicleRadii(1) && r01<=h.sav.vesicleRadii(2) ...
             && s01>=h.sav.vesicleAmps(1) && s01<=h.sav.vesicleAmps(2));
-        mi2.vesicle.ok(ind,:)=[1 flag 0 0];
+        mi2.vesicle.ok(ind,:)=[1 flag 1 0];
+
         % blank all vesicles whose centers overlap with our new vesicle.
         vesMask=VesicleMaskGeneral(n,mi2.vesicle.r(ind,:)/ds,0,[mi2.vesicle.x(ind) mi2.vesicle.y(ind)]/ds+1);
         nBlanked=0;
@@ -257,7 +259,7 @@ for ind=startInd:nv;
                 xi=max(1,min(n(1),round(mi2.vesicle.x(i)/ds)));
                 yi=max(1,min(n(2),round(mi2.vesicle.y(i)/ds)));
                 if vesMask(xi,yi)
-                    mi2.vesicle.ok(i,1:2)=false;
+                    mi2.vesicle.ok(i,:)=false;
                     nBlanked=nBlanked+1;
                 end;
             end;

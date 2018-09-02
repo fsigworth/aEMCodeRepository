@@ -203,6 +203,7 @@ return  % ---------------end of Main----------------
             disp('Merging the vesicle list.');
             mi=rsMergeVesicleList2(h.mi,h.miOriginal);
         end;
+        mi=RemoveOverlappingVesicles(mi);
         if numel(h.oldVesicleModel)>0  % Restore the old vesicle model
             mi.vesicleModel=h.oldVesicleModel;
         end;

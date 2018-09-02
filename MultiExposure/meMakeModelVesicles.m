@@ -3,7 +3,7 @@ function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % function v=meMakeModelVesicles(mi,img,vindex,doCTF,doPW,doCrossSection)
 % Given the info structure mi, make a CTF-filtered, scaled vesicle model
 % for each vindex value in the mi.vesicle arrays; default is every one for
-% which mi.vesicle.ok==1.
+% which mi.vesicle.ok(index,1)==true.
 % The result is an n-sized image (may be rectangular)
 % computed as a possibly downsampled version of the original micrograph.
 % By default the CTF is applied (doCTF=1) but the prewhitening from the
@@ -46,10 +46,12 @@ end;
 if numel(vindex)<1
     return
 end;
-if vindex(1)==0 || ~isfield(mi.vesicle,'ok')
-    mi.vesicle.ok=true(numel(mi.vesicle.x),4);
-    mi.vesicle.ok(badS,:)=false;
-    vindex=find(all(mi.vesicle.ok,2));  % ok is an n x 4 or so matrix.
+if vindex(1)==0
+    if ~isfield(mi.vesicle,'ok')
+        mi.vesicle.ok=true(numel(mi.vesicle.x),4);
+        mi.vesicle.ok(badS,:)=false;
+    end;
+    vindex=find(mi.vesicle.ok(:,1));  % all found vesicles.
 end;
 vindex = vindex(vindex<=nv);  % don't allow out-of-range indices
 

@@ -18,8 +18,6 @@ if nargin<2
     mpars=struct;
 end;
 % --------Parameter defaults--------
-%    mpars.modelMiName='~/scratch60/170417/KvLipo134_4/sq02w11/Info/sq02_1_0001_Apr18_15.11.43mi.txt';
-%     dpars.modelMiName='~/scratch60/170814/KvLipo125_3a/Info/sq05_1_0001_Aug14_14.58.28mi.txt';
 pa=AddSlash(fileparts(which('rsRefineVesicleFits'))); % Get our directory
 dpars.modelMiName=[pa 'ModelMi.txt'];
 
@@ -36,7 +34,7 @@ dpars.rTerms=[100 150 200 250 250 300 inf];
 dpars.fitModes={'RadiusOnly' 'RadiusAndLin'};
 %     dpars.fitModes={'RadiusOnly' 'LinOnly'};
 %    dpars.fitModes={'RadiusAndLin'};
-dpars.fractionStartingTerms=[.5 1]; % total terms to use in each case.
+dpars.fractionStartingTerms=[.5 1]; % total terms to use in each round
 dpars.fractionAmpTerms=[0 1];
 
 % Extra peaks in the scattering profile
@@ -47,6 +45,8 @@ dpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
 
 % Merge the defaults with the given mpars
 pars=SetOptionValues(dpars,mpars,1);
+
+% pars
 
 %     The following must have at least as many elements as dpars.fitModes!
 pars.xPeakPositionA={[] pars.peakPositionA}; % centers of extra peaks, in angstrom
