@@ -1,12 +1,12 @@
 % startup.m
-disp('MATLAB-Drive/startup.m Katz');
+disp('aEMCode/startup.m Katz');
 
-setenv('HOSTNAME','Katz');
+setenv('HOSTNAME','MacBook');
 
-% basePath='~/aEMCodeRepository/';
-basePath='';
-cd('~/MATLAB-Drive/');
-% cd ~/;
+basePath='~/aEMCodeRepository/';
+% basePath='';
+% cd(basePath);
+cd ~/;
 folders={'aLibs/EMBase'
          'aLibs/EMCCD'
          'aLibs/EMIO'
