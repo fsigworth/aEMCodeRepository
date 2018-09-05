@@ -5,7 +5,7 @@ function sequence=miDecodeLog(mi);
 % 1 Find jump
 % 2 Drift tracker
 % 3 Merge
-% 4 Vesicle [finder]
+% 4 Vesicle[Finder _finding_GUI]
 % 5 RefineVesicleFits
 % 6 InverseFilter
 % 7 RefineMembraneModel
@@ -32,7 +32,7 @@ end;
 % special case for FindVesicles
 if sequence(4)>0
     return
-end; % patch for old files where no log entry is made
+end;
 if isfield(mi,'vesicle') && isfield(mi.vesicle,'x') && numel(mi.vesicle.x)>0
     sequence(4)=sequence(3)+.5;
 end;

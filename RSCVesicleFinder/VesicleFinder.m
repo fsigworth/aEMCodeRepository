@@ -207,6 +207,7 @@ return  % ---------------end of Main----------------
         if numel(h.oldVesicleModel)>0  % Restore the old vesicle model
             mi.vesicleModel=h.oldVesicleModel;
         end;
+        mi.log{end+1,1}=['VesicleFinder ' TimeStamp];
         outName=[mi.infoPath mi.baseFilename 'mi.txt'];
         nameWritten=WriteMiFile(mi,outName);
         disp(['Saved: ' nameWritten]);
