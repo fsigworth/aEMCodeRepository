@@ -18,6 +18,9 @@ if nargin<6 % no amps given, return an n x n x nxc array of ves models.
 else
     returnRingArray=false;
 end;
+if nargin<7
+    doCrossSection=0;
+end;
 if numel(n)<2
     n(2)=n;  % assume image is square
 end;
@@ -61,7 +64,7 @@ for i=1:nxc
 % %     vdx=Gaussian(nvdx,1,exSigma,cvdx);
     r1=r;
 % %     r1(1)=r1(1)+exPos(i);
-    vArray(:,i)=reshape(VesicleFromModelGeneral(n1,r1,vdx,org1,0,doCrossSection),n2,1);
+    vArray(:,i)=reshape(VesicleFromModelGeneral(n1,r1,vdx,org1,1,doCrossSection),n2,1);
 end;
 
 if (returnRingArray && nargout>1) || ~returnRingArray  % compute the complex exponential

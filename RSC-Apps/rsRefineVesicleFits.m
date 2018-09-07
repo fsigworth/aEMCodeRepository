@@ -21,7 +21,7 @@ end;
 pa=AddSlash(fileparts(which('rsRefineVesicleFits'))); % Get our directory
 dpars.modelMiName=[pa 'ModelMi.txt'];
 
-dpars.overwrite=1;
+dpars.overwrite=0;
 dpars.doPreSubtraction=1;
 dpars.listFits=0;  % print out each fit's parameters
 
@@ -31,8 +31,8 @@ dpars.listFits=0;  % print out each fit's parameters
 dpars.rTerms=[100 150 200 250 250 300 inf];
 
 % Define the fitting mode for each round
-dpars.fitModes={'RadiusOnly' 'RadiusAndLin'};
-%     dpars.fitModes={'RadiusOnly' 'LinOnly'};
+% dpars.fitModes={'RadiusOnly' 'RadiusAndLin'};
+    dpars.fitModes={'RadiusOnly' 'LinOnly'};
 %    dpars.fitModes={'RadiusAndLin'};
 dpars.fractionStartingTerms=[.5 1]; % total terms to use in each round
 dpars.fractionAmpTerms=[0 1];

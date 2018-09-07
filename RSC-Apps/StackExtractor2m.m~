@@ -13,9 +13,9 @@
 %boxSize=96;  % Size of boxes to be extracted from merged images.
 %  boxSize=192;  % Size of boxes to be extracted from merged images.
 boxSize=256;
-ds=2;        % downsampling of boxed particles from original micrograph
 
  fHP=.001;    % highpass Gauss filter in A^-1
+ds=2;        % downsampling of boxed particles from original micrograph
 types=[16 32]; % flags for valid particles
 restoreFromSiFile=0; % Use info from an si file instead of mi files.
 
@@ -60,7 +60,7 @@ dirVesicles='Vesicles/'; % location of modeled vesicle images
 stackSuffix='tstack.mrc';
 ustackSuffix='tustack.mrc';
 
-% Output name is constructed thusly:
+% Output name is constructed as:
 % [baseName weightString pwString sizeString corrString modeSuffix];
 % e.g. name1.w11.f.p64.noParticles.m3
 weightString='m1r'; % string in output file name
@@ -131,6 +131,10 @@ if ~exist(stackDir,'dir')
     mkdir(stackDir);
 end;
 
+
+% Open the stack data files
+
+
 %%
 % Initialize the si structure
 totalNParts=0;
@@ -151,7 +155,7 @@ ctf1s=zeros(boxSize,boxSize,nfiles,'single');
 pwfs=zeros(boxSize,boxSize,nfiles,'single');
 pixA0=0;  % unassigned value
 fh=0;   % temp stack file handles
-fhU=0;  % temp unsubtracted stack file
+fhU=0;
 sumTotalStack=0;
 sumTotalStackU=0;
 figure(1);
@@ -177,6 +181,9 @@ while fileIndex<= numel(miFiles)
         % Make new entries into the mi file
         mi.boxSize=boxSize;
         mi.stackPath=AddSlash(stackDir);
+%         if ~isfield(mi,'cpe')
+%             mi.cpe=cpe0;
+%         end;
         
         if isfield(mi.particle,'picks') && numel(mi.particle.picks)>0
             nPicks=size(mi.particle.picks,1);
@@ -197,7 +204,7 @@ while fileIndex<= numel(miFiles)
             warning(['Change in pixA values: ' num2str([pixA0 pixA]) '  ' miFiles{fileIndex}]);
         end;
         if fileIndex==1
-            disp(['   box size in Å, box size in pixels: ' num2str([round(boxSize*pixA) boxSize])]);
+            disp(['   box size in A / pixels: ' num2str([round(boxSize*pixA) boxSize])]);
         end;
         
         si.mi{fileIndex}=mi;  % store a copy of the micrograph info
@@ -215,8 +222,8 @@ while fileIndex<= numel(miFiles)
 
             %      ----Particle-sized and micrograph-sized CTF and filter functions----
             nZeros=1;
-            pFreqs=RadiusNorm(boxSize)/pixA; % particle-sized frequencies
-            mFreqs=RadiusNorm(n0)/pixA;      % image-sized frequencies
+            pFreqs=RadiusNorm(boxSize)/pixA;
+            mFreqs=RadiusNorm(n0)/pixA;
             [pcoeffs, pEffCTF, pdctfs,pTi]=meComputeMergeCoeffs3(pFreqs,mi,nZeros,mergeMode);
             [mCoeffs,mEffCTF,mCTFs,mTi]=meComputeMergeCoeffs3(mFreqs,mi,nZeros,mergeMode);
             filterOk=usePWFilter;

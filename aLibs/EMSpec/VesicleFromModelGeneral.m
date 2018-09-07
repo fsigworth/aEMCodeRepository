@@ -1,5 +1,5 @@
 function W = VesicleFromModelGeneral(n,a,model,org,aw,doCrossSection)
-% function W = VesicleFromModelGeneral(n,a,model,org,aw)
+% function W = VesicleFromModelGeneral(n,a,model,org,aw,doCrossSection))
 % Given a density cross-section vector 'model', construct the density of a
 %  vesicle in an image of size n, with radius a and center org.
 % Unlike VesicleFromModel, this function accepts a as a vector, so that
