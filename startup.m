@@ -1,12 +1,10 @@
 % startup.m
-disp('aEMCode/startup.m Katz');
+host='Katz';
+disp([which('startup') ' on ' host]);
 
-setenv('HOSTNAME','MacBook');
-
-basePath='~/aEMCodeRepository/';
-% basePath='';
-% cd(basePath);
+setenv('HOSTNAME',host);
 cd ~/;
+basePath='~/aEMCodeRepository/';
 folders={'aLibs/EMBase'
          'aLibs/EMCCD'
          'aLibs/EMIO'
