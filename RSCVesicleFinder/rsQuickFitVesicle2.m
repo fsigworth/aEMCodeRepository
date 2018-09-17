@@ -22,10 +22,10 @@ function [miNew, imgc, vesFit]=rsQuickFitVesicle2(img,oldVes,mask,mi,vIndex,effC
 % pars.rConstraints
 
 minUnmaskedFraction=0.3; % Don't mask at all if less than this remains of a vesicle.
-maxShiftA=100;    % max shift in A
+maxShiftA=200;    % max shift in A
 % maxShiftFrac=0.2; % additional shift as a fraction of radius
-maxShiftFrac=0.4; %%%%%%%
-initStepA=50;  % initial step is ~ membrane width
+maxShiftFrac=0.3; %%%%%%%
+initStepA=30;  % initial step is ~ membrane width
 nRoundIters=300; % no. of Simplex iterations to do for each step
 % nRoundIters=500; %%%%%%%%%%
 

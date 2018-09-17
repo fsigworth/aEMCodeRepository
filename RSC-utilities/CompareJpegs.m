@@ -1,4 +1,11 @@
 % CompareJpegs
+% Utility to manually compare vesicle subtraction making use of jpeg images
+% in a set of directories.  For example I ran FindVesicle with four
+% different minimum vesicle amplitudes (findVesicleAmps) using
+% four different working directories (findVesicleDirs).  We display 
+
+
+
 defaultStartIndex=250;
 basePath='/ysm-gpfs/scratch60/fjs2/160909/';
 findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];

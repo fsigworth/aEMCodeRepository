@@ -21,9 +21,10 @@ end;
 pa=AddSlash(fileparts(which('rsRefineVesicleFits'))); % Get our directory
 dpars.modelMiName=[pa 'ModelMi.txt'];
 
-dpars.overwrite=0;
+dpars.overwrite=1;
+dpars.writeMiFile=1;
 dpars.doPreSubtraction=1;
-dpars.listFits=0;  % print out each fit's parameters
+dpars.listFits=1;  % print out each fit's parameters
 
 % Number of terms (for both radius and amplitude fitting) is set thusly:
 %    nTerms=find(vesicle.r(ind,1) < pars.rTerms/mi.pixA,1);
@@ -36,7 +37,7 @@ dpars.rTerms=[100 150 200 250 250 300 inf];
 %    dpars.fitModes={'RadiusAndLin'};
 dpars.fractionStartingTerms=[.5 1]; % total terms to use in each round
 dpars.fractionAmpTerms=[0 1];
-
+dpars.radiusStepsA=[-100 -50 0 50]; % repeat radius-only fitting with perturbed r(1)
 % Extra peaks in the scattering profile
 dpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
 dpars.targetPixA=10;  % downsampled image resolution for radius fitting
@@ -68,7 +69,7 @@ forceNewModel=0;   % Always ask the user to select a new refined model
   % on the first micrograph (can be from the same micrograph)
 resetBasePath=1;   % update the basePath field of the mi file.
 
-writeMiFile=1;     % Save the updated mi file
+writeMiFile=pars.writeMiFile;     % Save the updated mi file
 
 writeSubZTiff=0;    % Write subtracted images into Merged/
 suffix='';  % extra character ? for XXmv?z.tif output file
@@ -207,6 +208,7 @@ for fileIndex=1:numel(miNames)
                 p.limitOrigNTerms=round(pars.fractionStartingTerms(ind)*maxRTerms+1);
                 p.fitMode=pars.fitModes{ind};
                 disp(['fitMode = ' p.fitMode]);
+                p.radiusStepsA=pars.radiusStepsA;
                 %                 Limit the number of amplitude terms.
                 %                 On the first ind, use only 1-2 amp terms.  On later
                 %                 iterations, use 2/3 times as many as radius terms.

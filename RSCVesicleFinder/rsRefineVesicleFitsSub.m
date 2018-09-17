@@ -17,17 +17,20 @@ dpars.doPreSubtraction=1;
 dpars.listFits=0;
 dpars.limitOrigNTerms=4;
 dpars.maxVesiclesToFit=inf;
+dpars.radiusStepsA=0;
 
 % Merge the defaults with the given mpars
 pars=SetOptionValues(dpars,pars);
 
 p=struct; % structure to pass to sub-function
 
+minRadiusA=45;
 doTweakAmplitudes=0;
 doPreSubtraction=pars.doPreSubtraction;
 
 doFitAmp=1; % linear fit of amplitudes to full-size image
 doFitRadius=1; % nonlinear fit
+
 switch pars.fitMode
     case 'LinOnly'
         doFitRadius=0;
@@ -194,8 +197,8 @@ end;
 miNew.vesicle.ok(:,3)=miNew.vesicle.ok(:,1);  % we'll mark unfitted vesicles here.
 
 if pars.listFits
-    disp('  ind   1000s    r(Å)     ok   nTerms ------- 100s/s(1) -------------');
-    %        1    2.779     205   1 1 1 1   4   24.80   23.71    0.00    0.00   0
+    disp('  ind   1000s    r(Å)  pick   ok     nTerms ------- 100s/s(1) -------------');
+    %        1    2.779     205   2  1 1 1 1    4    24.80   23.71    0.00    0.00   0
 end;
 figure(2);
 
@@ -229,7 +232,6 @@ for j=1:nvToFit
     %%%% rConstraints set here.
     p.rConstraints=ones(finalNRTerms,1);
     p.rConstraints(2:finalNRTerms)=0.4./((2:finalNRTerms).^2)';
-    
     %-------------------Basic fit------------------
     if doFitRadius % we're doing nonlinear fit
         if doPreSubtraction
@@ -240,17 +242,54 @@ for j=1:nvToFit
             vsf=0;
             vs1f=0;
         end;
-        %      --------------nonlinear fitting---------------
-        [miNew,fitIms,vesFits]=rsQuickFitVesicle2(msf-vsf,vs1f,msmask,miNew,...
-            ind,ndsCTF.*ndsPW,p,displayOn);
-        if displayOn
-            subplot(2,2,4);
-            imags(fitIms-vesFits);
-            title(finalNRTerms);
-            drawnow;
+        
+        %         Repeated fits with perturbed initial radius
+        ndr=numel(pars.radiusStepsA);
+        miTemps=cell(ndr,1);
+        errs=zeros(ndr,1);
+        resImgs=zeros(nds,nds,ndr,'single');
+        for jr=1:ndr
+            %             Perturb the radius
+            miInput=miNew;
+            rStep=pars.radiusStepsA/miInput.pixA;
+            newR1=max(miInput.vesicle.r(ind,1)+rStep(jr),minRadiusA/miInput.pixA);
+            miInput.vesicle.r(ind,1)=newR1;
+            %      --------------nonlinear fitting---------------
+            [miTemps{jr},fitIms,vesFits]=rsQuickFitVesicle2(msf-vsf,vs1f,msmask,miInput,...
+                ind,ndsCTF.*ndsPW,p,displayOn);
+            errs(jr)=miTemps{jr}.vesicle.err(ind);
+            if displayOn
+                resImgs(:,:,jr)=fitIms-vesFits;
+                 subplot(2,2,4);
+                imags(resImgs(:,:,jr));
+                title(num2str([jr finalNRTerms]));
+                drawnow;
+            end;
         end;
-    end;
-    if doFitAmp % do a linear fit of the vesicle.
+        %         Find the best fit
+        [~,jr]=min(errs);
+        [~,jr0]=min(abs(pars.radiusStepsA));
+
+        miNew=miTemps{jr};
+        if displayOn && ndr>1 % show the various fit results
+            figure(3);
+            for k=1:ndr
+                subplot(ndr,1,k);
+                imags(resImgs(:,:,k));
+                if k==jr
+                    str='***';
+                else
+                    str='';
+                end;
+                title([num2str(errs(k)) str]);
+            end;
+            figure(2);
+        end;
+end;
+%   ----------------- Linear fit only --------------
+    if doFitAmp % do a linear fit of the vesicle
+        jr=1;
+        jr0=1;
         if doPreSubtraction
             v1=meMakeModelVesicles(miOld,n,ind,0,0);
             v1f=real(ifftn(fftn(v1).*ifftshift(nPW.*nCTF)));  % filtered model
@@ -272,13 +311,15 @@ for j=1:nvToFit
     else
         vesFit=vesFits;
     end;
+   
     
     if pars.listFits
-        str=sprintf('%4d %8.3f  %6.1d  %2d%2d%2d%2d  %2d  %6.2f  %6.2f  %6.2f  %6.2f  ',...
+        str=sprintf('%4d %8.3f  %6.1d  %2d  %2d%2d%2d%2d  %2d  %6.2f  %6.2f  %6.2f  %6.2f  ',...
             ind, 1000*miNew.vesicle.s(ind,1),...
             round(miNew.vesicle.r(ind,1)*miNew.pixA),...
-            miNew.vesicle.ok(ind,:), nTerms,...
-            100*abs(miNew.vesicle.s(ind,3:end,1))/miNew.vesicle.s(ind,1,1));
+            jr-jr0,...
+            miNew.vesicle.ok(ind,:), sum(miNew.vesicle.r(ind,:)~=0),...  % insert s(1)
+        100*abs(miNew.vesicle.s(ind,3:end,1))/miNew.vesicle.s(ind,1,1));
         disp(str);
     end;
 end;
