@@ -25,7 +25,8 @@ dpars.overwrite=1;
 dpars.writeMiFile=1;
 dpars.doPreSubtraction=1;
 dpars.listFits=1;  % print out each fit's parameters
-
+dpars.scaleOriginalAmplitudes=1;
+dpars.scaleOriginalAmplitudes=0.5; %%%%%%
 % Number of terms (for both radius and amplitude fitting) is set thusly:
 %    nTerms=find(vesicle.r(ind,1) < pars.rTerms/mi.pixA,1);
 % i.e. nTerms is the index of last entry of rTerms smaller than our radius.
@@ -50,7 +51,9 @@ pars=SetOptionValues(dpars,mpars,1);
 % pars
 
 %     The following must have at least as many elements as dpars.fitModes!
-pars.xPeakPositionA={[] pars.peakPositionA}; % centers of extra peaks, in angstrom
+pars.xPeakPositionA=cell(1,numel(dpars.fitModes));
+pars.xPeakPositionA{end}=pars.peakPositionA;
+% pars.xPeakPositionA={[] pars.peakPositionA}; % centers of extra peaks, in angstrom
 % -----------------------
 
 % See if we are on the cluster.
@@ -107,6 +110,10 @@ for fileIndex=1:numel(miNames)
     mi=ReadMiFile([infoPath miNames{fileIndex}]);
     if resetBasePath
         mi.basePath=rootPath;
+    end;
+    if ~(isfield(mi,'vesicle') && isfield(mi.vesicle,'x'))
+        disp('No vesicles.');
+        continue;  % skip on to the next file
     end;
     %     check if there is something to do.
     ampsNotRefined= size(mi.vesicle.s,2)<2 || all(all(mi.vesicle.s(:,2:end)==0));
@@ -187,6 +194,11 @@ for fileIndex=1:numel(miNames)
                 mi.mask=[];
             end;
             
+            if pars.scaleOriginalAmplitudes~=1
+                mi.vesicle.s=mi.vesicle.s*pars.scaleOriginalAmplitudes;
+            end;
+            
+           
             
             %                    mi.vesicle.s=mi.vesicle.s*dsm/2;  % scale down if not downsamping....
             

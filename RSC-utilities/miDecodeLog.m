@@ -1,5 +1,4 @@
 function sequence=miDecodeLog(mi);
-function sequence=miDecodeLog(mi);
 % From the given mi structure, return a vector of 8 indices, whose elements
 % correspond to the programs
 % 1 Find jump

@@ -1,34 +1,36 @@
-% k2DistributedPipvveline.m
+% k2DistributedPipeline.m
 % Run the processing pipeline for K2 or F2 movies.
 % This is assumed to run after running k2CreateInfoFiles or f2CreateInfoFiles
 % on one worker so
 % we only read the mi files, not create them.
 
 f2Mode        =0;  % 0 means k2 data
-serialMode    =0;   % go through all the steps before moving to next micrograph
+serialMode    =1;   % go through all the steps before moving to next micrograph
 %checkLogs     =0;  % not yet in use.
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
 doMerge       =0;
-doDownsampleMergedImages=0;  % job 1 does downsampling
-allDownsampleMergedImages=0;  % all workers do downsampling.
+doDownsampleMergedImages=0; 
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =1;
-%***
-findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
-findVesicleDirs={'KvLipo121_2w10_v3.5/';'KvLipo121_2w10_v3.6/';
-                 'KvLipo121_2w10_v3.7/';'KvLipo121_2w10_v3.8/'};
+doFindVesicles        =0;
+%*** special multiple VesicleFinder runs ****
+doMultiFindVesicles   = 0;
+% findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
+% findVesicleDirs={'KvLipo121_2w10_v3.5/';'KvLipo121_2w10_v3.6/';
+%                  'KvLipo121_2w10_v3.7/';'KvLipo121_2w10_v3.8/'};
 %***
 doPrelimInverseFilter =0;
-doRefineVesicles      =0;
+doRefineVesicles      =1;
+refineVesicleAmpsOnly=0;
 %%% minRefineVesiclesSequence=0;  % 0 if don't consider.
-minRefineVesiclesSequence=inf;
-doInverseFilter       =0;
-doPickingPreprocessor =0;
+minRefineVesiclesSequence=1;    % inf forces refinement
+doInverseFilter       =1;
+doPickingPreprocessor =1;
 %%workingDir='/ysm-gpfs/pi/cryoem/krios/20180226/Kv_1/'
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
-workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w10_v3/'
+workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
+%workingDir='/ysm-gpfs/scratch60/fjs2/20180315/';
 %workingDir='/gpfs/ysm/scratch60/fjs2/180226/Kv_1SelW10/';
 %workingDir='/ysm-gpfs/scratch60/fjs2/170926Nelli/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/171031Nelli/'
@@ -70,10 +72,11 @@ pars.searchDefoci=[1 5 ; 8 15]; % for MergeImages [1stmin 2ndMin ; 1stMax 2ndMax
 pars.doAlignment=1;  % MergeImages
 pars.doFitting=0;
 pars.doWriteInfos=1;
-pars.weights=[1 0];  %%% single exposure
+% pars.weights=[1 0];  %%% single exposure
+pars.weights=[1 1];
 pars.mcDS=1;
-pars.mergeMode=3;  %%% no phase flip!
-%pars.mergeMode=1;
+%pars.mergeMode=3;  %%% no phase flip!
+pars.mergeMode=1;   %%% normal
 pars.mapMode='Kv'; 
 
 pars.UsePWFilter=doPrelimInverseFilter;
@@ -217,14 +220,17 @@ while iName(end)<=numJobNames
     end;
     % merge images (sequence 3)
     if doMerge
-        MergeImages(ourNames,pars);
+        if ~logSequence(3)
+            MergeImages(ourNames,pars);
+        end;
     end;
+
     doCompressMovies=doCompressMovies && f2Mode;  % can't do this with k2 movies.
     if doCompressMovies || doCompressMicrographs
         f2CompressMovies(ourNames,compressedDir,doCompressMovies,doCompressMicrographs);
     end;
-    if (doDownsampleMergedImages && jobIndex==1) || allDownsampleMergedImages
-        DownsampleMergedImages;
+    if doDownsampleMergedImages
+        DownsampleMergedImages(ourNames);
     end;
     % inverse filter (sequence 6)
     if doPrelimInverseFilter && logSequence(6)<=logSequence(3)
@@ -233,8 +239,9 @@ while iName(end)<=numJobNames
         meInverseFilterAuto(ourNames,fpars);
     end;
     % find vesicles (sequence 4) *****************
-%    if doFindVesicles && logSequence(4)<=logSequence(3)
-    if doFindVesicles
+    if doFindVesicles && logSequence(4)<=logSequence(3)
+            VesicleFinder(ourNames);
+    elseif doMultiFindVesicles
         for i=1:numel(findVesicleAmps)
             vfpars.sav.vesicleAmps=[findVesicleAmps(i) 2e-3 0];
             cd('..');
@@ -246,7 +253,20 @@ while iName(end)<=numJobNames
     % refine vesicles (sequence 5)
     if doRefineVesicles && (logSequence(5)<logSequence(4) ...
             || logSequence (5)< minRefineVesiclesSequence)
-        rsRefineVesicleFits(ourNames,pars);
+        rpars=pars;
+            if refineVesicleAmpsOnly
+            rpars.fitModes={'LinOnly'};
+            rpars.fractionStartingTerms=1; % total terms to use in each round
+            rpars.fractionAmpTerms=1;
+            % Extra peaks in the scattering profile
+            rpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
+            rpars.targetPixA=10;  % downsampled image resolution for radius fitting
+            
+            rpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
+            %     The following must have at least as many elements as dpars.fitModes!
+            end;
+            
+        rsRefineVesicleFits(ourNames,rpars);
         if serialMode  % update the log sequence
             logSequence=miDecodeLog(mi);
         end;
@@ -260,7 +280,7 @@ while iName(end)<=numJobNames
         disp('  Inverse Filter skipped.');
     end;
     % picking preprocessor (sequence 8)
-    if doPickingPreprocessor && (logSequence(8) <= logSequence(5))
+    if doPickingPreprocessor && (logSequence(8) <= logSequence(6))
         % no picking after latest vesicle refinement? Then run it.
        rsPickingPreprocessor4(ourNames,pars);
     end;

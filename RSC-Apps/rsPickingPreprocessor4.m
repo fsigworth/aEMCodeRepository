@@ -523,8 +523,8 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                 qVar=xVar>mxVars;  % switch function for variances
                 qAmp=xValsU>gMaxValsU; % switch function for particle amps
                 
-            elseif badVesicle(i)
-                
+%            elseif badVesicle(i)
+            else
                 xVar=nulls;
                 xVals=nulls;
                 xValsU=nulls;
