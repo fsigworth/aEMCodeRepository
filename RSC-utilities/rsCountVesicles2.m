@@ -1,0 +1,249 @@
+% rsCountVesicles2
+% Determine vesicle sizes and amplitudes
+% from the Info directory of an experiment.
+% Compare vesicle amplitudes^2 with noise spectra.
+
+% workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w11v3m3/';
+% workingDir='/Users/fred/EMWork/Hideki/SNR/170808/SimpleVes/';
+workingDir='/Users/fred/EMWork/Hideki/SNR/180226/Kv_1sel/';
+
+cd(workingDir);
+
+startEntry=1;
+maxEntries=inf;
+stride=1;
+txtSize=12;
+requireParticles=0;
+d=dir('Info/');
+imageFileSuffix='ms.mrc';
+vesicleFileSuffix='mvs.mrc';
+nPicks=0;
+names=f2FindInfoFiles;
+nEntries=min(numel(names),maxEntries);
+
+ds=4;  % assume we're working with downsampled images
+nmi=0;
+miPicks=zeros(nEntries,1);
+miDef=zeros(nEntries,1);
+vesR=cell(nEntries,1);
+vesS=cell(nEntries,1);
+vesOk=cell(nEntries,1);
+miAmps=zeros(nEntries,1);
+fs=(.005:.005:.1)';
+nfs=numel(fs);
+miSpecs=zeros(nEntries,nfs);
+miShots=zeros(nEntries,1);
+nMod=100;
+for nmi=1:nEntries
+    name=names{nmi};
+    
+    mi=ReadMiFile(name);
+    if isfield(mi.vesicle,'x') && numel(mi.vesicle.x)>0 ...
+            && (~requireParticles || (isfield(mi.particle,'picks') ...
+            && numel(mi.particle.picks)>0))
+        % we have vesicles with particles
+        
+        miDef(nmi)=mi.ctf(1).defocus;
+        if numel(mi.vesicle.x)>1
+            okVes=all(mi.vesicle.ok,2);
+            miAmps(nmi)=median(mi.vesicle.s(okVes,1));
+        end;
+        %     fs=(.001:.001:.1)';
+        [spec, shot, noiseOk]=meEvalNoiseModel(fs,mi);
+        if noiseOk
+            miSpecs(nmi,:)=spec';
+            miShots(nmi)=shot(1);
+        else
+            disp([num2str(nmi) ' ' name ' -- No noise model.']);
+        end;
+        %     semilogy([spec shot]);
+        if mod(nmi,nMod)==0
+            disp([num2str(nmi) '  ' name]);
+            nMod=max(nMod,10^(floor(log10(nmi))));
+        end;
+    else
+        disp([num2str(nmi) ' ' name ' -- No vesicles.']);
+    end;
+end;
+%%
+finds=[4 10 20];
+nBins=60;
+subplot(211);
+medShot=median(miShots);
+miMax=3*max(median(miSpecs(:,finds(1))),medShot);
+miMin=.3*min(median(miSpecs(:,finds(end))),medShot);
+oks=miSpecs(:,finds(end))>miMin & miSpecs(:,finds(1))<miMax;
+[h,bins]=hist(log10(miSpecs(oks,finds)),nBins);
+h1=0*h;
+lmShot=log10(median(miShots(oks)));
+ind=max(1,min(nBins,interp1(bins,1:nBins,lmShot,'nearest')));
+h1(ind)=max(h(:));
+% h1=hist(log10(miShots(oks)),bins);
+bar(bins,h);
+hold on;
+bar(bins,h1,'k');
+hold off;
+xlabel('log LF spectra at given freqs');
+title(pwd,'interpreter','none');
+legends=cell(numel(finds),1);
+for i=1:numel(finds)
+    legends{i}=num2str(fs(finds(i)));
+end;
+legend([legends;{'shot'}]);
+subplot(223);
+semilogy([miSpecs(oks,finds) miShots(oks)]);
+ylabel('shot, LF spectra');
+legend([legends;{'shot'}]);
+title(num2str(median([miSpecs(oks,finds) miShots(oks)]),3))
+
+subplot(224);
+semilogy(miAmps(oks)*1e4)
+ylabel('Vesicle amp squared');
+
+return
+% 
+% for i=1:1
+%     msName=[mi.procPath mi.baseFilename imageFileSuffix];
+%     [msName,ok]=CheckForImageOrZTiff(msName);
+%     mvsName=[mi.procPath mi.baseFilename vesicleFileSuffix];
+%     [mvsName,ok2]=CheckForImageOrZTiff(mvsName);
+%     if ~(exist(msName,'file') && exist(mvsName,'file'     ))
+%         disp('no file');
+%         continue;
+%     end;
+%     m=ReadEMFile(msName);
+%     n=mi.imageSize(1)/ds;
+%     m=Downsample(m,n);
+%     mv=ReadEMFile(mvsName);
+%     mv=Downsample(mv,n);
+%     v=m-mv;
+%     mysubplot(221);
+%     imags(mv);
+%     mysubplot(222);
+%     imags(v);
+%     marksPresent=false;
+%     nv=0;
+%     if isfield(mi.vesicle,'x') && numel(mi.vesicle.x)>0 ...
+%             && (~requireParticles || (isfield(mi.particle,'picks') ...
+%             && numel(mi.particle.picks)>0))
+%         % we have vesicles with particles
+%         nv=numel(mi.vesicle.x);
+%         disp([name '  ' num2str(nv) ' vesicles.']);
+%         xs=double(mi.vesicle.x/ds+1);
+%         ys=mi.vesicle.y/ds+1;
+%         yls=double(ys+mi.vesicle.r(:,1)/ds);
+%         effAmps=zeros(nv,1)+NaN;
+%         rs=zeros(nv,1);
+%         as=zeros(nv,1);
+%         rs=zeros(nv,1);
+%         oks=false(nv,1);
+%         for j=1:nv
+%             if any(mi.vesicle.ok(j,:)==0)
+%                 continue;
+%             end;
+%             oks(j)=true;
+%             effAmps(j)=1e4*EstimateImageAmplitude(mi,j,ds);
+%             as(j)=mi.vesicle.s(j,1);
+%             rs(j)=mi.vesicle.r(j,1)*mi.pixA;
+%             disp(num2str([j effAmps(j) 1e4*as(j,1) rs(j)],3));
+%         end;
+%     end;
+%     if nv>0
+%         as1=as;
+%         as1(as==0)=NaN;
+%         subplot(2,2,3);
+%         plot(rs,as,'bo');
+%         subplot(2,2,4);
+%         hist([as effAmps],50);
+%         pause;
+%     end;
+% end;
+% 
+% 
+% %%
+% 
+% %         disp(' ');
+% 
+% 
+% %         if size(mi.particle.picks,1)>0
+% %             flags=mi.particle.picks(:,3);
+% %             num=sum(flags>=16 & flags<48);
+% %             nPicks=nPicks+num;
+% %             miPicks(nmi)=num;
+% %         end;
+% %         vesR{nmi}=mi.vesicle.r;
+% %         vesS{nmi}=mi.vesicle.s;
+% %         vesOk{nmi}=mi.vesicle.ok & ~(requireParticles & size(mi.particle.picks,1)<1);
+% %         if mod(nmi,stride)==0 || i>nEntries-3  % print out every 'stride' entries
+% %             disp([num2str(nmi) ' ' d(i).name '  ' num2str([num nPicks])]);
+% %             disp(abs(vesR{nmi}(1,:)));
+% %         end;
+% %
+% % end; % if numel(mi.vesicle.x)
+% % disp(' ');
+% % if b=='Q'
+% %     break;
+% % end;
+% % end; % for i
+% % % miPicks=miPicks(1:nmi);
+% % % miDef=miDef(1:nmi);
+% % % subplot(313)
+% % % hist(miPicks,100);
+% % % xlabel('Particles per micrograph');
+% % % ylabel('Frequency');
+% % % subplot(312)
+% % % plot(miPicks);
+% % % ylabel('Particles per micrograph');
+% % % xlabel('Micrograph');
+% % % subplot(311);
+% % % plot(miDef);
+% % % ylabel('Defocus, \mum');
+% % % xlabel('Micrograph');
+% % disp('Done.');
+% %
+% %
+% % return
+% 
+% % %%
+% % % Estimate vesicle amplitude from image integral
+% % k=47;
+% % ds=4;
+% % ves=meMakeModelVesicles(mi,mi.imageSize(1)/ds,k,0,0);
+% % imags(ves);
+% % sv=sum(-ves(:))
+% % a0=sum(mi.vesicleModel);
+% % a1=sqrt(2*pi)*mi.vesicle.extraSD*(mi.vesicle.extraPeaks*0+1);
+% % as=[a0 a1];
+% % s=squeeze(mi.vesicle.s(k,1,:));
+% % estA=4*pi*(mi.vesicle.r(k,1))^2*(as*s)/ds^2
+% %
+% % effVesAmp=ds^2*estA/(4*pi*(mi.vesicle.r(k,1)^2)*a0)
+% % effVesAmp0=ds^2*sv/(4*pi*(mi.vesicle.r(k,1)^2)*a0)
+% 
+% 
+% function effAmp=EstimateImageAmplitude(mi,k,ds)
+% % Estimate image amplitude from normalized image
+% ves=meMakeModelVesicles(mi,mi.imageSize(1)/ds,k,0,0);
+% sv=sum(ves(:));
+% mi1=mi;
+% mi1.vesicle.s(k,:,:)=0;
+% mi1.vesicle.s(k,1,1)=1;
+% ves1=meMakeModelVesicles(mi1,mi.imageSize(1)/ds,k,0,0);
+% sv1=sum(ves1(:));
+% effAmp=sv/sv1;
+% end
+% 
+% % %% Compute coherence function
+% % vpc0=meMakeModelVesicles(mi,960,0,1,1);
+% % v1=mv+vpc0;
+% % mi1=mi;
+% % mi1.vesicle.s(:,:,2:3)=0; % delete the extra peaks
+% % vp0=meMakeModelVesicles(mi1,960,28,0,0);
+% % fv=fftshift(fftn(v));
+% % fv0=fftshift(fftn(vp0));
+% % %%
+% % k=1e6;
+% % H=(fv.*fv0)./(abs(fv0).^2+k);
+% % figure(2);
+% % SetComplex;
+% % imacx(GaussFilt(H,.05),.3);
