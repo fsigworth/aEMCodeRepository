@@ -10,11 +10,12 @@ function [siOut,imgsOut]=rsStackDownsample(si, imgs, nOut, mask)
 if nargin<4
     mask=1;
 end;
-nImgs=size(imgs,3);
-if nargout>1
+% % nImgs=size(imgs,3);
+nImgs=numel(si.miIndex);
+if nargout>1 && numel(imgs)>2
     imgsOut=DownsampleGeneral(imgs,nOut,[],nImgs>1);
 end;
-ds=size(imgs,1)/nOut;
+ds=size(si.ctfs,1)/nOut;
 siOut=si;
 
 siOut.pixA=si.pixA*ds;
@@ -24,6 +25,8 @@ if isfield(si,'mbnOffset')
     siOut.mbnOffset=si.mbnOffset/ds;
 end;
 siOut.ctfs=Crop(si.ctfs,nOut,1).*mask;
+siOut.ctf1s=Crop(si.ctf1s,nOut,1).*mask;
+siOut.pwfs=Crop(si.pwfs,nOut,1).*mask;
 if isfield(si,'ctfGroups')
     siOut.ctfGroups=Crop(si.ctfGroups,nOut,1).*mask;
 end;

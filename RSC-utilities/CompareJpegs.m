@@ -72,4 +72,4 @@ while ~done
 end;
 %%
 disp(['Saving ' indFileName]);
-save(indFileName,'inds');
+save(indFileName,'inds','names');

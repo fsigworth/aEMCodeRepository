@@ -12,6 +12,7 @@ end;
 pars.writeMiFile=1;
 pars.useUnsubImage=0; % set to 1 to get inverse filter without mbn subtraction.
 pars.nb=256;
+%pars.nb=64; %%%%
 pars.writeFigs=1;
 
 pars=SetOptionValues(pars,mpars);

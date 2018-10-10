@@ -41,6 +41,9 @@ switch pars.fitMode
         warning(['Unrecognized fitMode: ' pars.fitMode]);
 end;
 
+doFitRadius
+doFitAmp
+
 maxMaskLayers=2;   % Don't include any masking beyond merge and beam
 useOkField=1;      % refine every vesicle for which ok is true.
 doDownsampling=1;  % Downsample for speed
@@ -197,7 +200,7 @@ end;
 miNew.vesicle.ok(:,3)=miNew.vesicle.ok(:,1);  % we'll mark unfitted vesicles here.
 
 if pars.listFits
-    disp('  ind   1000s    r(Å)  pick   ok     nTerms ------- 100s/s(1) -------------');
+    disp('  ind   1000s    r(ï¿½)  pick   ok     nTerms ------- 100s/s(1) -------------');
     %        1    2.779     205   2  1 1 1 1    4    24.80   23.71    0.00    0.00   0
 end;
 figure(2);
@@ -211,7 +214,7 @@ for j=1:nvToFit
     
     %             Look up the number of radius terms to use.
     %             rTerms is something like [150 200 250 300 350 400 inf];
-    %             r<150Å gets 1 term; <200 gets 2 terms; etc.
+    %             r<150ï¿½ gets 1 term; <200 gets 2 terms; etc.
     finalNRTerms=find(miNew.vesicle.r(ind,1)<pars.rTerms/miNew.pixA,1);
     % Set the number of amplitude terms.
     finalNSTerms=max(1,ceil(finalNRTerms*pars.fracAmpTerms)); % nTerms(2) is amp terms
