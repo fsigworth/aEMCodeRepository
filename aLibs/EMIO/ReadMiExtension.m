@@ -7,7 +7,12 @@ if isfield(mi,'mieFields') && numel(mi.mieFields)>0 % An mie file exists
         warning(['mie file not found: ' name]);
         return
     end;
-    load(name);
+    try
+        load(name);
+    catch
+        warning(['mie file corrupted: ' name]);
+        return
+    end;
     if ~strcmp(mi.timestamp,mie.timestamp)
         warning(['Inconsistent mie timestamp: ' mie.timestamp{1}]);
     end;

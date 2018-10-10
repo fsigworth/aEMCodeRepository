@@ -36,7 +36,7 @@ for i=startEntry:nEntries
         continue;
     end;
     m=ReadEMFile(msName);
-%     ds=mi.imageSize(1)/size(m,1);
+    %     ds=mi.imageSize(1)/size(m,1);
     n=mi.imageSize(1)/ds;
     m=Downsample(m,n);
     mv=ReadEMFile(mvsName);
@@ -66,9 +66,10 @@ for i=startEntry:nEntries
         md=m;
         md(:,:,2)=v;
         k=1;
-        b='s';
+        b='R'; %%%%% s
         %             disp([(1:nv)' mi.vesicle.s(:,1,1)*1000 abs(mi.vesicle.r)]);
         %             disp(' ');
+        % ---------------------interactive loop---------------------
         while b~='q' && b~='Q'
             %             disp([x y b]);
             switch b
@@ -165,6 +166,7 @@ for i=startEntry:nEntries
                 drawnow;
             end;
         end; % while b
+        % ------------------------------------------
         %%
         oks=effAmps>20 ;
         disp('Making model vesicles...');
@@ -177,7 +179,7 @@ for i=startEntry:nEntries
         hold on;
         for j=1:nv
             if oks(j)
-                        text(xs(j),yls(j),num2str(j),'color','b', ...
+                text(xs(j),yls(j),num2str(j),'color','b', ...
                     'HorizontalAlignment','center','FontSize',txtSize);
                 [xc,yc]=CircleLineSegments(mi.vesicle.r(j,:)/ds,min(10,100/r1(1)));
                 xc=double(xc+mi.vesicle.x(j)/ds+1);
@@ -203,19 +205,19 @@ for i=startEntry:nEntries
         end;
         hold off;
         grid on;
-
-        mysubplot(131) 
+        
+        mysubplot(131)
         imags(m-v1);
         hold on;
         for j=1:nv
             if oks(j)
-%                 text(xs(j),yls(j),num2str(j),'color','b',...
-%                     'HorizontalAlignment','center','FontSize',txtSize);
-%                 text(xs(j),yls(j),num2str(j),'color','b', ...
-%                     'HorizontalAlignment','center','FontSize',txtSize);
+                %                 text(xs(j),yls(j),num2str(j),'color','b',...
+                %                     'HorizontalAlignment','center','FontSize',txtSize);
+                %                 text(xs(j),yls(j),num2str(j),'color','b', ...
+                %                     'HorizontalAlignment','center','FontSize',txtSize);
             else
-%                 text(xs(j),yls(j),num2str(j),'color','r',...
-%                     'HorizontalAlignment','center','FontSize',txtSize);
+                %                 text(xs(j),yls(j),num2str(j),'color','r',...
+                %                     'HorizontalAlignment','center','FontSize',txtSize);
                 text(xs(j),yls(j),num2str(j),'color','r', ...
                     'HorizontalAlignment','center','FontSize',txtSize);
                 [xc,yc]=CircleLineSegments(mi.vesicle.r(j,:)/ds,min(10,100/r1(1)));
@@ -227,7 +229,7 @@ for i=startEntry:nEntries
         end;
         hold off;
         medianVesAmp=median(effAmps(oks))
-%         pause
+        %         pause
         
         %%
         

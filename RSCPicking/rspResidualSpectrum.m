@@ -2,7 +2,7 @@ function sval = rspResidualSpectrum(mi,rscc,dis,coords,displayOn)
 % Returns the maximum of the power spectrum of the vicinity of the
 % particle.  If called with displayOn, makes a display of the residuals in
 % Figure 2.
-scaleUp=2.5;
+scaleUp=1;
 sval=0;
 pixA=mi.pixA*dis.ds;
 
