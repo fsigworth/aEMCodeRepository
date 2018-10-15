@@ -198,8 +198,6 @@ for fileIndex=1:numel(miNames)
                 mi.vesicle.s=mi.vesicle.s*pars.scaleOriginalAmplitudes;
             end;
             
-           
-            
             %                    mi.vesicle.s=mi.vesicle.s*dsm/2;  % scale down if not downsamping....
             
             

@@ -4,8 +4,8 @@
 % Compare vesicle amplitudes^2 with noise spectra.
 
 % workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w11v3m3/';
-% workingDir='/Users/fred/EMWork/Hideki/SNR/170808/SimpleVes/';
-workingDir='/Users/fred/EMWork/Hideki/SNR/180226/Kv_1sel/';
+workingDir='/Users/fred/EMWork/Hideki/SNR/170808/SimpleVes_1/';
+% workingDir='/Users/fred/EMWork/Hideki/SNR/180226/Kv_1sel/';
 
 cd(workingDir);
 
@@ -38,7 +38,7 @@ for nmi=1:nEntries
     name=names{nmi};
     
     mi=ReadMiFile(name);
-    if isfield(mi.vesicle,'x') && numel(mi.vesicle.x)>0 ...
+    if isfield(mi,'vesicle') && isfield(mi.vesicle,'x') && numel(mi.vesicle.x)>0 ...
             && (~requireParticles || (isfield(mi.particle,'picks') ...
             && numel(mi.particle.picks)>0))
         % we have vesicles with particles

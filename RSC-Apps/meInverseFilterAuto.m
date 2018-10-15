@@ -55,13 +55,13 @@ else
     infoPath='';
     rootPath='';
 end;
-    if ~isa(fname,'cell')
-        fname={fname};
-    end;
-    if ~exist(figDir,'dir')
-        disp(['Making ' figDir]);
-        mkdir(figDir);
-    end;
+if ~isa(fname,'cell')
+    fname={fname};
+end;
+if ~exist(figDir,'dir')
+    disp(['Making ' figDir]);
+    mkdir(figDir);
+end;
 %%
 startIndex=1;
 for fileIndex=startIndex:numel(fname)
@@ -93,7 +93,7 @@ for fileIndex=startIndex:numel(fname)
     if mvPresent
         disp(['        ' name]);
         msub=ReadEMFile(name);
-%         m=msub;
+        %         m=msub;
         n=size(msub);
         ds=mi.imageSize(1)/n(1);  % downsampling factor of m
         pixA=mi.pixA*ds;    % pixel size of m
@@ -162,16 +162,18 @@ for fileIndex=startIndex:numel(fname)
     
     mysubplot(2,2,1); % Show subtracted image
     ShowImageAndBoxes(GaussFilt(msub,dfc));
-        title(['doses: ' num2str(mi.doses) '  weights: ' num2str(mi.weights) 'ds: ' num2str(ds)]);
+    title(['doses: ' num2str(mi.doses) '  weights: ' num2str(mi.weights) 'ds: ' num2str(ds)]);
     drawnow;
     
-    % Get the effective CTF from the merging.
-    H=ifftshift(meGetEffectiveCTF(mi,n,ds));
+%     % Get the effective CTF from the merging.
+%     H=ifftshift(meGetEffectiveCTF(mi,n,ds));
     
-    %% Get the variance map
+    %% Put boxes in the lowest-variance regions and compute 1D spectrum
+    % -------Get the variance map--------
     %     disp('Computing the variance map');
     %     1.  Filter the image
-    df=1./(n*pixA);  % frequency step
+    df=1./(n*pixA);  % frequency step in the whole image
+    % create a bandpass filter from f0 to f1
     filt=fuzzymask(n,2,f1./df,f1/(4*df(1)))-fuzzymask(n,2,f0./df,f0/(4*df(1)));
     mfilt=real(ifftn(fftn(msub).*ifftshift(filt)));
     %     2.  Get the convolution box
@@ -185,7 +187,7 @@ for fileIndex=startIndex:numel(fname)
     %     subplot(2,2,3);
     %     imacs(lVar)
     drawnow;
-    %% Get some boxes
+    %     3. Get some boxes
     lv2=lVar;
     blankBox=ifftshift(Crop(ones(nb*2),n));
     boxX=zeros(1,nBoxes);
@@ -201,43 +203,36 @@ for fileIndex=startIndex:numel(fname)
     end;
     mysubplot(2,2,1);
     ShowImageAndBoxes(GaussFilt(msub,dfc),[boxX' boxY']/ds,nb,8,[1 1 0]);
-        title(['doses: ' num2str(mi.doses) '  weights: ' num2str(mi.weights) '  ds: ' num2str(ds)]);
+    title(['doses: ' num2str(mi.doses) '  weights: ' num2str(mi.weights) '  ds: ' num2str(ds)]);
     drawnow;
     
-    sp=mean(RadialPowerSpectrum(imgs,1),2);
+    %        4.  Compute average spectrum
+    sp=mean(RadialPowerSpectrum(imgs,1),2)*pixA^2;  % To get the general spectral
+    %     density in units of A^2 because we multiply this by pixA^2
+    dfb=1/(pixA*nb); % frequency step in boxes
+    freqs=(0:nb/2-1)'*dfb; % frequencies in spectrum
+    c=sectr(meGetEffectiveCTF(mi,nb,ds));  % corresponding ctf
     
-    f=(0:nb/2-1)'/(nb*pixA);
-    c=sectr(meGetEffectiveCTF(mi,nb,ds));
+    subplot(4,2,6); % Show the spectrum and the ctf
+    plot(freqs,[sp/40 c]);
     
-    subplot(4,2,6);
-    plot(f,[sp/40 c]);
-    %%
-    % Fit the power spectrum
-    
+    %% Fit the power spectrum with NoiseModel.*c^2+shot
     noiseModelFcn='NoiseModel1';
-    
     niters=1000;
-    
-    df=1/(pixA*nb);
-    freqs=(0:df:(nb/2-1)*df)';  % frequencies in spectrum of a single box
-    freqsx=(0:df/10:(nb/2-1)*df)';  % 10x oversampled frequencies
-    
     
     % Get the effective CTFs
     effctf=sectr(meGetEffectiveCTF(mi,nb,ds));
-    effctfx=sectr(meGetEffectiveCTF(mi,nb*10,ds));
-    %     [c effctf]=meComputeMergeCoeffs2(freqs, mi);
-    %     [c effctfx]=meComputeMergeCoeffs2(freqsx, mi);
+    %     effctfx=sectr(meGetEffectiveCTF(mi,nb*10,ds));
     
-    % fit the noise model
-    nPSets=1;
+    % fit the noise model with multiple families of parameters
+    %     nPSets=1;
     nPSets=3;  % try this many sets of parameters
     % Initialize parameters:
-    q=sp(nb/4);
+    q=sp(nb/4);  % get a rough sample of the spectral density
     
     % noise model 1 is
-%     spec=(ag*gauss(sigma)+af1).*(.01./f).^f1exp+af2*(.01./f).^f2exp;
-%     shot=s0./(1+(f/bf).^2);
+    %     spec=(ag*gauss(sigma)+af1).*(.01./f).^f1exp+af2*(.01./f).^f2exp;
+    %     shot=s0./(1+(f/bf).^2);
     %     Really simple model, with a/f^n+b for spect, c for shot.
     %        af1 af2  ag   sigma  bf  s0 f1exp f2exp
     p0=[     3*q  0    0     1   100   q  2    1 ];
@@ -247,11 +242,11 @@ for fileIndex=startIndex:numel(fname)
     p0(2,:)=[ 1*q 1*q 10*q .007  100  q   0.5   1.5];
     ac(2,:)=[ 1   1    1    1    0   1    1     1 ];
     %        af1 af2 ag    sigma  bf  s0 f1exp f2exp
-%     p0(2,:)=[ 1*q 1*q 10*q .007  100  q   1.5   1.5];
-%     ac(2,:)=[ 1   1    1    1    0   1    1     1 ];
-%     
+    %     p0(2,:)=[ 1*q 1*q 10*q .007  100  q   1.5   1.5];
+    %     ac(2,:)=[ 1   1    1    1    0   1    1     1 ];
+    %
     p0(3,:)=[1*q 1*q  0*q .007  100  q   1.5   1.5];
-    ac(3,:)=[1   1    0    0    0   .1    1     1 ];
+    ac(3,:)=[1   1    0    0    0    1    1     1 ];
     
     ps=p0(1:nPSets,:);   % Store the final parameters
     errs=zeros(nPSets,1); % store the final errors.
@@ -271,10 +266,10 @@ for fileIndex=startIndex:numel(fname)
                 plot(freqs,sp,'k.',freqs,model,'b-');
                 title(['model: ' num2str(jp) '  iter: ' num2str(i)]);
                 xlabel('Spatial frequency, A^{-1}');
-                ylabel('Spectrum')
+                ylabel('Spectral density, A^2')
                 subplot(2,2,3);
                 semilogy(freqs,[spec shot]);
-                ylabel('Model: spec, shot density');
+                ylabel('Model: spec, shot density, A^2');
                 xlabel('Spatial frequency, A^{-1}');
                 drawnow;
             end;
@@ -283,7 +278,6 @@ for fileIndex=startIndex:numel(fname)
         ps(jp,:)=Simplex('centroid');
     end;
     errs
-    %     ds
     %     Pick the one which converged better
     [~, jBest]=min(errs);
     p=ps(jBest,:);
@@ -299,44 +293,37 @@ for fileIndex=startIndex:numel(fname)
     plot(freqs,sp,'k.',freqs,model,'b-');
     title(['model: ' num2str(jBest)]);
     xlabel('Spatial frequency, A^{-1}');
-    ylabel('Spectrum');
+    ylabel('Spectral density, Å^2');
     
     
     subplot(2,2,3);
-    semilogy(freqs,[spec shot model]);
+    semilogy(freqs,[spec shot model sp]);
     ylabel('Model: spec, shot density');
     xlabel('Spatial frequency, A^{-1}');
-    title(['Shot density: ' num2str(mean(shot))]);
+    title(['Shot density: ' num2str(mean(shot)) ' Å^2']);
     drawnow;
     
     mi=meStoreNoiseModel(p,noiseModelFcn,mi);
     
-    
     if pars.writeMiFile
-    mi.log{end+1,1}=['meInverseFilterAuto ' TimeStamp];
-    WriteMiFile(mi,[rootPath infoPath fname{fileIndex}]);
-    disp(['Updated ' fname{fileIndex}]);
+        mi.log{end+1,1}=['meInverseFilterAuto ' TimeStamp];
+        WriteMiFile(mi,[rootPath infoPath fname{fileIndex}]);
+        disp(['Updated ' fname{fileIndex}]);
     else
         disp('mi file not updated.');
     end;
- 
+    
+    % Whiten a binned image for display
     dsDisplay=2;
     n2=n/dsDisplay;
     ds2=ds*dsDisplay;
     msub2=BinImage(msub,dsDisplay);
     pixA2=pixA*dsDisplay;
     
-    Ti=meGetNoiseWhiteningFilter(mi,n2,ds2,1,fHP);
-    f2d=RadiusNorm(n2);
-    %     % Compute the effective ctf and inverse filter
-    %     f2d=RadiusNorm(n)/pixA;
-    %     [coeffs effct]=meComputeMergeCoeffs(f2d,mi.ctf,mi.doses);
-    %     [spec shot]=meEvalNoiseModel(f2d,mi);
-    %     %             [spec shot]=eval([noiseModelFcn '(f2d,p)']);
-    %     T=(spec.*effct.^2+shot)./shot;
-    %     Ti=1./sqrt(T);
-    subplot(4,2,8);                         %%
-    plot(sectr(f2d)/pixA2,sectr(Ti));
+    Ti=meGetNoiseWhiteningFilter(mi,n2,ds2,1,fHP); % (1 means 1 zero)
+    f2d=RadiusNorm(n2)/pixA2;
+        subplot(4,2,8);                         %%
+    plot(sectr(f2d),sectr(Ti));
     axis([0 inf 0 1.2]);
     %     axis([0 inf 0 1.02*max(sectr(Ti))]);    %%
     title('Prewhitening filter');           %%

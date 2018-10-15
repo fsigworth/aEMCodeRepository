@@ -2,8 +2,12 @@ function [H,filterOk]=meGetNoiseWhiteningFilter(mi,n,ds,nzeros,fHP,effCTF)
 % function [H,filterOk]=meGetNoiseWhiteningFilter(mi,n,ds,nzeros,fHP,effCTF)
 % Given the micrograph info structure mi, returns a filter frequency
 % response H of size n, f=0 in the center, that is the inverse of the
-% mi.noiseModel as filtered by the effective CTF.  If fHP is given and >0,
-% sn additional Gaussian HP with half-power frequency fHP (in pix^-1) is applied.
+% mi.noiseModel as filtered by the effective CTF. 
+% The filter is scaled such that the HF asymptote is unity:
+%     H=sqrt(mean(shot(:))./(spec.*effCTF.^2+shot)); % =1 at high frequencies
+%
+% If fHP is given and >0,
+% an additional Gaussian HP with half-power frequency fHP (in pix^-1) is applied.
 % The result is for an image downsampled by ds (default ds=mi.imageSize/n).
 % No need to give ds, or ds=0 is ok, if the image wasn't cropped.
 % If effCTF is not given, it is computed from meComputeMergeCoeffs2.
