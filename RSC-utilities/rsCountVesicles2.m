@@ -3,8 +3,9 @@
 % from the Info directory of an experiment.
 % Compare vesicle amplitudes^2 with noise spectra.
 
-% workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w11v3m3/';
-workingDir='/Users/fred/EMWork/Hideki/SNR/170808/SimpleVes_1/';
+% workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w11v3m1/';
+% workingDir='/Users/fred/EMWork/Hideki/170808p/SimpleVes/';
+workingDir='/Users/fred/EMWork/Hideki/170808p/SimpleVes_raFit/';
 % workingDir='/Users/fred/EMWork/Hideki/SNR/180226/Kv_1sel/';
 
 cd(workingDir);
@@ -65,14 +66,17 @@ for nmi=1:nEntries
         disp([num2str(nmi) ' ' name ' -- No vesicles.']);
     end;
 end;
+% return
 %%
+% function MakeDisplay
 finds=[4 10 20];
 nBins=60;
 subplot(211);
-medShot=median(miShots);
-miMax=3*max(median(miSpecs(:,finds(1))),medShot);
-miMin=.3*min(median(miSpecs(:,finds(end))),medShot);
-oks=miSpecs(:,finds(end))>miMin & miSpecs(:,finds(1))<miMax;
+medShot=median(miShots(1:nmi));
+miShots=min(max(miShots,medShot/10),medShot*10);
+miMax=3*max(median(miSpecs(1:nmi,finds(1))),medShot);
+miMin=.3*min(median(miSpecs(1:nmi,finds(end))),medShot);
+oks=miSpecs(1:nmi,finds(end))>miMin & miSpecs(1:nmi,finds(1))<miMax;
 [h,bins]=hist(log10(miSpecs(oks,finds)),nBins);
 h1=0*h;
 lmShot=log10(median(miShots(oks)));
@@ -93,15 +97,20 @@ legend([legends;{'shot'}]);
 subplot(223);
 semilogy([miSpecs(oks,finds) miShots(oks)]);
 ylabel('shot, LF spectra');
-legend([legends;{'shot'}]);
+legend([legends;{'shot'}],'location','southeast');
 title(num2str(median([miSpecs(oks,finds) miShots(oks)]),3))
 
 subplot(224);
-semilogy(miAmps(oks)*1e4)
-ylabel('Vesicle amp squared');
+ampScl=1e3;
+med=median(miAmps(oks));
+plot((miAmps(oks)*ampScl).^2)
+axis([0 inf 0 2*(med*ampScl)^2]);
+ylabel(['Vesicle amp squared * ' sprintf('%1.0e',ampScl^2)]);
+title(['Median vesicle power ' num2str((med)^2,3)]);
+drawnow
+% end
 
-return
-% 
+%
 % for i=1:1
 %     msName=[mi.procPath mi.baseFilename imageFileSuffix];
 %     [msName,ok]=CheckForImageOrZTiff(msName);
@@ -158,13 +167,13 @@ return
 %         pause;
 %     end;
 % end;
-% 
-% 
+%
+%
 % %%
-% 
+%
 % %         disp(' ');
-% 
-% 
+%
+%
 % %         if size(mi.particle.picks,1)>0
 % %             flags=mi.particle.picks(:,3);
 % %             num=sum(flags>=16 & flags<48);
@@ -203,7 +212,7 @@ return
 % %
 % %
 % % return
-% 
+%
 % % %%
 % % % Estimate vesicle amplitude from image integral
 % % k=47;
@@ -219,8 +228,8 @@ return
 % %
 % % effVesAmp=ds^2*estA/(4*pi*(mi.vesicle.r(k,1)^2)*a0)
 % % effVesAmp0=ds^2*sv/(4*pi*(mi.vesicle.r(k,1)^2)*a0)
-% 
-% 
+%
+%
 % function effAmp=EstimateImageAmplitude(mi,k,ds)
 % % Estimate image amplitude from normalized image
 % ves=meMakeModelVesicles(mi,mi.imageSize(1)/ds,k,0,0);
@@ -232,7 +241,7 @@ return
 % sv1=sum(ves1(:));
 % effAmp=sv/sv1;
 % end
-% 
+%
 % % %% Compute coherence function
 % % vpc0=meMakeModelVesicles(mi,960,0,1,1);
 % % v1=mv+vpc0;
