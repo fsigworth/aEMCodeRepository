@@ -108,6 +108,9 @@ if ~isfield(mi.ctf(1),'ampFactor')
 end;
 
 nim=numel(CTPars);
+if numel(doses)<nim % pad the doses
+    doses(nim)=0;
+end;
 
 if numel(nzeros)<nim
     nzeros=ones(nim,1)*nzeros;

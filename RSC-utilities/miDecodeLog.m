@@ -1,4 +1,4 @@
-function sequence=miDecodeLog(mi);
+function [sequence,datenums]=miDecodeLog(mi);
 % From the given mi structure, return a vector of 8 indices, whose elements
 % correspond to the programs
 % 1 Find jump
@@ -29,10 +29,20 @@ for i=1:ns
     end;
 end;
 % special case for FindVesicles
-if sequence(4)>0
-    return
-end; % patch for old files where no log entry is made
+if sequence(4)<1
+% patch for old files where no log entry is made
 if isfield(mi,'vesicle') && isfield(mi.vesicle,'x') && numel(mi.vesicle.x)>0
     sequence(4)=sequence(3)+.5;
 end;
+end;
 
+if nargout>1 % look up timestamps
+    nlog=numel(mi.log);
+    datenums=zeros(ns,1);
+    for i=find(sequence>0)
+        strings=split(mi.log{floor(sequence(i))});
+        try
+            datenums(i)=datenum([strings{end-1} ' ' strings{end}]);
+        end;
+    end;
+end;

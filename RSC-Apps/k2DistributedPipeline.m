@@ -22,15 +22,24 @@ doMultiFindVesicles   = 0;
 %***
 doPrelimInverseFilter =0;
 doRefineVesicles      =1;
-refineVesicleAmpsOnly=0;
+refineVesicleAmpsOnly=1;
 %%% minRefineVesiclesSequence=0;  % 0 if don't consider.
-minRefineVesiclesSequence=1;    % inf forces refinement
+minRefineVesiclesSequence=inf;    % inf forces refinement
 doInverseFilter       =1;
-doPickingPreprocessor =1;
+forceInverseFilter=0;
+minAge=0;  % if the corresponding log entry has a date stamp < minAge
+% days before the present, and forceInverseFilter=1, we go ahead and re-run the
+% function.  So, to re-run processing if the latest log entry is < 1 day old,
+% set minAge=1.
+
+doPickingPreprocessor =0;
+
+
 %%workingDir='/ysm-gpfs/pi/cryoem/krios/20180226/Kv_1/'
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
-workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
-%workingDir='/ysm-gpfs/scratch60/fjs2/20180315/';
+%workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
+%workingDir='/ysm-gpfs/scratch60/fjs2/170808p/SimpleVes/';
+workingDir='~/project/180226/Kv_1sel/';
 %workingDir='/gpfs/ysm/scratch60/fjs2/180226/Kv_1SelW10/';
 %workingDir='/ysm-gpfs/scratch60/fjs2/170926Nelli/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/171031Nelli/'
@@ -104,6 +113,9 @@ pars.showGraphics=0; %%%%%%%%
 
 numJobs=str2double(getenv('NUM_JOBS'));
 jobIndex=str2double(getenv('JOB_ID')); % one-based index
+
+% Set the current datstring
+refDate=now;
 
 % %%%%%%%%%%%%%%%%%%%%%
 % if jobIndex==12  % special case!!!
@@ -200,7 +212,7 @@ while iName(end)<=numJobNames
     if serialMode
         disp(ourNames{1});
         mi=ReadMiFile(ourNames{1});
-        logSequence=miDecodeLog(mi);
+        [logSequence,logTimes]=miDecodeLog(mi);
     else
         logSequence=true(1,10);
     end;
@@ -268,13 +280,15 @@ while iName(end)<=numJobNames
             
         rsRefineVesicleFits(ourNames,rpars);
         if serialMode  % update the log sequence
+            mi=ReadMiFile(ourNames{1});
             logSequence=miDecodeLog(mi);
         end;
     elseif doRefineVesicles
         disp('  Refine Vesicles skipped.');
     end;
     % inverse filter (sequence 6)
-    if doInverseFilter && (logSequence(6) <= logSequence(5))
+    if doInverseFilter && (logSequence(6) <= logSequence(5)) ...
+            || (forceInverseFilter && logTimes(6)<refDate-minAge)
         meInverseFilterAuto(ourNames);
     elseif doInverseFilter
         disp('  Inverse Filter skipped.');
