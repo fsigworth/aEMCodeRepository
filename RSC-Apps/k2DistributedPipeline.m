@@ -10,6 +10,7 @@ serialMode    =1;   % go through all the steps before moving to next micrograph
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
 doMerge       =0;
+forceMerging  =0;
 doDownsampleMergedImages=0; 
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
@@ -22,7 +23,7 @@ doMultiFindVesicles   = 0;
 %***
 doPrelimInverseFilter =0;
 doRefineVesicles      =1;
-refineVesicleAmpsOnly=1;
+refineVesicleAmpsOnly=0;
 %%% minRefineVesiclesSequence=0;  % 0 if don't consider.
 minRefineVesiclesSequence=inf;    % inf forces refinement
 doInverseFilter       =1;
@@ -32,14 +33,15 @@ minAge=0;  % if the corresponding log entry has a date stamp < minAge
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
 
-doPickingPreprocessor =0;
+doPickingPreprocessor =1;
 
 
 %%workingDir='/ysm-gpfs/pi/cryoem/krios/20180226/Kv_1/'
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/170808p/SimpleVes/';
-workingDir='~/project/180226/Kv_1sel/';
+workingDir='~/project/20180620/';
+workingDir='~/project/20181025/20Frames/';
 %workingDir='/gpfs/ysm/scratch60/fjs2/180226/Kv_1SelW10/';
 %workingDir='/ysm-gpfs/scratch60/fjs2/170926Nelli/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/171031Nelli/'
@@ -77,12 +79,12 @@ pars.writeStack=1;  % Dirft tracker
 %pars.defaultPixA=1.05;
 %pars.defaultPixA=1.781;
 pars.defaultPixA=0;
-pars.searchDefoci=[1 5 ; 8 15]; % for MergeImages [1stmin 2ndMin ; 1stMax 2ndMax]
+pars.searchDefoci=[1 8 ; 8 15]; % for MergeImages [1stmin 2ndMin ; 1stMax 2ndMax]
 pars.doAlignment=1;  % MergeImages
 pars.doFitting=0;
 pars.doWriteInfos=1;
 % pars.weights=[1 0];  %%% single exposure
-pars.weights=[1 1];
+pars.weights=1;
 pars.mcDS=1;
 %pars.mergeMode=3;  %%% no phase flip!
 pars.mergeMode=1;   %%% normal
@@ -232,7 +234,7 @@ while iName(end)<=numJobNames
     end;
     % merge images (sequence 3)
     if doMerge
-        if ~logSequence(3)
+        if ~logSequence(3) || forceMerging
             MergeImages(ourNames,pars);
         end;
     end;

@@ -1,21 +1,70 @@
 % rtOnlineDisply.m
+inWorkingDir=0;  % not finished
 tempDir='temp/';
 imageDir='Micrograph/';
 jpegDir='Jpeg/';
 infoDir='Info/';
-kV=300;
-mode=2;
-pixA=1.1;
+procDir='Merged/';
+ourRefName='CountRefLocal.mrc';
+gainRefRot=0;
+kV=200;
+searchMode=2; % 1: operate on latest; 2 start from beginning. 
+pixA=1.247;
+cpe=20;
 times=0;
 defoci=0;
-maxRepeat=100; % 500 seconds max. waiting.
+maxRepeat=100; % 500 seconds max. waiting before quitting.
+maxRepeat=1;
+
+mc2Pars=struct;
+mc2Pars.throw=1;   % for MC2: default is zero.
+mc2Pars.trunc=0;  % default is zero
+mc2Pars.gainRefRot=0;
 
 disp('Getting the first movie');
 [firstName,inPath]=uigetfile('*.*','Select a movie file');
-cd(inPath);
-
+if ~inWorkingDir
+    cd(inPath);  % Might need to use a base path
+    inPath='';
+end;
 [pa,nm,ex]=fileparts(firstName);
 namePattern=ex;
+
+%%
+% Look for a gain reference
+d=dir(inPath); % same as movie dir
+found=0;
+for i=3:numel(d)
+    [~,rnm,rex]=fileparts(d(i).name);
+    if strcmp(rex,'.dm4') && numel(strfind(lower(rnm),'ref'))
+        refName=d(i).name;
+        refPath=GetRelativePath(inPath);
+        found=i;
+        break;
+    end;
+end;
+if found
+    gainRefName=[refPath refName];
+else
+    disp('Getting the refernce');
+    [refName,refPath]=uigetfile('*.dm4','Select the reference');
+    if isnumeric(refName) % nothing selected
+        gainRefName='';
+    else
+        gainRefName=[GetRelativePath(refPath) refName];
+    end;
+end;
+if numel(gainRefName)>1
+    ref=ReadEMFile(gainRefName);
+    WriteMRC(ref,0,ourRefName);
+end;
+
+if numel(gainRefName)>1
+disp(['Gain reference: ' gainRefName ' copied to ' ourRefName]);
+else
+    disp('No gain reference');
+    ourRefName='';
+end;
 
 nameList=cell(0);
 timeList=[];
@@ -24,48 +73,59 @@ CheckAndMakeDir(tempDir, 1);
 CheckAndMakeDir(imageDir, 1);
 CheckAndMakeDir(jpegDir, 1);
 CheckAndMakeDir(infoDir,1);
-
+CheckAndMakeDir(procDir,1);
 
 mi0=meCreateMicrographInfoStruct14;
 mi0.pixA=pixA;
 % mi0.movieFilename{1}=nameList{end};
 mi0.tempPath=tempDir;
 mi0.imagePath=imageDir;
-mi0.procPath=imageDir;
+mi0.procPath=procDir;
 mi0.jpegPath=jpegDir;
+mi0.gainRefName=ourRefName;
+mi0.gainRefRot=gainRefRot;
 mi0.kV=kV;
-mi0.cpe=0.8;
-mi0.namePattern='.tif';
+mi0.cpe=cpe;
+mi0.camera=5;
 mi0.moviePath='';
+    if mi0.kV>200
+        mi0.damageModelCode='.245*f.^-1.665+2.81; % Grant&Grigorieff 300 kV';
+    else
+        mi0.damageModelCode='.184*f.^-1.665+2.1; % Grant&Grigorieff 200 kV';
+    end;
 
+%% ---------------------Main loop---------------
 doRepeat=1;
 miIndex=0;
 
 while doRepeat
     ok=0;
     repeatCount=0;
-    while ~ok
-        [nameList,timeList,ok]=rtFindNextMovie(nameList,timeList,namePattern,mode);
+    while ~ok && repeatCount<maxRepeat
+        [nameList,timeList,ok]=rtFindNextMovie(nameList,timeList,namePattern,searchMode);
         if ~ok
+            sprintf('.');
             pause(5);
         end;
         repeatCount=repeatCount+1;
     end;
-    doRepeat=repeatCount<maxRepeat;
+    doRepeat=repeatCount<=maxRepeat;
     
     miIndex=miIndex+1;
     times(miIndex)=timeList(end);
     
+
     mi=mi0;
     mi.movieFilename{1}=nameList{end};
     [pa,nm,ex]=fileparts(mi.movieFilename{1});
     mi.baseFilename=nm;
     mi.imageFilenames{1}=[nm 'ali.mrc'];
     
-    pars=struct;
-    mi=rtMC2Runner(mi,pars);
+    % ------Run MC2 here------
+    mi=rtMC2Runner(mi,mc2Pars);
     if isnumeric(mi) % MC2 run was unsuccessful.
         disp('MotionCor2 run was unsuccessful.');
+%        return;
         break;
     end;
     m=ReadMRC([mi.imagePath mi.imageFilenames{1}]);
@@ -90,6 +150,8 @@ while doRepeat
     if isnumeric(mi)
         disp('Skipping');
         break
+    else
+        disp(['defocus ' num2str(mi.ctf(1).defocus)]);
     end;
     
     % put this onto the drift plot

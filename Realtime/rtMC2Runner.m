@@ -33,10 +33,18 @@ function mi=rtMC2Runner(mi,pars)
 % mi.pixA=0;
 % mi.cpe=0.8;
 % mi.kV=300;
-doDoseWeighting=0;
+dpars.throw=0;
+dpars.trunc=0;
+dpars.patches=[3 3];
+dpars.writeAlignedStack=0;
+if nargin<2
+    pars=struct;
+end;
+pars=SetDefaultValues(dpars,pars);
+
+deleteDWImage=1;
+doDoseWeighting=1; % also computes frame doses
 countingImageSize=3840;
-writeAlignedStack=1;
-    patches=[3 3];
     sgpus='0 1 2 3';
 
     
@@ -47,8 +55,15 @@ writeAlignedStack=1;
     disp(' ');
     disp(['Processing ' mi.movieFilename{1}]);
     [m,s,ok]=ReadMovie([mi.moviePath mi.movieFilename{1}],1,1); % read one frame
+    if ~ok
+        disp('Not a movie?');
+        return
+    end;
     n0=size(m);
     ds=round(n0(1)/countingImageSize);  % get the downsampling factor
+    if ds>1
+        disp(['Downsampling by ' num2str(ds)]);
+    end;
     mi.imageSize=NextNiceNumber(n0/ds,5,8);
     nFrames=s.nz;
     if nFrames<2 % if it's not a movie, return mi=0.
@@ -60,32 +75,55 @@ writeAlignedStack=1;
         mi.pixA=s.pixA*ds;
         disp(['Updated mi.pixA to ' num2str(mi.pixA)]);
     end;
+    
+    % Handle frame numbers and doses
+    fr1=1+pars.throw;
+    if fr1>nFrames
+        pars.throw=0;
+        disp('Throw was too large, set to zero.');
+        fr1=1;
+    end;
+    
+    frn=nFrames-pars.trunc; % Last frame no.
+    nFramesUsed=frn-fr1+1;
+    if nFramesUsed<1
+        pars.trunc=0;
+        frn=nFrames;
+        disp('Trunc was too large, set to zero.');
+    end;
+    mi.frameSets=[fr1 frn];
+    frameDose=mean(m(:))*ds^2/(mi.cpe*mi.pixA^2); % dose in e/A^2
+    % we have to scale up because MC2 doesn't.
+    mi.frameDose=frameDose*ones(nFrames,1);
+    mi.doses=frameDose*nFramesUsed;
+    
     if doDoseWeighting
-        frameDose=mean(m(:))*ds^2/(mi.cpe*mi.pixA^2); % dose in e/A^2
-        % we have to scale up because MC2 doesn't.
-        mi.frameDose=frameDose*ones(nFrames,1);
-        mi.doses=frameDose*nFrames;
         doseString=[' -FmDose ' num2str(mi.frameDose(1))];
     else
         doseString='';
     end;
-    if writeAlignedStack
+    
+    sftBin=num2str(ds);
+
+    if pars.writeAlignedStack
         stackString=' -OutStack 1 ';
     else
         stackString='';
     end;
+   
+    if numel(mi.gainRefName)>1
+       gainString=[' -Gain ' mi.gainRefName ' -RotGain ' num2str(mi.gainRefRot)];
+   else
     gainString='';
-    mi.frameSets=[1 nFrames];
-    
-    sftBin=num2str(ds);
-    nFrames=s.nz;
+   end;
+   
     CheckAndMakeDir(mi.tempPath,1);
     CheckAndMakeDir(mi.imagePath,1);
     
     movieName=mi.movieFilename{1};
     
     [pa,mvBaseName,ex]=fileparts(movieName);
-    imageName=[mi.imagePath mi.imageFilenames{1}];
+    tempImageName=[mi.tempPath mi.imageFilenames{1}];
     
 %     disp(['Reading ' movieName]);
 %     mv=ReadMovie(movieName);
@@ -95,7 +133,9 @@ writeAlignedStack=1;
 %     disp(['Writing ' movieName]);
 %     WriteMRC(mv,mi.pixA,[mvBaseName ex]);
     
-    MC2Exec='MotionCor2_1.1.0-Cuda80';
+%     MC2Exec='MotionCor2_1.1.0-Cuda80';
+
+MC2Exec='$RELION_MOTIONCOR2_EXECUTABLE';
     if strcmp(ex,'.tif')
         movieType='InTiff';
     else
@@ -104,11 +144,12 @@ writeAlignedStack=1;
     
     % Create the execution script
     string=[MC2Exec ' -' movieType ' ' [mi.moviePath mi.movieFilename{1}]...
-        ' -OutMRC ' imageName ...
+        ' -OutMRC ' tempImageName ...
         ' -LogFile ' [mi.tempPath mvBaseName] '-' ...
-          gainString stackString...
-        ' -Patch ' num2str(patches) ' -Gpu ' sgpus ' -Kv ' num2str(mi.kV) ...
+          gainString stackString ...
+        ' -Patch ' num2str(pars.patches) ' -Gpu ' sgpus ' -Kv ' num2str(mi.kV) ...
         ' -FtBin ' sftBin ' -PixSize ' num2str(mi.pixA/ds) doseString ...
+        ' -Throw ' num2str(pars.throw) ' -Trunc ' num2str(pars.trunc) ...
         ' >> ' [mi.tempPath 'MC2Out.txt'] ' 2>> ' [mi.tempPath 'MC2Out.err'] ];
     disp(string);
 
@@ -122,23 +163,37 @@ writeAlignedStack=1;
     
     system(string);
     
+    if ~exist(tempImageName,'file')
+        disp('MC2: no output file.');
+        mi=[];
+        return
+    end;
+    
+    %tempImageName=[mi.tempPath mi.imageFilenames{1}];
+    %        mi.imageFilenames={[mi.baseFilename 'ala.mrc']};
+    outName=[mi.imagePath mi.imageFilenames{1}]; % final micrograph name
+
     if doDoseWeighting
         % Correct the micrograph scaling
-        dwName=[mi.tempPath mvBaseName '_DW.mrc']; % read the dose-weighted output
+        [pa,nm,ext]=fileparts(tempImageName);
+        dwName=[mi.tempPath nm '_DW.mrc']; % get the dose-weighted output
         [m,s]=ReadMRC(dwName);
         me=mean(m(:));
-        m2=(m-me)*sqrt(nFrames);
+        m2=(m-me)*sqrt(nFrames); % scale up the AC part
         mOut=(Crop(m2,mi.imageSize)+me)*ds^2;  % pad the image, restore mean and scale up
-        mi.imageFilenames={[mi.baseFilename 'ala.mrc']};
-        outName=[mi.imagePath mi.imageFilenames{1}];
         WriteMRC(mOut,s.pixA,outName);  % write it back out.
         disp(['Corrected micrograph written: ' outName]);       
         % delete the original files
-        system(['rm ' mi.tempPath mvBaseName '*.mrc']);
+        system(['rm ' tempImageName]);
+        if deleteDWImage
+            system(['rm ' dwName]);
+        end;
+    else
+        system(['mv ' tempImageName ' ' mi.imagePath mi.imageFilenames{1}]);
     end;
     %%
     % Read the alignment shifts
-    if any(patches>1)
+    if any(pars.patches>1)
         suffix='-0-Patch-Full.log';
         headerLines=3;
     else
@@ -148,6 +203,7 @@ writeAlignedStack=1;
     logName=[mi.tempPath mvBaseName suffix];
     if ~exist(logName,'file')
         disp(['Gctf log file not found: ' logName]);
+        disp('No shifts recorded.');
         mi.frameShifts{1}=zeros(mi.frameSets(2),2);
     else
         f=fopen(logName);

@@ -1,12 +1,13 @@
-function s=SetDefaultValues(s,options)
-% if options has a field with the same name as a field of s, overwrite
-% s.field with options.field.
-% Use this with default values set to s, new values to options.
-    sFields=getfields(s);
-    optFields=getFields(options);
-    for i=1:numel(sFields)
-        p=strcmp(sFields{i},optFields);
-        if any(p)
-            s.(sFields(i))=options.(sFields{i});
+function s=SetDefaultValues(defaults,s)
+% function s=SetDefaultValues(defaults,s)
+% Set default parameter values.  defaults and s are both structs.
+% For each field that defaults has but s lacks, the default value is copied to s.
+
+names=fieldnames(defaults);    
+    nf=numel(names);
+    for i=1:nf
+        name=names{i};
+        if ~isfield(s,name)
+            s.(name)=defaults.(name);
         end;
     end;
