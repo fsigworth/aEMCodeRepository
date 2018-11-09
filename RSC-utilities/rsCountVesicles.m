@@ -4,10 +4,12 @@ startEntry=1;
 maxEntries=inf;
 stride=1;
 txtSize=12;
+txtSize=1;
+drawText=0;
 requireParticles=1;
 d=dir('Info/');
-imageFileSuffix='m.mrc';
-vesicleFileSuffix='mv.mrc';
+imageFileSuffix='ms.mrc';
+vesicleFileSuffix='mvs.mrc';
 nPicks=0;
 nEntries=min(numel(d),maxEntries);
 ds=4;  % assume we're working with downsampled images
@@ -57,12 +59,14 @@ for i=startEntry:nEntries
         yls=double(ys+mi.vesicle.r(:,1)/ds);
         effAmps=zeros(nv,1);
         mi.vesicle.ok(:,5)=true;
-        hold on;
+if drawText
+    hold on;
         for j=1:nv
             text(xs(j),yls(j),num2str(j),'color','g',...
                 'HorizontalAlignment','center');
         end;
         hold off;
+end;
         md=m;
         md(:,:,2)=v;
         k=1;
@@ -106,7 +110,7 @@ for i=startEntry:nEntries
                 
                 imags(md(:,:,iw));
                 hold on;
-                if iw==2
+                if iw==2 && drawText
                     for j=1:nv
                         if mi.vesicle.ok(j,5)
                             text(xs(j),yls(j),num2str(j),'color','g',...
@@ -153,7 +157,8 @@ for i=startEntry:nEntries
             hold off;
             axis([0 max(rs) 0 max(effAmps)]);
             grid on;
-            
+            ylabel('Scaling / 1e-4 rad/VÅ');
+            xlabel('Vesicle radius, Å');
             
             %                         hold off;
             txt=['(' num2str(k,3) ')  a=' num2str(effAmps(k),3) '  r=[ ' num2str(abs(mi.vesicle.r(k,[1 3:end])),3) ' ] '];

@@ -103,7 +103,11 @@ if nargin<5
     noDamage=0;
 end;
 if nargin<4
+    if ~isfield(mi,'mergeMode')
     mode=1;
+    else
+        mode=mi.mergeMode;
+    end;
 end;
 
 if nargin<3

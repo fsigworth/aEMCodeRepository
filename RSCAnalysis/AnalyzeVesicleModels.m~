@@ -11,7 +11,6 @@ nx=196;
 
 % squeeze(mi.vesicle.s(ind,:,:))
 %%
-figure(1);
 v0=meMakeModelVesicles(mi,960,ind);
 imags(v0)
 
