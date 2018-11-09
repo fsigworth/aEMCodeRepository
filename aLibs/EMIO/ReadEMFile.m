@@ -1,3 +1,4 @@
+
 function [m, pixA, ok]=ReadEMFile(name,startSlice,numSlices)
 % function [m, pixA, ok]=ReadEMFile(name)
 % function m=ReadEMFile;   % simplest form: puts up a file selector
@@ -62,7 +63,7 @@ pixA=0;  % default value
 m=zeros(100,100); % default value
 ok=1;
 switch lower(ex)
-    case {'.mrc','.st'}
+    case {'.mrc','.mrcs','.st'}
         [m, s]=ReadMRC(name,startSlice,numSlices);
         pixA=s.rez/s.nx;
     case {'.dm3','.dm4'}

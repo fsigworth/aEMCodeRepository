@@ -39,6 +39,9 @@ end;
 if nargout>1 % look up timestamps
     nlog=numel(mi.log);
     datenums=zeros(ns,1);
+    if nlog<1
+        return
+    end;
     for i=find(sequence>0)
         strings=split(mi.log{floor(sequence(i))});
         try

@@ -9,6 +9,8 @@ function MakeJpegsFromEMFiles(OutputDir, binning, display, defaultPixA)
 % fs July 2009 rev. Apr 2011, Nov 2017
 
 inputExtensions={'.mrc' '.tif' '.dm4'};
+inputExtensions={'.mrcs'};
+sumStacks=1;
 
 disp(['Converting EM files to jpgs in directory ' pwd]);
 
@@ -38,10 +40,16 @@ for i=3:numel(d)
     ok=any(strcmp(ex,inputExtensions)); % one of the image file types
     if ok
         [mi, pixA, ok]=ReadEMFile(d(i).name);
+    else
+        continue;
     end;
-    ok=ok && size(mi,3)==1;  % don't do stacks
+    nim=size(mi,3);
+    ok=ok && (sumStacks ||size(mi,3)==1);  % don't do stacks
     if ok
         disp(d(i).name);
+        if nim>1
+            mi=sum(single(mi),3);
+        end;
         m=RemoveOutliers(mi,4);
         n=size(m,1);
         if binning>1
@@ -58,7 +66,7 @@ for i=3:numel(d)
                 pixA=pixA/10;
                 label='nm';
             else
-                label='Å';
+                label='ï¿½';
             end;
             figure(1); SetGrayscale;
             imaga((1:n(1))*pixA,(1:n(2))*pixA,ms);

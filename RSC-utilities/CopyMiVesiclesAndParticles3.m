@@ -1,6 +1,6 @@
 % CopyMiVesiclesAndParticles3.m
 monthStr='Oct';
-
+monthStr='';  % ignore dates
 
         % Select info files from the file selector
 
@@ -24,18 +24,20 @@ monthStr='Oct';
         end;
 % Get all the old file dates
 nOld=numel(fnameOld);
+if numel(monthStr)>0 % we'll check dates
 datesOld=cell(nOld,1);
 for ind=1:nOld
     name=fnameOld{ind};
     p=strfind(name,monthStr);
     datesOld{ind}=name(p:p+13);
 end;
-
+end;
 %%
 
 nNew=numel(fname);
 for ind=1:nNew
     name=fname{ind};
+if numel(monthStr)>0
     p=strfind(name,monthStr);
     dateStr=name(p:p+13);
     pAll=strfind(datesOld,dateStr);
@@ -46,6 +48,8 @@ for ind=1:nNew
             break
         end;
     end;
+else
+    p=1;
     if p>0
         mi=ReadMiFile(name);
 %         mi=miNew.mi;
