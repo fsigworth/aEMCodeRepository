@@ -26,7 +26,7 @@ dpars.writeMiFile=1;
 dpars.doPreSubtraction=1;
 dpars.listFits=1;  % print out each fit's parameters
 dpars.scaleOriginalAmplitudes=1;
-dpars.scaleOriginalAmplitudes=0.5; %%%%%%
+% dpars.scaleOriginalAmplitudes=0.5; %%%%%%
 % Number of terms (for both radius and amplitude fitting) is set thusly:
 %    nTerms=find(vesicle.r(ind,1) < pars.rTerms/mi.pixA,1);
 % i.e. nTerms is the index of last entry of rTerms smaller than our radius.

@@ -2,6 +2,8 @@ function meInverseFilterAuto(fname,mpars)
 % Given a good subtraction of vesicles, we search for regions of the
 % micrograph with low variance, and mark them as background boxes.
 % Then we compute an inverse filter.
+% Modified to give the absolute spectral densities in the noise model.
+
 if nargin<1
     fname=[];
 end;
@@ -300,14 +302,14 @@ for fileIndex=startIndex:numel(fname)
     plot(freqs,sp,'k.',freqs,model,'b-');
     title(['model: ' num2str(jBest)]);
     xlabel('Spatial frequency, A^{-1}');
-    ylabel('Spectral density, Å^2');
+    ylabel('Spectral density, ï¿½^2');
     
     
     subplot(2,2,3);
     semilogy(freqs,[spec shot model sp]);
     ylabel('Model: spec, shot density');
     xlabel('Spatial frequency, A^{-1}');
-    title(['Shot density: ' num2str(mean(shot)) ' Å^2']);
+    title(['Shot density: ' num2str(mean(shot)) ' ï¿½^2']);
     drawnow;
     
     mi=meStoreNoiseModel(p,noiseModelFcn,mi);
