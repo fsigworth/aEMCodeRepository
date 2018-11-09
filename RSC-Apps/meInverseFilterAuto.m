@@ -13,6 +13,8 @@ pars.writeMiFile=1;
 pars.useUnsubImage=0; % set to 1 to get inverse filter without mbn subtraction.
 pars.nb=256;
 %pars.nb=64; %%%%
+pars.useSmallImage=0;
+
 pars.writeFigs=1;
 
 pars=SetOptionValues(pars,mpars);
@@ -83,11 +85,15 @@ for fileIndex=startIndex:numel(fname)
     % Get a vesicle-subtracted image
     %   - first, try to get an mv.mrc or mvz.tif file
     if pars.useUnsubImage
-        suffix='m.mrc';
+        nameEnd='m';
     else
-        suffix='mv.mrc';
+        nameEnd='mv';
     end;
-    
+    if pars.useSmallImage
+        suffix=[nameEnd 's.mrc'];
+    else
+        suffix=[nameEnd,'.mrc'];
+    end;
     iname=[mi.procPath mi.baseFilename suffix];
     [name,mvPresent]=CheckForImageOrZTiff(iname);
     if mvPresent
@@ -107,6 +113,7 @@ for fileIndex=startIndex:numel(fname)
             m=ReadEMFile(iname);
         else
             if skipAbsentImages
+                disp([iname ' not found.']);
                 continue;
             end;
             [iname,pa]=uigetfile('*m*','Find the merged image');
