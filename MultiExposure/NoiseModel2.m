@@ -1,0 +1,20 @@
+function [spec shot]=NoiseModel2(f,p)
+ag=p(1);
+af1=p(1);
+af2=p(2);
+ag=p(3);
+sigma=p(4);
+bf=p(5);
+s0=p(6);
+f1exp=p(7);
+f2exp=p(8);
+as=p(9);
+
+gauss=exp(-f.^2/(2*sigma^2));
+f1=(.01./f).^f1exp;
+f1(1)=f1(2);
+f2=(.01./f).^f2exp;
+f2(1)=f2(2);
+b2=1-as./((f/bf).^2+1);
+spec=max(0,(ag*gauss+af1).*f1+af2*f2);
+shot=max(0,s0*b2);
