@@ -3,18 +3,18 @@
 % from the Info directory of an experiment.
 % Compare vesicle amplitudes^2 with noise spectra.
 
-workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w11v3m1/';
+%workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w11v3m1/';
 % workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w10v3';
 % workingDir='/Users/fred/EMWork/Hideki/170808p/SimpleVes_raFit/';
 % workingDir='/Users/fred/EMWork/Hideki/170808p/SimpleVes_w10/';
 %workingDir='/Users/fred/EMWork/Hideki/180226/Kv_1sel_VesPW/';
 % workingDir='/Users/fred/EMWork/Hideki/SNR/180226/Kv_1sel/';
 
-cd(workingDir);
+%cd(workingDir);
 
 startEntry=1;
 maxEntries=inf;
-maxEntries=20;
+maxEntries=520;
 countEff=0.8;
 showHist=0;
 spectrumCorrection=1;
@@ -114,12 +114,12 @@ if showHist
     textLength=numel(workingDir);
     titleChars=40;
     xlabel('log LF spectra at given freqs');
-    titleText=[workingDir(max(1,textLength-titleChars):end) '  (' num2str(medDose,2) ' e/Å2)'];
+    titleText=[workingDir(max(1,textLength-titleChars):end) '  (' num2str(medDose,2) ' e/ï¿½2)'];
     title(titleText,'interpreter','none');
     legend([legends;{'shot'}]);
     subplot(223);
 else
-    titleText=[(pwd) '  (' num2str(medDose,2) ' e/Å2)'];
+    titleText=[(pwd) '  (' num2str(medDose,2) ' e/ï¿½2)'];
     subplot(121)
 end;
 miOkDoses=miDoses(oks);

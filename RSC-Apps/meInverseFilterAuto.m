@@ -17,8 +17,8 @@ pars.useSmallImage=0;
 pars.nb=256;
 % pars.nb=64; %%%%
 
-pars.writeFigs=1;
-
+pars.writeFigs=1; % make fig 1 a standard size and write it out as a jpeg.
+pars.listFitProgress=0;
 pars=SetOptionValues(pars,mpars);
 
 
@@ -35,11 +35,13 @@ fHP=.005;  % assumed highpass filter
 doAmpCorrection=0;
 skipAbsentImages=1;
 
-figure(1);
-% Set the size so square images look square, and printing preserves the
-% aspect ratio.
-pos=get(gcf,'position');
-set(gcf,'Position',[pos(1:2) 845 800],'PaperPositionMode','auto');
+if pars.writeFigs
+    figure(1);
+    % Set the size so square images look square, and printing preserves the
+    % aspect ratio.
+    pos=get(gcf,'position');
+    set(gcf,'Position',[pos(1:2) 845 800],'PaperPositionMode','auto');
+end;
 colormap(jet(256));
 
 % Have the user select some mi files: boilerplate
@@ -216,18 +218,28 @@ for fileIndex=startIndex:numel(fname)
     title(['doses: ' num2str(mi.doses) '  weights: ' num2str(mi.weights) '  ds: ' num2str(ds)]);
     drawnow;
     
-    %        4.  Compute average spectrum
+%% -------------4.  Compute average spectrum---------------
     sp=mean(RadialPowerSpectrum(imgs,1),2)*pixA^2;  % To get the general spectral
     %     density in units of A^2 because we multiply this by pixA^2
+    % Make the first few points equal to the local minimum
+    pt=find(diff(sp)>0,1);
+    if numel(pt)<1 || pt>4
+        pt=2;
+    end;
+    sp(1:pt)=sp(pt);
+    
     dfb=1/(pixA*nb); % frequency step in boxes
     freqs=(0:nb/2-1)'*dfb; % frequencies in spectrum
-    errWeights=(freqs.^2+.001)./(freqs.^2+.0001);
+    errWeights=ones(nb/2,1);
+    % zero out any frequencies above 0.9*nyquist
+    errWeights(freqs>.45/pixA)=0;
+    %           (freqs.^2+.001)./(freqs.^2+.001); % all ones
     c=sectr(meGetEffectiveCTF(mi,nb,ds));  % corresponding ctf
     
     subplot(4,2,6); % Show the spectrum and the ctf
     plot(freqs,[sp/40 c]);
     
-    %% -----------Fit the power spectrum with NoiseModel.*c^2+shot-----------
+    % -----------Fit the power spectrum with NoiseModel.*c^2+shot-----------
 %     noiseModelFcn='NoiseModel1';
     noiseModelFcn='NoiseModel2';
     niters=zeros(3,1);
@@ -239,30 +251,34 @@ for fileIndex=startIndex:numel(fname)
     %     nPSets=1;
     nPSets=3;  % try this many sets of parameters
     % Initialize parameters:
-    q=sp(nb/4);  % get a rough sample of the spectral density
+    q=sp(round(nb*.4));  % get a rough sample of the spectral density
+    q
     bf0=(.2*ds/pixA); % where to put the dip in shot noise: .4*Nyquist
     % noise model 1 is
     %     spec=(ag*gauss(sigma)+af1).*(.01./f).^f1exp+af2*(.01./f).^f2exp;
     %     shot=s0./(1+(f/bf).^2);
     %     Really simple model, with a/f^n+b for spect, c for shot.
-    %        af1 af2  ag   sigma  bf  s0 f1exp f2exp as
-    p0=[     3*q  0    0     1   bf0   .8*q  2    1  .2];
-    ac=[      1   0    0     0    0    1     0    0   0];
+    % labels='   af1 af2  ag   sigma  bf  s0 f1exp f2exp as ';
+    labels='      af1       af2       ag      sigma       bf        s0      f1exp     f2exp  as';
+    disp(labels);
+    p0=[          3*q        0        0         1        bf0        .8*q      2         1  .2*q];
+    ac=[            1        0        0         0         0           1       0         0   1];
     niters(1)=500;
     
     %        af1 af2 ag    sigma  bf  s0 f1exp f2exp as
-    p0(2,:)=[ 1*q 1*q 10*q .07  bf0  .8*q   0.5   1.5  .2];
-    ac(2,:)=[ 1   1    1    1    0   1    1     1   0];
+    p0(2,:)=[ 10*q 1*q 10*q .07  bf0  .8*q   0.5   1.5  .2*q];
+    ac(2,:)=[ 1   1    1    1    0    1       1     1   0]  ;
     niters(2)=4000;
     %        af1 af2 ag    sigma  bf  s0 f1exp f2exp  as
     %     p0(2,:)=[ 1*q 1*q 10*q .007  100  q   1.5   1.5];
     %     ac(2,:)=[ 1   1    1    1    0   1    1     1 ];
     %
-    p0(3,:)=[1*q 1*q  0*q .007  bf0  .8*q   1.5   1.5  .2];
-    ac(3,:)=[1   1    0    0    0    1    1     1   0];
+    p0(3,:)=[10*q 1*q  0*q .007  bf0  .8*q   1.5   1.5  .2*q];
+    ac(3,:)=[1   1    0      0    0    1       1     1    1 ];
     niters(3)=1000;
     
     ps=p0(1:nPSets,:);   % Store the final parameters
+    ac=logical(ac);
     errs=zeros(nPSets,1); % store the final errors.
     
     for jp=1:nPSets;  % loop over sets of parameters
@@ -286,9 +302,12 @@ for fileIndex=startIndex:numel(fname)
                 ylabel('Model: spec, shot density, A^2');
                 xlabel('Spatial frequency, A^{-1}');
                 drawnow;
+                if pars.listFitProgress
+                    disp(p);
+                end;
             end;
             if i==round(niters(jp)/2)
-                ac(jp,end)=1;
+                ac(jp,end)=1; % turn on fitting of shot spectrum rise
             end;
         end;
         errs(jp)=err;
@@ -299,7 +318,8 @@ for fileIndex=startIndex:numel(fname)
     [~, jBest]=min(errs);
     p=ps(jBest,:);
     
-    disp('      af1       af2       ag      sigma       bf        s0      f1exp     f2exp');
+%     disp('      af1       af2       ag      sigma       bf        s0      f1exp     f2exp');
+    disp(labels);
     disp(p);
     
     % Show the final results
@@ -310,11 +330,11 @@ for fileIndex=startIndex:numel(fname)
     plot(freqs,sp,'k.',freqs,model,'b-');
     title(['model: ' num2str(jBest)]);
     xlabel('Spatial frequency, A^{-1}');
-    ylabel('Spectral density, �^2');
+    ylabel('Spectral density, A^2');
     
     
     subplot(2,2,3);
-    semilogy(freqs,[spec shot model sp]);
+    semilogy(freqs,[max(spec,q/10) shot model sp]);
     ylabel('Model: spec, shot density');
     xlabel('Spatial frequency, A^{-1}');
     title(['Shot density: ' num2str(mean(shot)) ' A^2']);
