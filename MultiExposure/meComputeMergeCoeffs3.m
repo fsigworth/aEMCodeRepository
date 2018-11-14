@@ -1,5 +1,5 @@
 function [coeffs, mergedCTF, dctfs, modFilter]=meComputeMergeCoeffs3( freqs, mi, nzeros, mode, noDamage )
-% function [coeffs, mergedCTF, dctfs]=meComputeMergeCoeffs3( freqs, mi, nzeros, mode )
+% function [coeffs, mergedCTF, dctfs]=meComputeMergeCoeffs3( freqs, mi, nzeros, mode, noDamage )
 % Same as the old meComputeMergeCoeffs but it requires an mi structure as
 % input, and supports damage compensation in movies.
 % Version 3 assumes that we are scaling normalized images.  That is, the

@@ -1,4 +1,4 @@
-function meInverseFilterAuto(fname,mpars)
+function [sp,c]=meInverseFilterAuto(fname,mpars)
 % Given a good subtraction of vesicles, we search for regions of the
 % micrograph with low variance, and mark them as background boxes.
 % Then we compute an inverse filter.
@@ -13,9 +13,9 @@ end;
 
 pars.writeMiFile=1;
 pars.useUnsubImage=0; % set to 1 to get inverse filter without mbn subtraction.
-pars.nb=256;
-%pars.nb=64; %%%%
 pars.useSmallImage=0;
+pars.nb=256;
+% pars.nb=64; %%%%
 
 pars.writeFigs=1;
 
@@ -81,6 +81,7 @@ for fileIndex=startIndex:numel(fname)
         outBaseName=name;
     end;
     % Read the mi file
+    disp(['Working directory: ' pwd]);
     disp(['Reading ' fname{fileIndex}]);
     mi=ReadMiFile([infoPath fname{fileIndex}]);
     disp(['Defocus ' num2str(mi.ctf(1).defocus) '  Dose' ess(numel(mi.doses)) ' ' num2str(mi.doses,3)]);
@@ -220,15 +221,16 @@ for fileIndex=startIndex:numel(fname)
     %     density in units of A^2 because we multiply this by pixA^2
     dfb=1/(pixA*nb); % frequency step in boxes
     freqs=(0:nb/2-1)'*dfb; % frequencies in spectrum
+    errWeights=(freqs.^2+.001)./(freqs.^2+.0001);
     c=sectr(meGetEffectiveCTF(mi,nb,ds));  % corresponding ctf
     
     subplot(4,2,6); % Show the spectrum and the ctf
     plot(freqs,[sp/40 c]);
     
-    %% Fit the power spectrum with NoiseModel.*c^2+shot
-    noiseModelFcn='NoiseModel1';
-    niters=1000;
-    
+    %% -----------Fit the power spectrum with NoiseModel.*c^2+shot-----------
+%     noiseModelFcn='NoiseModel1';
+    noiseModelFcn='NoiseModel2';
+    niters=zeros(3,1);
     % Get the effective CTFs
     effctf=sectr(meGetEffectiveCTF(mi,nb,ds));
     %     effctfx=sectr(meGetEffectiveCTF(mi,nb*10,ds));
@@ -238,35 +240,38 @@ for fileIndex=startIndex:numel(fname)
     nPSets=3;  % try this many sets of parameters
     % Initialize parameters:
     q=sp(nb/4);  % get a rough sample of the spectral density
-    
+    bf0=(.2*ds/pixA); % where to put the dip in shot noise: .4*Nyquist
     % noise model 1 is
     %     spec=(ag*gauss(sigma)+af1).*(.01./f).^f1exp+af2*(.01./f).^f2exp;
     %     shot=s0./(1+(f/bf).^2);
     %     Really simple model, with a/f^n+b for spect, c for shot.
-    %        af1 af2  ag   sigma  bf  s0 f1exp f2exp
-    p0=[     3*q  0    0     1   100   q  2    1 ];
-    ac=[      1   0    0     0    0    1  0    0 ];
+    %        af1 af2  ag   sigma  bf  s0 f1exp f2exp as
+    p0=[     3*q  0    0     1   bf0   .8*q  2    1  .2];
+    ac=[      1   0    0     0    0    1     0    0   0];
+    niters(1)=500;
     
-    %        af1 af2 ag    sigma  bf  s0 f1exp f2exp
-    p0(2,:)=[ 1*q 1*q 10*q .007  100  q   0.5   1.5];
-    ac(2,:)=[ 1   1    1    1    0   1    1     1 ];
-    %        af1 af2 ag    sigma  bf  s0 f1exp f2exp
+    %        af1 af2 ag    sigma  bf  s0 f1exp f2exp as
+    p0(2,:)=[ 1*q 1*q 10*q .07  bf0  .8*q   0.5   1.5  .2];
+    ac(2,:)=[ 1   1    1    1    0   1    1     1   0];
+    niters(2)=4000;
+    %        af1 af2 ag    sigma  bf  s0 f1exp f2exp  as
     %     p0(2,:)=[ 1*q 1*q 10*q .007  100  q   1.5   1.5];
     %     ac(2,:)=[ 1   1    1    1    0   1    1     1 ];
     %
-    p0(3,:)=[1*q 1*q  0*q .007  100  q   1.5   1.5];
-    ac(3,:)=[1   1    0    0    0    1    1     1 ];
+    p0(3,:)=[1*q 1*q  0*q .007  bf0  .8*q   1.5   1.5  .2];
+    ac(3,:)=[1   1    0    0    0    1    1     1   0];
+    niters(3)=1000;
     
     ps=p0(1:nPSets,:);   % Store the final parameters
     errs=zeros(nPSets,1); % store the final errors.
     
     for jp=1:nPSets;  % loop over sets of parameters
         p=Simplex('init',p0(jp,:),ac(jp,:));
-        for i=1:niters
+        for i=1:niters(jp)
             [spec, shot]=eval([noiseModelFcn '(freqs,p)']);
             model=spec.*effctf.^2+shot;
             d=(model-sp);
-            err=d'*d;
+            err=d'*(d.*errWeights);
             err=err+1e6*sum(p<0);  % penalty for neg. values
             p=Simplex(err,p);
             
@@ -281,6 +286,9 @@ for fileIndex=startIndex:numel(fname)
                 ylabel('Model: spec, shot density, A^2');
                 xlabel('Spatial frequency, A^{-1}');
                 drawnow;
+            end;
+            if i==round(niters(jp)/2)
+                ac(jp,end)=1;
             end;
         end;
         errs(jp)=err;
@@ -309,7 +317,7 @@ for fileIndex=startIndex:numel(fname)
     semilogy(freqs,[spec shot model sp]);
     ylabel('Model: spec, shot density');
     xlabel('Spatial frequency, A^{-1}');
-    title(['Shot density: ' num2str(mean(shot)) ' �^2']);
+    title(['Shot density: ' num2str(mean(shot)) ' A^2']);
     drawnow;
     
     mi=meStoreNoiseModel(p,noiseModelFcn,mi);

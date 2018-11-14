@@ -4,7 +4,8 @@
 % Compare vesicle amplitudes^2 with noise spectra.
 
 workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w11v3m1/';
-workingDir='/Users/fred/EMWork/Hideki/170808p/SimpleVes_raFit/';
+% workingDir='/Users/fred/EMWork/Hideki/160909p/KvLipo121_2w10v3';
+% workingDir='/Users/fred/EMWork/Hideki/170808p/SimpleVes_raFit/';
 % workingDir='/Users/fred/EMWork/Hideki/170808p/SimpleVes_w10/';
 %workingDir='/Users/fred/EMWork/Hideki/180226/Kv_1sel_VesPW/';
 % workingDir='/Users/fred/EMWork/Hideki/SNR/180226/Kv_1sel/';
@@ -13,7 +14,7 @@ cd(workingDir);
 
 startEntry=1;
 maxEntries=inf;
-maxEntries=200;
+maxEntries=20;
 countEff=0.8;
 showHist=0;
 spectrumCorrection=1;
@@ -64,7 +65,7 @@ for nmi=1:nEntries
         [spec, shot, noiseOk]=meEvalNoiseModel(fs,mi);
         if noiseOk
             miSpecs(nmi,:)=spec';
-            miShots(nmi)=shot(1);
+            miShots(nmi)=shot(end);
         else
             disp([num2str(nmi) ' ' name ' -- No noise model.']);
         end;
@@ -110,13 +111,15 @@ if showHist
     hold on;
     bar(bins,h1,'k');
     hold off;
+    textLength=numel(workingDir);
+    titleChars=40;
     xlabel('log LF spectra at given freqs');
-    titleText=[pwd '  (' num2str(medDose,2) ' e/Å2)'];
+    titleText=[workingDir(max(1,textLength-titleChars):end) '  (' num2str(medDose,2) ' e/Å2)'];
     title(titleText,'interpreter','none');
     legend([legends;{'shot'}]);
     subplot(223);
 else
-    titleText=[ParsePath(pwd) '  (' num2str(medDose,2) ' e/Å2)'];
+    titleText=[(pwd) '  (' num2str(medDose,2) ' e/Å2)'];
     subplot(121)
 end;
 miOkDoses=miDoses(oks);
@@ -136,11 +139,11 @@ else
 end;
 ampScl=1e3;
 med=median(miAmps(oks));
-plot((miAmps(oks)*ampScl).^2)
-ymax=2*(med*ampScl)^2;
+plot((miAmps(oks)*ampScl))
+ymax=2*(med*ampScl);
 axis([0 inf 0 ymax]);
-ylabel(['Vesicle amp squared * ' sprintf('%1.0e',ampScl^2)]);
-text(maxEntries*.02,ymax*.02,['Median vesicle power ' num2str((med)^2,3)],'verticalalignment','bottom');
+ylabel(['Vesicle amp x ' sprintf('%1.0e',ampScl)]);
+text(maxEntries*.02,ymax*.02,['Median vesicle amplitude ' num2str((med),3)],'verticalalignment','bottom');
 title(titleText,'interpreter','none');
 drawnow
 % end

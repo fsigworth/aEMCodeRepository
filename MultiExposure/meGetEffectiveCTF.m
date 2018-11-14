@@ -6,9 +6,11 @@ function c=meGetEffectiveCTF(mi,n,ds,mergeMode,nzeros)
 % By default, ds=mi.imageSize(1)/n.  You shouldn't use the default if n
 % represents a cropped image, e.g. a particle image. The default is used if
 % ds is given as 0.  The returned c has zero frequency in the center.  By
-% default c is non-negative.  mergeMode selects the various merging modes in meComputeMergeCoeffs2().
-% if mergeMode=3 there is no phase-flipping, and c is based on the first image's raw ctf.
-% fs 3 Sep 11, 15 Aug 16
+% default c is non-negative.  mergeMode selects the various merging modes
+% in meComputeMergeCoeffs2(). if mergeMode=3 there is no phase-flipping,
+% and c is based on the first image's raw ctf. if mi.mergeMode exists, this
+% value is the default, otherwise the default is 1.
+% fs 3 Sep 11, 15 Aug 16, 13 Nov 18
 
 if numel(n)<2
     n=[1 1]*n;
@@ -17,7 +19,11 @@ if nargin<3 || ds==0
     ds=mi.imageSize(1)/n(1);
 end;
 if nargin<4
-    mergeMode=1;
+    if isfield(mi,'mergeMode')
+        mergeMode=mi.mergeMode;
+    else
+        mergeMode=1;
+    end;
 end;
 mergeMode=max(1,mergeMode);
 
