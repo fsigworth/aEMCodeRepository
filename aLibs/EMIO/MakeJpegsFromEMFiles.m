@@ -1,4 +1,4 @@
-function MakeJpegsFromEMFiles(OutputDir, binning, display, defaultPixA)
+% function MakeJpegsFromEMFiles(OutputDir, binning, display, defaultPixA)
 % function MakeJpegsFromEMFiles(binning, display)
 % For each EM image file (.mrc, .dm3, .img, .hed, .tif)
 % in the current directory, make a .jpg file.  All arguments are optional.
@@ -8,11 +8,14 @@ function MakeJpegsFromEMFiles(OutputDir, binning, display, defaultPixA)
 % is shown. DefaultPixA controls the labeling of the display.
 % fs July 2009 rev. Apr 2011, Nov 2017
 
-inputExtensions={'.mrc' '.tif' '.dm4'};
-inputExtensions={'.mrcs'};
+% inputExtensions={'.mrc' '.tif' '.dm4' '.mrcs'};
+inputExtensions={'.mrc' '.tif' '.mrcs'};
+% inputExtensions={'.mrcs'};
 sumStacks=1;
 
 disp(['Converting EM files to jpgs in directory ' pwd]);
+
+nargin=0;
 
 if nargin<1
     OutputDir='';
@@ -25,7 +28,7 @@ if len>0
     disp(['Writing output files to ' OutputDir]);
 end;
 if nargin<2
-    binning=2;
+    binning=4;
 end;
 if nargin<3
     display=1;
@@ -36,18 +39,25 @@ if nargin<4
 end;
 d=dir;
 for i=3:numel(d)
+    disp(d(i).name);
     [~,~,ex]=fileparts(d(i).name);
     ok=any(strcmp(ex,inputExtensions)); % one of the image file types
     if ok
-        [mi, pixA, ok]=ReadEMFile(d(i).name);
+        if strcmp(ex,'.tif')
+            [mi, s, ok]=ReadMovie(d(i).name);
+            pixA=s.pixA;
+        else
+            [mi, pixA, ok]=ReadEMFile(d(i).name);
+        end;
     else
         continue;
     end;
-    nim=size(mi,3);
+    nim=size(mi,3)
     ok=ok && (sumStacks ||size(mi,3)==1);  % don't do stacks
     if ok
         disp(d(i).name);
         if nim>1
+            disp(['Summing ' num2str(nim) ' frames.']);
             mi=sum(single(mi),3);
         end;
         m=RemoveOutliers(mi,4);
@@ -55,7 +65,7 @@ for i=3:numel(d)
         if binning>1
             m=Downsample(m,n/binning);
         end;
-        ms=uint8(imscale(m));
+        ms=uint8(imscale(m,256,1e-4));
         if display
             n=size(ms);
             pixA=max(pixA,defaultPixA)*binning;
@@ -66,7 +76,7 @@ for i=3:numel(d)
                 pixA=pixA/10;
                 label='nm';
             else
-                label='�';
+                label='A';
             end;
             figure(1); SetGrayscale;
             imaga((1:n(1))*pixA,(1:n(2))*pixA,ms);
