@@ -22,26 +22,27 @@ doMultiFindVesicles   = 0;
 %                  'KvLipo121_2w10_v3.7/';'KvLipo121_2w10_v3.8/'};
 %***
 doPrelimInverseFilter =0;
-doRefineVesicles      =1;
+doRefineVesicles      =0;
 refineVesicleAmpsOnly=0;
 %%% minRefineVesiclesSequence=0;  % 0 if don't consider.
 minRefineVesiclesSequence=inf;    % inf forces refinement
 doInverseFilter       =1;
-forceInverseFilter=0;
+forceInverseFilter=1;
 minAge=0;  % if the corresponding log entry has a date stamp < minAge
 % days before the present, and forceInverseFilter=1, we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
 
-doPickingPreprocessor =1;
+doPickingPreprocessor =0;
 
 
 %%workingDir='/ysm-gpfs/pi/cryoem/krios/20180226/Kv_1/'
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
-%workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
-%workingDir='/ysm-gpfs/scratch60/fjs2/170808p/SimpleVes/';
-workingDir='~/project/20180620/';
-workingDir='~/project/20181025/20Frames/';
+workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
+workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w10v3t/'
+workingDir='/ysm-gpfs/scratch60/fjs2/170808p/SimpleVes_raFit/';
+%workingDir='~/project/20180620/';
+%workingDir='~/project/20181025/20Frames/';
 %workingDir='/gpfs/ysm/scratch60/fjs2/180226/Kv_1SelW10/';
 %workingDir='/ysm-gpfs/scratch60/fjs2/170926Nelli/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/171031Nelli/'
