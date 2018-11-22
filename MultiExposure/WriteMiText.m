@@ -13,7 +13,7 @@ mi.timestamp={TimeStamp};  % mark the date and time of writing the file.
 
 % Set up the extended-file fields
 if writeExtendedFile
-    extFields={'vesicle'; 'mask'};
+    extFields={'vesicle'; 'mask'; 'noiseSpectrum'};
     copyFields={'baseFilename'; 'identifier'; 'timestamp' };
 else
     extFields={};
@@ -37,12 +37,15 @@ if writeExtendedFile
             mie.(f)=mi.(f);
             j=j+1;
             mieFields{j,1}=f;
-            %             Handle the special case of vesicle data
-            if strcmp(f,'vesicle') && numel(mi.vesicle.r)>0
-                mi.vesicle.s=mi.vesicle.s(:,1,1);
-                mi.vesicle.r=mi.vesicle.r(:,1);
-            else
-                mi=rmfield(mi,f);
+            %    Truncate long fields
+            switch f
+                case 'vesicle'
+                    if numel(mi.vesicle.r)>0
+                        mi.vesicle.s=mi.vesicle.s(:,1,1);
+                        mi.vesicle.r=mi.vesicle.r(:,1);
+                    end;
+                case 'noiseSpectrum'
+                mi.noiseSpectrum=mi.noiseSpectrum(1:min(32,end));
             end;
         end;
     end;

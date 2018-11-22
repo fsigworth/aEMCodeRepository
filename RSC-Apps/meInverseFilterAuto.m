@@ -1,4 +1,6 @@
-function [sp,c]=meInverseFilterAuto(fname,mpars)
+function meInverseFilterAuto(fname,mpars)
+% function meInverseFilterAuto(fname,mpars)
+% % function [sp,c]=meInverseFilterAuto(fname,mpars)
 % Given a good subtraction of vesicles, we search for regions of the
 % micrograph with low variance, and mark them as background boxes.
 % Then we compute an inverse filter.
@@ -219,17 +221,20 @@ for fileIndex=startIndex:numel(fname)
     drawnow;
     
 %% -------------4.  Compute average spectrum---------------
-    sp=mean(RadialPowerSpectrum(imgs,1),2)*pixA^2;  % To get the general spectral
+    sp0=mean(RadialPowerSpectrum(imgs,1),2)*pixA^2;  % To get the general spectral
     %     density in units of A^2 because we multiply this by pixA^2
-    % Make the first few points equal to the local minimum
-    pt=find(diff(sp)>0,1);
+    % Make sp, the spectrum to fit, such that the first few points are equal
+    % to the local minimum
+    pt=find(diff(sp0)>0,1);
     if numel(pt)<1 || pt>4
         pt=2;
     end;
+    sp=sp0;
     sp(1:pt)=sp(pt);
     
     dfb=1/(pixA*nb); % frequency step in boxes
     freqs=(0:nb/2-1)'*dfb; % frequencies in spectrum
+    % --actually the first frequency bin is (0 1]! 
     errWeights=ones(nb/2,1);
     % zero out any frequencies above 0.9*nyquist
     errWeights(freqs>.45/pixA)=0;
@@ -341,6 +346,8 @@ for fileIndex=startIndex:numel(fname)
     drawnow;
     
     mi=meStoreNoiseModel(p,noiseModelFcn,mi);
+    mi.noiseSpectrumDeltaF=dfb;
+    mi.noiseSpectrum=sp0;
     
     if pars.writeMiFile
         mi.log{end+1,1}=['meInverseFilterAuto ' TimeStamp];
