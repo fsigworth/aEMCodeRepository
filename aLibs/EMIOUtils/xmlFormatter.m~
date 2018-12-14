@@ -1,0 +1,28 @@
+% xmlFormatter.m
+
+% [nm,pa]=uigetfile('*.xml');
+% if isnumeric(pa)
+%     return
+% end;
+% cd(pa);
+f1=fopen(nm);
+a=fread(f1,inf)';
+fclose(f1);
+
+a=char(a);
+ptrs1=strfind(a,'<');
+ptrs2=strfind(a,'</');
+ptrs3=strfind(a,'>');
+p21=1;
+for i=1:numel(ptrs2)
+    p2=ptrs2(i); % current end begins with </...
+    p22=ptrs1(find(ptrs1>p2,1)); % next opening
+    if any(ptrs2==p22)
+    q1=find(ptrs1>p21,1); % first opening following last end;
+    q3=find(ptrs3>p2,1);
+    p1=ptrs1(q1);
+    p3=ptrs3(q3);
+    disp(a(p1:p3));
+    p21=p2;
+end;
+
