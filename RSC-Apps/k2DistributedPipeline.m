@@ -7,6 +7,9 @@
 f2Mode        =0;  % 0 means k2 data
 serialMode    =1;   % go through all the steps before moving to next micrograph
 %checkLogs     =0;  % not yet in use.
+
+maxAge=1;         % Runs the operation is the previous one is older than this number of days.
+
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
 doMerge       =0;
@@ -25,22 +28,23 @@ doPrelimInverseFilter =0;
 doRefineVesicles      =0;
 refineVesicleAmpsOnly=0;
 %%% minRefineVesiclesSequence=0;  % 0 if don't consider.
-minRefineVesiclesSequence=inf;    % inf forces refinement
+minRefineVesiclesSequence=0;    % inf forces refinement
 doInverseFilter       =1;
 forceInverseFilter=1;
-minAge=0;  % if the corresponding log entry has a date stamp < minAge
-% days before the present, and forceInverseFilter=1, we go ahead and re-run the
+minAge=.01;  % if the corresponding log entry has a date stamp < minAge
+% days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
 
 doPickingPreprocessor =0;
 
 
-%%workingDir='/ysm-gpfs/pi/cryoem/krios/20180226/Kv_1/'
+workingDir='/gpfs/ysm/project/fjs2/180226/Kv_1/';
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
-workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
-workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w10v3t/'
-workingDir='/ysm-gpfs/scratch60/fjs2/170808p/SimpleVes_raFit/';
+%workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
+% workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w10v3t/'
+% workingDir='/ysm-gpfs/scratch60/fjs2/170808p/SimpleVes_raFit/';
+%workingDir='~/project/180226/Kv_1selw10/';
 %workingDir='~/project/20180620/';
 %workingDir='~/project/20181025/20Frames/';
 %workingDir='/gpfs/ysm/scratch60/fjs2/180226/Kv_1SelW10/';
@@ -84,8 +88,8 @@ pars.searchDefoci=[1 8 ; 8 15]; % for MergeImages [1stmin 2ndMin ; 1stMax 2ndMax
 pars.doAlignment=1;  % MergeImages
 pars.doFitting=0;
 pars.doWriteInfos=1;
-% pars.weights=[1 0];  %%% single exposure
-pars.weights=1;
+pars.weights=[1 0];  %%% single exposure
+%pars.weights=1;
 pars.mcDS=1;
 %pars.mergeMode=3;  %%% no phase flip!
 pars.mergeMode=1;   %%% normal
@@ -215,7 +219,7 @@ while iName(end)<=numJobNames
     if serialMode
         disp(ourNames{1});
         mi=ReadMiFile(ourNames{1});
-        [logSequence,logTimes]=miDecodeLog(mi);
+        [logSequence,dates]=miDecodeLog(mi);
     else
         logSequence=true(1,10);
     end;
@@ -235,8 +239,10 @@ while iName(end)<=numJobNames
     end;
     % merge images (sequence 3)
     if doMerge
-        if ~logSequence(3) || forceMerging
+        if ~logSequence(3) || forceMerging || now-dates(3)>maxAge
             MergeImages(ourNames,pars);
+        else
+            disp('Merging skipped.');
         end;
     end;
 
@@ -254,7 +260,7 @@ while iName(end)<=numJobNames
         meInverseFilterAuto(ourNames,fpars);
     end;
     % find vesicles (sequence 4) *****************
-    if doFindVesicles && logSequence(4)<=logSequence(3)
+    if doFindVesicles && (logSequence(4)<=logSequence(3) || now-dates(4)>maxAge)
             VesicleFinder(ourNames);
     elseif doMultiFindVesicles
         for i=1:numel(findVesicleAmps)
@@ -267,7 +273,7 @@ while iName(end)<=numJobNames
     end;
     % refine vesicles (sequence 5)
     if doRefineVesicles && (logSequence(5)<logSequence(4) ...
-            || logSequence (5)< minRefineVesiclesSequence)
+            || logSequence (5)< minRefineVesiclesSequence || now-dates(5)>maxAge)
         rpars=pars;
             if refineVesicleAmpsOnly
             rpars.fitModes={'LinOnly'};
@@ -284,14 +290,14 @@ while iName(end)<=numJobNames
         rsRefineVesicleFits(ourNames,rpars);
         if serialMode  % update the log sequence
             mi=ReadMiFile(ourNames{1});
-            logSequence=miDecodeLog(mi);
+            [logSequence,dates]=miDecodeLog(mi);
         end;
     elseif doRefineVesicles
         disp('  Refine Vesicles skipped.');
     end;
     % inverse filter (sequence 6)
     if doInverseFilter && (logSequence(6) <= logSequence(5)) ...
-            || (forceInverseFilter && logTimes(6)<refDate-minAge)
+            || now-dates(6)>maxAge
         meInverseFilterAuto(ourNames);
     elseif doInverseFilter
         disp('  Inverse Filter skipped.');

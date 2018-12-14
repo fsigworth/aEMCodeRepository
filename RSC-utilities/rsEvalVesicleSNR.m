@@ -12,9 +12,9 @@
 
 %cd(workingDir);
 
-startEntry=1;
-maxEntries=inf;
-maxEntries=520;
+startEntry=1
+endEntry=5000
+
 countEff=0.8;
 showHist=0;
 spectrumCorrection=1;
@@ -27,7 +27,8 @@ imageFileSuffix='ms.mrc';
 vesicleFileSuffix='mvs.mrc';
 nPicks=0;
 names=f2FindInfoFiles;
-nEntries=min(numel(names),maxEntries);
+endEntry=min(numel(names),endEntry);
+nEntries=endEntry-startEntry+1;
 
 ds=4;  % assume we're working with downsampled images
 nmi=0;
@@ -42,10 +43,11 @@ nfs=numel(fs);
 miSpecs=zeros(nEntries,nfs);
 miShots=zeros(nEntries,1);
 miDoses=zeros(nEntries,1);
+miDefoci=zeros(nEntries,1);
 
 nMod=100;
 for nmi=1:nEntries
-    name=names{nmi};
+    name=names{startEntry+nmi-1};
     
     mi=ReadMiFile(name);
     if isfield(mi,'vesicle') && isfield(mi.vesicle,'x') && numel(mi.vesicle.x)>0 ...
@@ -70,13 +72,14 @@ for nmi=1:nEntries
             disp([num2str(nmi) ' ' name ' -- No noise model.']);
         end;
         miDoses(nmi)=mi.doses(1);
+        miDefoci(nmi)=mi.ctf(1).defocus;
         %     semilogy([spec shot]);
         if mod(nmi,nMod)==0
             disp([num2str(nmi) '  ' name]);
             nMod=max(nMod,10^(floor(log10(nmi))));
         end;
     else
-        disp([num2str(nmi) ' ' name ' -- No vesicles.']);
+        disp([num2str(nmi+startEntry-1) ' ' name ' -- No vesicles.']);
     end;
 end;
 %%
@@ -119,32 +122,41 @@ if showHist
     legend([legends;{'shot'}]);
     subplot(223);
 else
-    titleText=[(pwd) '  (' num2str(medDose,2) ' e/�2)'];
-    subplot(121)
+    titleText=[(pwd) '  (' num2str(medDose,2) ' e/A^2)'];
+%    mysubplot(311)
+mysubplot(3,1,1,0,.05,0,0);
 end;
 miOkDoses=miDoses(oks);
 nzDoses=miOkDoses>0;
 miEstShots=0*miOkDoses;
 miEstShots(nzDoses)=1./(countEff*miOkDoses(nzDoses)');
 miEstShots(~nzDoses)=0.1;  % default value
-semilogy([miSpecs(oks,finds) miShots(oks) miEstShots]);
+inds=startEntry:endEntry;
+semilogy(inds(oks),[miSpecs(oks,finds) miShots(oks) miEstShots]);
 ylabel('shot, LF spectra');
 legend([legends;{'shot'; 'estShot'}],'location','southeast');
 title(num2str(median([miSpecs(oks,finds) miShots(oks)]),3))
 if showHist
     subplot(224);
 else
-    subplot(122);
-    title(titleText,'interpreter','none');
+%    mysubplot(312);
+mysubplot(3,1,2,0,.05,0,0);
+
 end;
 ampScl=1e3;
 med=median(miAmps(oks));
-plot((miAmps(oks)*ampScl))
+plot(inds(oks),(miAmps(oks)*ampScl))
 ymax=2*(med*ampScl);
-axis([0 inf 0 ymax]);
+axis([inds(1) inf 0 ymax]);
 ylabel(['Vesicle amp x ' sprintf('%1.0e',ampScl)]);
-text(maxEntries*.02,ymax*.02,['Median vesicle amplitude ' num2str((med),3)],'verticalalignment','bottom');
+text(endEntry*.02,ymax*.02,['Median vesicle amplitude ' num2str((med),3)],'verticalalignment','bottom');
 title(titleText,'interpreter','none');
+
+% mysubplot(nr,nc,ind,xs,ys,xo,yo)
+mysubplot(3,1,3,0,.05,0,0);
+plot(inds(oks),miDefoci(oks));
+ylabel('Defocus, \mum');
+
 drawnow
 % end
 

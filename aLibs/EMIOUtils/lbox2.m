@@ -23,7 +23,7 @@ function varargout = lbox2(varargin)
 
 % Edit the above text to modify the response to help lbox2
 
-% Last Modified by GUIDE v2.5 24-Aug-2004 10:31:32
+% Last Modified by GUIDE v2.5 17-Nov-2018 15:47:58
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -199,4 +199,3 @@ function figure1_DeleteFcn(hObject, eventdata, handles)
 if isappdata(hObject, 'StartPath')
     rmpath(getappdata(hObject, 'StartPath'));
 end
-
