@@ -71,6 +71,8 @@ function DrawPanel(s)
     fn=fieldnames(s);
     for i=1:numel(fn);
         switch fn{i}
+            case 'exec'
+                eval(s.eval);
             case 'xs'
                 xs=s.xs;
                 if numel(ys)<1
