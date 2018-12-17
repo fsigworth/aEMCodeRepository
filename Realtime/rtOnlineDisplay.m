@@ -1,4 +1,4 @@
-% rtOnlineDisply.m
+% rtOnlineDisplayNoGraphics.m
 inWorkingDir=0;  % not finished
 tempDir='temp/';
 imageDir='Micrograph/';
@@ -134,15 +134,29 @@ while doRepeat
     m1=Crop(m,n,0,mean(m(:))); % expand to nice size
     m1s=Downsample(m1,n/4);
     
-    mysubplot(122);
-    imags(m1s);
-    axis off;
-    title(mi.movieFilename{1}, 'interpreter','none');
+%%%%%
+    s=struct;
+    s.exec='mysubplot(122)';
+    s.image=m1s;
+    s.axis='off';
+    s.title=mi.movieFilename{1};
+    disDat.mainImage=s;
     
-    mysubplot(2,4,1);
-    plot(mi.frameShifts{1});
-    grid on;
-    ylabel('Shift, pixels');
+%     mysubplot(122);
+%     imags(m1s);
+%     axis off;
+%     title(mi.movieFilename{1}, 'interpreter','none');
+%%%%%
+    s=struct;
+    s.exec='mysubplot(2,4,1)';
+    s.ploty=mi.frameShifts{1};
+    s.exec('grid on');
+    s.ylabel('Shift, pixels');
+    disDat.frameShifts=s;
+%     mysubplot(2,4,1);
+%     plot(mi.frameShifts{1});
+%     grid on;
+%     ylabel('Shift, pixels');
 %     drawnow;
     
     gPars=struct;
@@ -154,31 +168,59 @@ while doRepeat
         disp(['defocus ' num2str(mi.ctf(1).defocus)]);
     end;
     
-    % put this onto the drift plot
-    title(['Res limit: ' num2str(ctfVals.RES_LIMIT,3) 'Å']);
+    % put this onto the drift plot  
+    %%%%
+    disDat.frameShifts.title=['Res limit: ' num2str(ctfVals.RES_LIMIT,3) 'Å'];
+%     title(['Res limit: ' num2str(ctfVals.RES_LIMIT,3) 'Å']);
 
-    
-    mysubplot(2,4,2);
-    imags(ctfImage);
-    axis off;
-    title(['\delta = ' num2str(mi.ctf.defocus,3) '\mum  astig = ' num2str(abs(mi.ctf.deltadef),3) '\mum']);
-    
+    %%%%%
+    s=struct;
+    s.exec='mysubplot(242)';
+    s.image=ctfImage;
+    s.axis='off';
+    s.title=['\delta = ' num2str(mi.ctf.defocus,3) '\mum ' ...
+        ' astig = ' num2str(abs(mi.ctf.deltadef),3) '\mum'];
+    disDat.ctfImage=s;
+%     mysubplot(2,4,2);
+%     imags(ctfImage);
+%     axis off;
+%     title(['\delta = ' num2str(mi.ctf.defocus,3) '\mum  astig = ' num2str(abs(mi.ctf.deltadef),3) '\mum']);
+%     
+    %%%%%
+    s=struct;
+    s.exec='mysubplot(425)';
     mysubplot(4,2,5);
     scl4=1/max(abs(epaVals.epaBkgSub));
-    plot(1./epaVals.resolution,[epaVals.ctfSim.^2 scl4*epaVals.epaBkgSub epaVals.ccc 0*epaVals.ccc]);
+    s.xplot=1./epaVals.resolution;
+    s.yplot=[epaVals.ctfSim.^2 scl4*epaVals.epaBkgSub epaVals.ccc 0*epaVals.ccc];
+    disDat.epa=s;
+    
+%     plot(1./epaVals.resolution,[epaVals.ctfSim.^2 scl4*epaVals.epaBkgSub epaVals.ccc 0*epaVals.ccc]);
     
     defoci(miIndex)=mi.ctf.defocus;
-    mysubplot(4,2,7);
+    %%%%%
+    s=struct;
+    s.exec='subplot(427)';
+%     mysubplot(4,2,7);
     relTimes=(times-min(times))*24;
-    plot(relTimes,defoci);
-    ylabel('Defocus, \mum');
-    xlabel('Time, hr');
+    s.xplot=relTimes;
+    s.yplot=defoci;
+%     plot(relTimes,defoci);
+    s.ylabel='Defocus \mum';
+    s.xlabel='Time, hr';
     
-    drawnow;
+%     ylabel('Defocus, \mum');
+%     xlabel('Time, hr');
+    disDat.defocusPlot=s;
     
+%     drawnow;
+    
+    %%%%
     jpegName=[mi.jpegPath mi.baseFilename '.jpg'];
-    print(jpegName,'-djpeg');
-    
+    disDat.print.eval=['print(' jpegName '''-djpeg'')'];
+%     print(jpegName,'-djpeg');
+    save([mi.jpegPath mi.baseFilename 'dis.dat']);
+
     WriteMiFile(mi,[infoDir mi.baseFilename 'mi.txt']);
     
     
