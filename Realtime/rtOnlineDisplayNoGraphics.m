@@ -19,14 +19,13 @@ ourRefName='CountRefLocal.mrc';
 gainRefRot=0;
 kV=300;
 
-searchMode=1; % 1: operate on latest; 2 start from beginning. 
+searchMode=1; % 1: operate on latest; 2 start from beginning.
 
 pixA=1.09;
 cpe=0.8;
 times=0;
 defoci=0;
-maxRepeat=1000; % 1000 seconds max. waiting before quitting.
-maxRepeat=1;
+maxRepeat=100; % 100 x 5 seconds max. waiting before quitting.
 
 mc2Pars=struct;
 mc2Pars.throw=1;   % for MC2: defautestlt is zero.
@@ -34,14 +33,14 @@ mc2Pars.trunc=0;  % default is zero
 mc2Pars.gainRefRot=0;
 
 if interactive
-disp('Getting the first movie');
-[firstName,inPath]=uigetfile('*.*','Select a movie file');
-if ~inWorkingDir
-    cd(inPath);  % Might need to use a base path
-    inPath='';
-end;
-[pa,nm,ex]=fileparts(firstName);
-namePattern=ex;
+    disp('Getting the first movie');
+    [firstName,inPath]=uigetfile('*.*','Select a movie file');
+    if ~inWorkingDir
+        cd(inPath);  % Might need to use a base path
+        inPath='';
+    end;
+    [pa,nm,ex]=fileparts(firstName);
+    namePattern=ex;
 else % not interactive
     inPath=sourceDir;
 end;
@@ -93,7 +92,6 @@ CheckAndMakeDir(procDir,1);
 
 mi0=meCreateMicrographInfoStruct14;
 mi0.pixA=pixA;
-% mi0.movieFilename{1}=nameList{end};
 mi0.tempPath=tempDir;
 mi0.imagePath=imageDir;
 mi0.procPath=procDir;
@@ -110,8 +108,11 @@ else
     mi0.damageModelCode='.184*f.^-1.665+2.1; % Grant&Grigorieff 200 kV';
 end;
 times=0;
-timeList=[];
-nameList=cell(0);
+
+% Initialize the nameList based on existing mi files in the targetDir
+[nameList,timeList,ok]=rtFindNextMovie({},[],targetDir,'',0);
+% timeList=[];
+% nameList={};
 %% ---------------------Main loop---------------
 doRepeat=1;
 miIndex=0;
@@ -123,20 +124,23 @@ while doRepeat
         [nameList,timeList,ok]=rtFindNextMovie(nameList,timeList,sourceDir,namePattern,searchMode);
         if ~ok
             sprintf('.');
+            if mod(repeatCount,80)==79
+                newline;
+            end;
             pause(5);
         end;
         repeatCount=repeatCount+1;
     end;
-    doRepeat=repeatCount<=maxRepeat;
     
-    if ~ok || numel(nameList)<1
-        continue;
+    if repeatCount>=maxRepeat
+        disp('Timed out waiting for a new file.')
+        return
     end;
     
     miIndex=miIndex+1;
     times(miIndex)=timeList(end);
     
-
+    
     mi=mi0;
     mi.moviePath=sourceDir;
     mi.movieFilename{1}=nameList{end};
@@ -149,7 +153,7 @@ while doRepeat
     mi=rtMC2Runner(mi,mc2Pars);
     if isnumeric(mi) % MC2 run was unsuccessful.
         disp('MotionCor2 run was unsuccessful.');
-%        return;
+        %        return;
         break;
     end;
     m=ReadMRC([mi.imagePath mi.imageFilenames{1}]);
@@ -158,33 +162,33 @@ while doRepeat
     m1=Crop(m,n,0,mean(m(:))); % expand to nice size
     m1s=Downsample(m1,n/4);
     
-%%%%% Initialize graphics
+    %%%%% Initialize graphics
     disDat=struct;
     s=struct;
-
+    
     s.exec='mysubplot(122)';
     s.image=m1s;
     s.axis='off';
     s.title=mi.movieFilename{1};
     disDat.mainImage=s;
     
-%     mysubplot(122);
-%     imags(m1s);
-%     axis off;
-%     title(mi.movieFilename{1}, 'interpreter','none');
-%%%%%
+    %     mysubplot(122);
+    %     imags(m1s);
+    %     axis off;
+    %     title(mi.movieFilename{1}, 'interpreter','none');
+    %%%%%
     s=struct;
     s.exec='mysubplot(2,4,1)';
-%     grid on';
+    %     grid on';
     s.ploty=mi.frameShifts{1};
-%     s.exec('grid on');
-%    s.ylabel('Shift, pixels');
+    %     s.exec('grid on');
+    %    s.ylabel('Shift, pixels');
     disDat.frameShifts=s;
-%     mysubplot(2,4,1);
-%     plot(mi.frameShifts{1});
-%     grid on;
-%     ylabel('Shift, pixels');
-%     drawnow;
+    %     mysubplot(2,4,1);
+    %     plot(mi.frameShifts{1});
+    %     grid on;
+    %     ylabel('Shift, pixels');
+    %     drawnow;
     
     gPars=struct;
     [mi,epaVals,ctfImage,ctfVals]=rtGctfRunner(mi,gPars);
@@ -195,11 +199,11 @@ while doRepeat
         disp(['defocus ' num2str(mi.ctf(1).defocus)]);
     end;
     
-    % put this onto the drift plot  
+    % put this onto the drift plot
     %%%%
     disDat.frameShifts.title=['Res limit: ' num2str(ctfVals.RES_LIMIT,3) 'Å'];
-%     title(['Res limit: ' num2str(ctfVals.RES_LIMIT,3) 'Å']);
-
+    %     title(['Res limit: ' num2str(ctfVals.RES_LIMIT,3) 'Å']);
+    
     %%%%%
     s=struct;
     s.exec='mysubplot(242)';
@@ -208,48 +212,48 @@ while doRepeat
     s.titleTex=['\delta = ' num2str(mi.ctf.defocus,3) '\mum ' ...
         ' astig = ' num2str(abs(mi.ctf.deltadef),3) '\mum'];
     disDat.ctfImage=s;
-%     sshfs fjs2@farnam.hpc.yale.edu:/home/fjs2 farnam -o follow_symlinksmysubplot(2,4,2);
-%     imags(ctfImage);
-%     axis off;
-%     title(['\delta = ' num2str(mi.ctf.defocus,3) '\mum  astig = ' num2str(abs(mi.ctf.deltadef),3) '\mum']);
-%     
+    %     sshfs fjs2@farnam.hpc.yale.edu:/home/fjs2 farnam -o follow_symlinksmysubplot(2,4,2);
+    %     imags(ctfImage);
+    %     axis off;
+    %     title(['\delta = ' num2str(mi.ctf.defocus,3) '\mum  astig = ' num2str(abs(mi.ctf.deltadef),3) '\mum']);
+    %
     %%%%%
     s=struct;
     s.exec='mysubplot(425)';
-%     mysubplot(4,2,5);
+    %     mysubplot(4,2,5);
     scl4=1/max(abs(epaVals.epaBkgSub));
     s.plotx=1./epaVals.resolution;
     s.ploty=[epaVals.ctfSim.^2 scl4*epaVals.epaBkgSub epaVals.ccc 0*epaVals.ccc];
     disDat.epa=s;
-    nameList=cell(0);
-
+    %     nameList=cell(0);
     
-%     plot(1./epaVals.resolution,[epaVals.ctfSim.^2 scl4*epaVals.epaBkgSub epaVals.ccc 0*epaVals.ccc]);
+    
+    %     plot(1./epaVals.resolution,[epaVals.ctfSim.^2 scl4*epaVals.epaBkgSub epaVals.ccc 0*epaVals.ccc]);
     
     defoci(miIndex)=mi.ctf.defocus;
     %%%%%
     s=struct;
     s.exec='mysubplot(427)';
-%     mysubplot(4,2,7);
+    %     mysubplot(4,2,7);
     relTimes=(times-min(times))*24;
     s.plotx=relTimes;
     s.ploty=defoci;
-%     plot(relTimes,defoci);
+    %     plot(relTimes,defoci);
     s.ylabel='Defocus um';
     s.xlabel='Time, hr';
     
-%     ylabel('Defocus, \mum');
-%     xlabel('Time, hr');
+    %     ylabel('Defocus, \mum');
+    %     xlabel('Time, hr');
     disDat.defocusPlot=s;
     
-%     drawnow;
+    %     drawnow;
     
     %%%%
     jpegName=[mi.jpegPath mi.baseFilename '.jpg'];
     disDat.print.eval=['print(' jpegName '''-djpeg'')'];
-%     print(jpegName,'-djpeg');
+    %     print(jpegName,'-djpeg');
     save([mi.jpegPath mi.baseFilename '_DisDat.mat'],'disDat');
-
+    
     WriteMiFile(mi,[infoDir mi.baseFilename 'mi.txt']);
     
     
@@ -258,11 +262,36 @@ end;  % big while
 
 
 function [nameList,timeList,ok]=rtFindNextMovie(nameList,timeList,sourceDir,pattern,mode)
+% scan for a new movie file, and return it at the end of the nameList.  Its
+% creation time is returned at the end of the timeList.
+% start with nameList={}, timeList=[];
+
 ok=0;
+if mode==0 % Ignore arguments except for sourceDir (set to targetDir in this case!)
+%     and mode.
+%    Create the nameList and timeList on the basis of existing mi files.
+    nameList={};
+    miNames=f2FindInfoFiles([sourceDir,'Info/']);
+    nmi=numel(miNames);
+    for j=1:nmi
+        if exist(miNames{j},'file')
+            mi=ReadMiFile(miNames[j});
+            if isfield(mi,'movieFilename') && numel(mi.movieFilename)>0
+                k=k+1;
+                nameList(k)=mi.movieFilename(1);
+            end;
+        end;
+    end;
+    timeList=zeros(k,1);
+    disp([num2str(k) ' movies found.']);
+    return
+end;
+
 d=dir(sourceDir);
 j=0;
 names=cell(0);
 times=[];
+% Scan through the directory and pick up names and times.
 for i=1:numel(d)
     nameOk=numel(strfind(d(i).name,pattern));
     if ~d(i).isdir && nameOk
@@ -271,30 +300,39 @@ for i=1:numel(d)
         times(j)=d(i).datenum;
     end;
 end;
-if j==0
+if j==0 % nothing found, return ok=0.
     return
 end;
 switch mode
     case 1  % just pick the last
         [newTime,newInd]=max(times);
-        if numel(timeList)<1 || newTime>max(timeList)
+        if numel(timeList)<1 || newTime>max(timeList) % beginning, or newest file
             timeList(end+1,1)=newTime;
             nameList{end+1,1}=d(newInd).name;
             ok=1;
         end;
-    case 2  % starting from the beginning, work forward.
+    case 2  % start from the beginning, add later files.
         if numel(timeList)>0
-            oldTime=timeList(end);nameList=cell(0);
-
+            oldTime=timeList(end); % get the last time
         else
             oldTime=0;
         end;
         [sortedTimes,sortedIndices]=sort(times);
-        newInd=sortedIndices(find(sortedTimes>oldTime,1,'first'));
-        if numel(newInd)>0
+        q=find(sortedTimes>oldTime,1,'first');
+        if numel(q)>0
+            newInd=sortedIndices(q);
             timeList(end+1,1)=times(newInd);
             nameList{end+1,1}=names{newInd};
             ok=1;
         end;
-end
+    case 3 % All: pick up the next file not on the nameList.
+        for j=1:numel(names)
+            matches=strcmp(names{j},nameList);
+            if ~any(matches) % names{j} wasn't on the list
+                nameList(end+1)=names(j);
+                ok=1;
+                return
+            end;
+        end;
+end;
 end
