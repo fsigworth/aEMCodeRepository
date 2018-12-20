@@ -12,12 +12,12 @@ maxAge=1;         % Runs the operation is the previous one is older than this nu
 
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
-doMerge       =0;
+doMerge       =1;
 forceMerging  =0;
-doDownsampleMergedImages=0; 
+doDownsampleMergedImages=1; 
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =0;
+doFindVesicles        =1;
 %*** special multiple VesicleFinder runs ****
 doMultiFindVesicles   = 0;
 % findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
@@ -25,21 +25,21 @@ doMultiFindVesicles   = 0;
 %                  'KvLipo121_2w10_v3.7/';'KvLipo121_2w10_v3.8/'};
 %***
 doPrelimInverseFilter =0;
-doRefineVesicles      =0;
+doRefineVesicles      =1;
 refineVesicleAmpsOnly=0;
 %%% minRefineVesiclesSequence=0;  % 0 if don't consider.
 minRefineVesiclesSequence=0;    % inf forces refinement
 doInverseFilter       =1;
-forceInverseFilter=1;
+forceInverseFilter=0;
 minAge=.01;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
 
-doPickingPreprocessor =0;
+doPickingPreprocessor =1;
 
-
-workingDir='/gpfs/ysm/project/fjs2/180226/Kv_1/';
+workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq04_1';
+%workingDir='/gpfs/ysm/project/fjs2/180226/Kv_1/';
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
 % workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w10v3t/'
@@ -70,10 +70,10 @@ logDir='Log/';
 createMiFiles=0;
 
 pars=struct;
-pars.overwrite=1;
+pars.overwrite=0;
 pars.useParfor=0;
 
-pars.forceTracking=1;  % Drift Tracker
+pars.forceTracking=0;  % Drift Tracker
 pars.writeZTiff=0;     % 2= z.tif only; 1= write both .mrc and z.tif
 pars.writeGraphics=1;
 pars.testSegments=[2 20; 38 inf];
@@ -88,15 +88,19 @@ pars.searchDefoci=[1 8 ; 8 15]; % for MergeImages [1stmin 2ndMin ; 1stMax 2ndMax
 pars.doAlignment=1;  % MergeImages
 pars.doFitting=0;
 pars.doWriteInfos=1;
-pars.weights=[1 0];  %%% single exposure
-%pars.weights=1;
+%pars.weights=[1 0];  %%% single exposure
+pars.weights=1
 pars.mcDS=1;
 %pars.mergeMode=3;  %%% no phase flip!
 pars.mergeMode=1;   %%% normal
 pars.mapMode='Kv'; 
 
 pars.UsePWFilter=doPrelimInverseFilter;
+
 pars.doPreSubtraction=1;  % rsRefineVesicleFits: pre-subtract old vesicle fit.
+pars.rTerms=[80 100 120 150 200 300 inf];
+
+
 pars.loadFilenames=1; % pick up allNames.mat in base directory
 pars.cpe=0;  % 0 means no change.
 
@@ -239,7 +243,7 @@ while iName(end)<=numJobNames
     end;
     % merge images (sequence 3)
     if doMerge
-        if ~logSequence(3) || forceMerging || now-dates(3)>maxAge
+        if ~logSequence(3) || forceMerging || now-dates(3)>minAge           
             MergeImages(ourNames,pars);
         else
             disp('Merging skipped.');
@@ -296,8 +300,8 @@ while iName(end)<=numJobNames
         disp('  Refine Vesicles skipped.');
     end;
     % inverse filter (sequence 6)
-    if doInverseFilter && (logSequence(6) <= logSequence(5)) ...
-            || now-dates(6)>maxAge
+    if doInverseFilter && (logSequence(6) <= logSequence(5) ...
+            || now-dates(6)>maxAge)
         meInverseFilterAuto(ourNames);
     elseif doInverseFilter
         disp('  Inverse Filter skipped.');

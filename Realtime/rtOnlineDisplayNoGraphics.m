@@ -5,7 +5,7 @@ interactive=0;
 sourceDir='/ysm-gpfs/pi/cryoem/krios/20181218/No5/movie_frames/sq04_1/';
 %sourceDir='/gpfs/ysm/pi/cryoem/krios/20181218/No5Graphene/movie_frames/sq08_1/';
 %targetDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq08_1/';
-targetDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/movie_frames/sq04_1/';
+targetDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq04_1/';
 namePattern='.mrcs';
 
 cd(targetDir);
@@ -19,7 +19,7 @@ ourRefName='CountRefLocal.mrc';
 gainRefRot=0;
 kV=300;
 
-searchMode=1; % 1: operate on latest; 2 start from beginning.
+searchMode=3; % 1: operate on latest; 2 start from beginning; 3 get every file.
 
 pixA=1.09;
 cpe=0.8;
@@ -273,9 +273,10 @@ if mode==0 % Ignore arguments except for sourceDir (set to targetDir in this cas
     nameList={};
     miNames=f2FindInfoFiles([sourceDir,'Info/']);
     nmi=numel(miNames);
+    k=0;
     for j=1:nmi
         if exist(miNames{j},'file')
-            mi=ReadMiFile(miNames[j});
+            mi=ReadMiFile(miNames{j});
             if isfield(mi,'movieFilename') && numel(mi.movieFilename)>0
                 k=k+1;
                 nameList(k)=mi.movieFilename(1);
@@ -328,8 +329,9 @@ switch mode
     case 3 % All: pick up the next file not on the nameList.
         for j=1:numel(names)
             matches=strcmp(names{j},nameList);
-            if ~any(matches) % names{j} wasn't on the list
+            if numel(matches)<1 || ~any(matches) % names{j} wasn't on the list
                 nameList(end+1)=names(j);
+                timeList(end+1)=times(j);
                 ok=1;
                 return
             end;
