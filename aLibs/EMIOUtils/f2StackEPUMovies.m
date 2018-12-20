@@ -2,10 +2,8 @@
 
 extension='.mrc';
 % [nm,dataPath]=uigetfile(extension,'Select the first movie file');
-dataPath='/Volumes/Extreme1T/20181203p/'
-cd(dataPath);
-d=dir;
-outPath='movie_frames/';
+ d=dir;
+outPath='/Users/fred/movies/';
 CheckAndMakeDir(outPath,1);
 
 fi=1;
@@ -17,6 +15,7 @@ while fi<numel(d)
         baseName=nm(1:end-10);
         disp(baseName);
         [m,s]=ReadMRC(d(fi).name);
+        fprintf('.');
         ni=1; % image counter
         nj=1; % file counter
         nextName=d(fi+nj).name;
@@ -24,16 +23,22 @@ while fi<numel(d)
             [pa,nm,ex]=fileparts(nextName);
             if strcmp(ex,extension)
                 m(:,:,ni+1)=ReadEMFile(d(fi+nj).name);
+                fprintf('.');
                 ni=ni+1;
             end;
             nj=nj+1;
             nextName=d(fi+nj).name;
         end;
+        fprintf('\n');
         ms=sum(single(m),3);
-        imags(GaussFilt(ms,.1));
+        msm=Downsample((ms),size(ms)/4);
+        imags(msm);
         title(baseName);
         drawnow;
-        WriteMRC(m,0,[outPath baseName '.mrcs'],1);
+%         WriteMRC(m,0,[outPath baseName '.mrcs'],1);
+        WriteMRC(msm,0,[outPath baseName 'sm.mrc']);
+        WriteJpeg(msm,[outPath baseName 'sm.jpg'],1e-5);
+
         disp([num2str(ni) ' frames.']);
         fi=fi+ni;
     else

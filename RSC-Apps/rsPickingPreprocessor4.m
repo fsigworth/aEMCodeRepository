@@ -43,6 +43,7 @@ defPars.outputImageSize=960;  % size of output images.
 % defPars.outputImageSize=768;
 defPars.mergedImageSuffix='s';
 defPars.mapMode='Kv';
+defPars.checkLog=1;
 
 pars=SetOptionValues(defPars,pars);
 
@@ -147,7 +148,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         disp('  A recent RSCC file exists.  Skipping.');
         continue;
     end;
-    if logIndices(6)<logIndices(5) || logIndices(5)<1
+    if pars.checkLog && (logIndices(6)<logIndices(5) || logIndices(5)<1)
         % no pw filter or no vesicle refinement
         disp('  Not ready for picking.');
         continue;

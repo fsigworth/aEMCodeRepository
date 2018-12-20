@@ -13,19 +13,20 @@ inputExtensions={'.mrc' '.tif' '.mrcs'};
 % inputExtensions={'.mrcs'};
 sumStacks=1;
 
-disp(['Converting EM files to jpgs in directory ' pwd]);
+outputDir='/ysm-gpfs/project/fjs2/181216/No5Graphene/sq05_1/JpegSums/';
 
+disp(['Converting EM files to jpgs from directory ' pwd]);
 nargin=0;
 
-if nargin<1
-    OutputDir='';
-end;
-len=numel(OutputDir);
+% if nargin<1
+%     OutputDir='';
+% end;
+len=numel(outputDir);
 if len>0
-    if OutputDir(len)~='/' % doesn't end with slash
-        OutputDir=[OutputDir '/'];
+    if outputDir(len)~='/' % doesn't end with slash
+        outputDir=[outputDir '/'];
     end;
-    disp(['Writing output files to ' OutputDir]);
+    disp(['Writing output files to ' outputDir]);
 end;
 if nargin<2
     binning=4;
@@ -43,7 +44,7 @@ for i=3:numel(d)
     [~,~,ex]=fileparts(d(i).name);
     ok=any(strcmp(ex,inputExtensions)); % one of the image file types
     if ok
-        if strcmp(ex,'.tif')
+        if strcmp(ex,'.mrcs')
             [mi, s, ok]=ReadMovie(d(i).name);
             pixA=s.pixA;
         else
@@ -62,6 +63,9 @@ for i=3:numel(d)
         end;
         m=RemoveOutliers(mi,4);
         n=size(m,1);
+        n=NextNiceNumber(n,5,4);
+        me=mean(m(:));
+        m=Crop(m,n,1,me);
         if binning>1
             m=Downsample(m,n/binning);
         end;
@@ -85,7 +89,7 @@ for i=3:numel(d)
             drawnow;
         end;
         [~, nm]=fileparts(d(i).name);
-        imwrite(ms,[OutputDir nm '.jpg'],'jpg');
+        imwrite(ms,[outputDir nm '.jpg'],'jpg');
     else
         disp(['Skipped: ' d(i).name]);
     end;

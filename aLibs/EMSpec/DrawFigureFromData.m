@@ -55,7 +55,7 @@ else
         nc=ceil(nPanels/nr);
     end;
     for i=1:numel(names)
-        subplot(nr,nc,ipanel+i-1)
+%         subplot(nr,nc,ipanel+i-1)
         if isa(dat.(names{i}),'struct')
             DrawPanel(dat.(names{i}));
         end;
@@ -71,8 +71,8 @@ function DrawPanel(s)
     fn=fieldnames(s);
     for i=1:numel(fn);
         switch fn{i}
-            case 'exec'
-                eval(s.eval);
+             case 'exec'
+                 eval(s.exec);
             case 'xs'
                 xs=s.xs;
                 if numel(ys)<1
