@@ -177,6 +177,7 @@ MC2Exec='$RELION_MOTIONCOR2_EXECUTABLE';
         % Correct the micrograph scaling
         [pa,nm,ext]=fileparts(tempImageName);
         dwName=[mi.tempPath nm '_DW.mrc']; % get the dose-weighted output
+        disp(['Reading dose-weighted ' dwName]);
         [m,s]=ReadMRC(dwName);
         me=mean(m(:));
         m2=(m-me)*sqrt(nFrames); % scale up the AC part
@@ -189,6 +190,7 @@ MC2Exec='$RELION_MOTIONCOR2_EXECUTABLE';
             system(['rm ' dwName]);
         end;
     else
+        disp(['No dose-weighting. Writing ' mi.imageFilenames{1}]);
         system(['mv ' tempImageName ' ' mi.imagePath mi.imageFilenames{1}]);
     end;
     %%

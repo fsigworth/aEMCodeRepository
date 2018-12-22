@@ -1,5 +1,7 @@
 function k2PipelineDisplay
 
+pa.ignoreCTF=1;
+
 % We assume we're in a proper directory
 disp('k2PipelineDisplay working directory is');
 disp(pwd);
@@ -11,7 +13,7 @@ while true
         dirName=d(i).name;
         switch lower(dirName)
             case 'jpeg'
-                ScanForDisDats(dirName,firstRun);
+                ScanForDisDats(dirName,firstRun,pa);
                 firstRun=0;
         end;
     end;
@@ -19,12 +21,12 @@ while true
 end
 end
 
-function ScanForDisDats(dirName,firstRun)
+function ScanForDisDats(dirName,firstRun,pa)
 d=dir(dirName);
 for i=1:numel(d)
     name=d(i).name;
     p=strfind(name,'DisDat.mat');
-    if numel(p)>0
+    if numel(p)>0 && (pa.ignoreCTF && ~strndcmp(name,'ctfDisDat.mat',13))
         datName=[AddSlash(dirName) name];
         try
             s=load(datName);

@@ -2,12 +2,18 @@
 inWorkingDir=0;  % not finished
 interactive=0;
 
-sourceDir='/ysm-gpfs/pi/cryoem/krios/20181218/No5/movie_frames/sq04_1/';
-%sourceDir='/gpfs/ysm/pi/cryoem/krios/20181218/No5Graphene/movie_frames/sq08_1/';
+%sourceDir='/ysm-gpfs/pi/cryoem/krios/20181218/No5/movie_frames/sq09_2/';
+%targetDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq09_2/';
+%sourceDir='/gpfs/ysm/pi/cryoem/krios/20181216/No5Graphene/movie_frames/sq08_1/';
 %targetDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq08_1/';
-targetDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq04_1/';
+sourceDir='/gpfs/ysm/pi/cryoem/krios/20181216/No5Graphene/movie_frames/sq05_1/';
+targetDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq05 _1/';
+%%sourceDir='/ysm-gpfs/pi/cryoem/krios/20181218/No5/movie_frames/sq07_3/';
+%%targetDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq07_3/';
+
 namePattern='.mrcs';
 
+CheckAndMakeDir(targetDir,1);
 cd(targetDir);
 
 tempDir='temp/';
@@ -190,6 +196,7 @@ while doRepeat
     %     ylabel('Shift, pixels');
     %     drawnow;
     
+    % ---------run Gctf here---------
     gPars=struct;
     [mi,epaVals,ctfImage,ctfVals]=rtGctfRunner(mi,gPars);
     if isnumeric(mi)

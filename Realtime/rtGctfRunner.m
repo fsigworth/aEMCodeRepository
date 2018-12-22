@@ -45,10 +45,10 @@ strings{3}=['--defL ' num2str(pars.minDefocus*1e4) ' --defH ' num2str(pars.maxDe
     ' --bfac ' num2str(pars.B) ' --ac ' num2str(pars.alpha) ' \'];
 strings{4}=['--dstep ' num2str(pars.detectorPixelSize) ' --write_local_ctf 1' ' --do_EPA 1 \'];
 strings{5}=[' --gid ' num2str(pars.gpuID) ' ' imageName ' >> ' mi.tempPath 'GctfOut.txt'];
-disp(strings{1});
+%disp(strings{1});
 exf=fopen('temp/ExecGctf.sh','w');
 for i=1:numel(strings)
-    % disp(strings{i});
+    disp(strings{i});
     fprintf(exf,'%s\n',strings{i});
 end;
 fclose(exf);
@@ -104,9 +104,13 @@ if pars.doPhaseFlip
 %    system(['mv ' pfImageName ' ' pfOutName]);
 end;
 
-% Move the log files
+% Move all the log files from the image path to the temp path
 if ~strcmp(mi.imagePath, mi.tempPath)
-system(['mv ' mi.imagePath '*.log ' mi.tempPath]);
-% system(['mv ' mi.imagePath '*.ctf ' mi.tempPath]);
-system(['mv ' mi.basePath 'micrographs_all_gctf.star ' mi.tempPath mi.baseFilename '.star']);
+    str1=['mv ' mi.imagePath '*.log ' mi.tempPath];
+    disp(str1);
+    system(str1);
+    % system(['mv ' mi.imagePath '*.ctf ' mi.tempPath]);
+    % str2=['mv ' mi.tempPath 'micrographs_all_gctf.star ' mi.tempPath mi.baseFilename '.star'];
+    % disp(str2);
+    % system(str2);
 end;

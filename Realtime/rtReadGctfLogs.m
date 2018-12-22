@@ -1,5 +1,9 @@
 function [epaVals,ctfVals,ctfImage]=rtReadGctfLogs(mi)
 % function [epaVals,ctfVals,ctfImage]=rtReadGctfLogs(mi)
+% After Gctf has put various log files into the output directory (mi.imagePath)
+% we read the EPA.log, gctf.log and .ctf image and interpret them.
+% epaVals is a struct of vectors. ctfVals is a struct of final values that
+% Gctf writes in gctf.log. ctfImage is the image in the .ctf file.
 
 % mrcFilename='Aug10_14.58.56_DW.mrc';
 mrcFilename=[mi.imagePath mi.imageFilenames{1}];
@@ -7,14 +11,12 @@ mrcFilename=[mi.imagePath mi.imageFilenames{1}];
 path=AddSlash(pa);
 logNameEPA=[path nm '_EPA.log'];
 logNameGctf=[path nm '_gctf.log'];
-logNameCTF=[path nm '.ctf'];
+mrcNameCTF=[path nm '.ctf'];
 % logNameGctf='Temp/GctfLog.txt'; %######
 
-
-
 ctfImage=zeros(512,512,'single');
-if exist(logNameCTF,'file')
-    [ctfImage,s]=ReadMRC(logNameCTF);
+if exist(mrcNameCTF,'file')
+    [ctfImage,s]=ReadMRC(mrcNameCTF);
 end;
 
 fEPA=fopen(logNameEPA);
