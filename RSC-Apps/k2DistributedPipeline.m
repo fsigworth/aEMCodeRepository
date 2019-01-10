@@ -31,16 +31,16 @@ refineVesicleAmpsOnly=0;
 minRefineVesiclesSequence=0;    % inf forces refinement
 doInverseFilter       =1;
 forceInverseFilter=0;
-minAge=.1;  % if the corresponding log entry has a date stamp < minAge
+minAge=10;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
 
 doPickingPreprocessor =1;
 
-%workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq04_1';
-workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq07_3';
-%workingDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq08_1';
+% workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq09_2';
+%workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq07_3';
+workingDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq08_1';
 %workingDir='/gpfs/ysm/project/fjs2/180226/Kv_1/';
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
@@ -72,7 +72,7 @@ logDir='Log/';
 createMiFiles=0;
 
 pars=struct;
-pars.overwrite=1;
+pars.overwrite=0;
 pars.useParfor=0;
 
 pars.forceTracking=0;  % Drift Tracker

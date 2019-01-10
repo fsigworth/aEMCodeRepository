@@ -35,6 +35,10 @@ end;
 
 graphicsNames={'image' 'ploty'};
 names=fieldnames(dat);
+
+formatName='format';
+specialFormat=any(strcmp(formatName,names));
+
 singleAxes=0;
 for i=1:numel(graphicsNames)
     if any(strcmp(graphicsNames{i},names))
@@ -55,7 +59,7 @@ else
         nc=ceil(nPanels/nr);
     end;
     for i=1:numel(names)
-%         subplot(nr,nc,ipanel+i-1)
+         subplot(nr,nc,ipanel+i-1)
         if isa(dat.(names{i}),'struct')
             DrawPanel(dat.(names{i}));
         end;

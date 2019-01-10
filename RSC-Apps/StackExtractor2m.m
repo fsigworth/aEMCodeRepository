@@ -12,8 +12,9 @@
 
 %boxSize=96;  % Size of boxes to be extracted from merged images.
 %  boxSize=192;  % Size of boxes to be extracted from merged images.
-boxSize=256;
-ds=2;        % downsampling of boxed particles from original micrograph
+boxSize=216;
+% boxSize=256;
+ds=1;        % downsampling of boxed particles from original micrograph
 
  fHP=.001;    % highpass Gauss filter in A^-1
 types=[16 32]; % flags for valid particles
@@ -55,7 +56,7 @@ setOk4=0;  % force the unused field mi.vesicle.ok(:,4) to 1.
 inputModeSuffix=''; % expected suffix for input files
 
 % Output file naming
-stackDir='Stack2/';
+stackDir='Stack1/';
 dirVesicles='Vesicles/'; % location of modeled vesicle images
 stackSuffix='tstack.mrc';
 ustackSuffix='tustack.mrc';
@@ -160,6 +161,7 @@ clf;
 fileIndex=1;
 %%  Scan over files
 while fileIndex<= numel(miFiles)
+    disp(['File index ' num2str(fileindex)]);
     if restoreFromSiFile
         mi=miFiles{fileIndex};
         if any(setWeights)
@@ -197,7 +199,7 @@ while fileIndex<= numel(miFiles)
             warning(['Change in pixA values: ' num2str([pixA0 pixA]) '  ' miFiles{fileIndex}]);
         end;
         if fileIndex==1
-            disp(['   box size in Å, box size in pixels: ' num2str([round(boxSize*pixA) boxSize])]);
+            disp(['   box size in A, box size in pixels: ' num2str([round(boxSize*pixA) boxSize])]);
         end;
         
         si.mi{fileIndex}=mi;  % store a copy of the micrograph info

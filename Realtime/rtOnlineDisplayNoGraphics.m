@@ -8,8 +8,8 @@ interactive=0;
 %targetDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq08_1/';
 sourceDir='/gpfs/ysm/pi/cryoem/krios/20181216/No5Graphene/movie_frames/sq05_1/';
 targetDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq05 _1/';
-%%sourceDir='/ysm-gpfs/pi/cryoem/krios/20181218/No5/movie_frames/sq07_3/';
-%%targetDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq07_3/';
+sourceDir='/ysm-gpfs/pi/cryoem/krios/20181218/No5/movie_frames/sq09_2/';
+targetDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq09_2/';
 
 namePattern='.mrcs';
 
@@ -170,6 +170,8 @@ while doRepeat
     
     %%%%% Initialize graphics
     disDat=struct;
+    disDat.format=1;
+    
     s=struct;
     
     s.exec='mysubplot(122)';

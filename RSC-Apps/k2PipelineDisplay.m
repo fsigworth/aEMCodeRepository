@@ -1,6 +1,8 @@
 function k2PipelineDisplay
 
-pa.ignoreCTF=1;
+pa.ignoreCTF=0;
+archiveDir='tempGraphics/';
+deleteOriginals=0;
 
 % We assume we're in a proper directory
 disp('k2PipelineDisplay working directory is');
@@ -13,7 +15,12 @@ while true
         dirName=d(i).name;
         switch lower(dirName)
             case 'jpeg'
-                ScanForDisDats(dirName,firstRun,pa);
+                arch=[AddSlash(dirName) archiveDir];
+                if ~deleteOriginals
+                    CheckAndMakeDir(arch,1);
+                end;
+                ScanForDisDats(dirName,firstRun,pa,deleteOriginals,...
+                    arch);
                 firstRun=0;
         end;
     end;
@@ -21,12 +28,12 @@ while true
 end
 end
 
-function ScanForDisDats(dirName,firstRun,pa)
+function ScanForDisDats(dirName,firstRun,pa,del,archDir)
 d=dir(dirName);
 for i=1:numel(d)
     name=d(i).name;
     p=strfind(name,'DisDat.mat');
-    if numel(p)>0 && (pa.ignoreCTF && ~strndcmp(name,'ctfDisDat.mat',13))
+    if numel(p)>0 && ~(pa.ignoreCTF && strndcmp(name,'ctfDisDat.mat',13))
         datName=[AddSlash(dirName) name];
         try
             s=load(datName);
@@ -34,6 +41,7 @@ for i=1:numel(d)
             names=fieldnames(s);
             for j=1:numel(names)
                 dName=names{j};
+                clf;
                 DrawFigureFromData(s.(dName));
                 if j==1
                     jpegName=name(1:p(end)-1);
@@ -44,13 +52,20 @@ for i=1:numel(d)
                 print('-djpeg','-r150',jpegNamex);  % save the CTF window.
             end;
             disp(['Converted to jpg: ' datName]);
-            delete(datName);
+            if del
+                delete(datName);
+                disp('...deleted');
+            else
+                str=['mv ' datName ' ' archDir name];
+                disp(str);
+                system(str);
+            end;
             firstRun=0;
         catch
             disp(['waiting for file: ' datName]);
         end;  % try
     elseif firstRun
-        disp('No DisDat.mat files found on first scan.');
+       % disp('No DisDat.mat files found on first scan.');
     end;
 end;
 end

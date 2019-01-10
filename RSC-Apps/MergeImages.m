@@ -22,8 +22,8 @@ function MergeImages(miNames,mpars)
 if nargin<2
     mpars=struct;
 else
-    save('MergeImagesPars.mat','mpars');
-    disp('Saving MergeImagesPars');
+%     save('MergeImagesPars.mat','mpars');
+%     disp('Saving MergeImagesPars');
 end;
 if nargin<1
     miNames={};
