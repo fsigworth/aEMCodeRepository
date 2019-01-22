@@ -12,12 +12,12 @@ maxAge=1;         % Runs the operation is the previous one is older than this nu
 
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
-doMerge       =1;
+doMerge       =0;
 forceMerging  =0;
-doDownsampleMergedImages=1; 
+doDownsampleMergedImages=0; 
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =1;
+doFindVesicles        =0;
 %*** special multiple VesicleFinder runs ****
 doMultiFindVesicles   = 0;
 % findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
@@ -28,10 +28,10 @@ doPrelimInverseFilter =0;
 doRefineVesicles      =1;
 refineVesicleAmpsOnly=0;
 %%% minRefineVesiclesSequence=0;  % 0 if don't consider.
-minRefineVesiclesSequence=0;    % inf forces refinement
+minRefineVesiclesSequence=inf;    % inf forces refinement
 doInverseFilter       =1;
 forceInverseFilter=0;
-minAge=10;  % if the corresponding log entry has a date stamp < minAge
+minAge=1;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
@@ -72,7 +72,7 @@ logDir='Log/';
 createMiFiles=0;
 
 pars=struct;
-pars.overwrite=0;
+pars.overwrite=1;
 pars.useParfor=0;
 
 pars.forceTracking=0;  % Drift Tracker
