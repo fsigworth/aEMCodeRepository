@@ -1,38 +1,46 @@
 % SiToStarFile
 % Create .star and .mrcs files from our si.mat and stack.mrc files.
+batchMode=1;
+% in which case siPath and siName must be defined.
+
+holeShots=7; % num,ber of micrographs to group together
 
 dataName='images';
-stackSuffix0='stack.mrc';
-stackSuffix='stack.mrcs';
-stackUSuffix0='ustack.mrc';
-stackUSuffix='ustack.mrcs';
+stackSuffixIn='stack.mrc';
+stackSuffixOut='stack.mrcs';
+stackUSuffixIn='ustack.mrc';
+stackUSuffixOut='ustack.mrcs';
 writeStacks=1;  % write out the modified stacks
 
-modName='a1';
+modName=''; % extra string in name.
 unsubToo=1;  % include the unsubtracted stack
 cropSize=0;  % no cropping
 setWeights=0; % change weights in mi file copy
 doNormalize=1;  % run NormalizeImages
 doGlobalNorm=0;
-minSD=.5;  % criterion for including image
-phasePlate=1;
+minSD=.1;  % criterion for including image at all
+imgScale=1;
+phasePlate=0;
 
 shiftParticle=0; % shift the intracellular domain to center.
 ctrOffsetA=24;  % IC domain center relative to old particle center
-detPixel=5;     % pixel size in um
-ampContrast=0;  % if nonzero, override ctf(1).alpha value with this.
+detPixel=5;     % pixel size of detector in um
+ampContrast=0.1;  % if nonzero, override ctf(1).alpha value with this.
 
 activeIndex=inf;
 reverseContrast=0;
 
-% Put up a file selector for *si.mat,
+if ~batchMode
+    % Put up a file selector for *si.mat,
 disp('Getting an si file.');
 [siName, siPath]=uigetfile('*si.mat','Select si file');
-if ~isnumeric(siPath)  % user hasn't clicked Cancel
-    cd(siPath);
 end;
-disp(siName);
-si=load(siName);
+if isnumeric(siPath)  % user has clicked Cancel
+    return
+end;
+siPath=AddSlash(siPath);
+disp(['Loading ' siPath siName]);
+si=load([siPath siName]);
 si=si.si;
 nim=numel(si.miIndex);
 afIndex=min(activeIndex,size(si.activeFlags,2));
@@ -44,10 +52,10 @@ fprintf('Active flag set: %d, %d active out of %d.\n',afIndex,sum(activeFlags),n
 if numel(nm)<3
     error('si name is too short');
 end;
-inputStackName=[nm(1:end-2) stackSuffix0];
-inputStackUName=[nm(1:end-2) stackUSuffix0];
-disp(['Reading ' inputStackName]);
-imgs0=ReadMRC(inputStackName);
+inputStackName=[nm(1:end-2) stackSuffixIn];
+inputStackUName=[nm(1:end-2) stackUSuffixIn];
+disp(['Reading ' siPath inputStackName]);
+imgs0=imgScale*ReadMRC([siPath inputStackName]);
 
 % Crop the stack
 % if cropSize >0 && cropSize<size(imgs0,1)
@@ -57,53 +65,73 @@ imgs0=ReadMRC(inputStackName);
 % else
     n=size(imgs0,1);
 % end;
-%% purge extreme sds
+%% find normalization parameters: means, mesds
+
+edgeMask=fuzzymask(n,2,n*0.45,0); % binary mask, dia=0.9*n
+edgePix=edgeMask(:)>0;
+nep=sum(edgePix);
+imgEdgeVecs=zeros(nep,nim,'single');
+
+for i=1:nim
+    img=imgs0(:,:,i);
+    imgEdgeVecs(:,i)=img(edgePix);
+end;
+means=mean(imgEdgeVecs,1)';
+sds=std(imgEdgeVecs,1)';
+% mem=mean(means);
+% sdm=std(means);
+
+%
 af1=activeFlags;
-sdWidth=3;
-means=mean(reshape(imgs0,n*n,nim),1)'; % get whole-image means
-for ip=1:3
+sdWidth=2.5;
+meWidth=3;
+
+for ip=1:5
     if ip==1
-        sw=sdWidth*1.5;
+        w=1.5;
     else
-        sw=sdWidth;
+        w=1;
     end;
-    sds=std(reshape(imgs0,n*n,nim),1)';
+    mem=mean(means(af1));
+    sdm=std(means(af1));
     mesds=mean(sds(af1));
     sdsds=std(sds(af1));
-    af1=activeFlags & sds>mesds-sw*sdsds & sds<mesds+sw*sdsds;
+% disp(sum(af1));    
+    af1=af1 & abs(sds-mesds)<sdWidth*w*sdsds & abs(means-mem)<meWidth*w*sdm;
 end;
+
 disp(['Overall std of images: ' num2str(mesds)]);
 disp(['Original, activeFlags, final stack size: ' num2str([nim sum(activeFlags) sum(af1)])]);
 figure(1);
 subplot(221)
 hist(means(af1),1000);
-title('means');
+title('means (selected)');
 subplot(222)
 hist(means,1000);
 title('all means');
 subplot(223);
-hist(sds(af1),1000);
-title('sds');
+hist(sds(af1)/mesds,1000);
+title('sds (norm, selected)');
 subplot(224);
 hist(sds,1000);
 title('all sds');
-
-normImgs=(imgs0-shiftdim(repmat(means,1,n,n),1))/mesds;
-
+%%
 
 
 % Output file names
-stackName=[nm(1:end-2) modName stackSuffix];
+stackName=[nm(1:end-2) modName stackSuffixOut];
 if unsubToo
-    stackUName=[nm(1:end-2) modName stackUSuffix];
+    stackUName=[nm(1:end-2) modName stackUSuffixOut];
 else
     stackUName='';
 end;
 starName=[nm(1:end-2) modName '.star'];
-disp(['Output files: ' starName ' ' stackName ' ' stackUName]);
-%%
+% disp(['Output files: ' starName '  ' stackName '  ' stackUName]);
 
-fi=fopen(starName,'w');
+%% Write the star file
+
+disp(['Writing ' siPath starName]);
+fi=fopen([siPath starName],'w');
 % fi=1;
 
 fprintf(fi,'%s %s\n#\n','# Original stack name: ',siName);
@@ -120,21 +148,25 @@ fprintf(fi,'_rlnSphericalAberration\n');
 fprintf(fi,'_rlnMagnification\n');
 fprintf(fi,'_rlnDetectorPixelSize\n');
 fprintf(fi,'_rlnCtfFigureOfMerit\n');
-fprintf(fi,'_rlnGroupNumber\n');
+% fprintf(fi,'_rlnGroupNumber\n');
+fprintf(fi,'_rlnMicrographName\n');
 if phasePlate
     fprintf(fi,'_rlnPhaseShift\n');
 end;
 if unsubToo
    fprintf(fi,'_rlnReconstructImageName\n');
 end;
+% fprintf(fi,'_rlnMicrographPart\n');
+
 sinBetas=zeros(nim,1);
 mag=detPixel*10000/si.pixA;
 % ---------------need to fix unsub image stack selection and writing.---
 for i=1:nim
-    q=normImgs(:,:,i);
-    s=std(q(:));
-    if af1(i)  % ok particle
-        mi=si.mi{si.miIndex(i)};
+%     q=normImgs(:,:,i);
+%     s=std(q(:));
+    if af1(i)  % ok particle, write a STAR line for it.
+        miIndex=si.miIndex(i);
+        mi=si.mi{miIndex};
         if any(setWeights)
             mi.weights=setWeights;
         end;
@@ -155,6 +187,7 @@ for i=1:nim
         deltadef=ctf.deltadef;        
         imgName=sprintf('%05d@%s',i,stackName);
         imgUName=sprintf('%05d@%s',i,stackUName);
+        micrographPart=sprintf('%03d@%s',si.miParticle(i),mi.baseFilename);
         defU=round((defocus+deltadef)*1e4);
         defV=round((defocus-deltadef)*1e4);
         ang=mod(ctf.theta*180/pi-alpha0,180);
@@ -166,63 +199,58 @@ for i=1:nim
         end;
         if phasePlate
             if ~isfield(ctf,'phi')
-                error(['No phi value in mi.ctf structure']);
+                warning('No phi value in mi.ctf structure. No phase plate assumed.');
+                ctf.phi=0;
+                phasePlate=0;
             end;
             phaseShift=ctf.phi*180/pi;
         end;
         Cs=ctf.Cs;
         fom=si.sVesicle(i)*100;  % figure of merit is vesicle amplitude *100
-        gn=si.miIndex(i);
-            line=sprintf('%s %d %d %6.2f %g %5.3f %g %g %g %g %g',imgName,defU,defV,ang,kV,alpha,Cs,mag,detPixel,fom,gn);
+        % Get the micrograph (group) name
+        holeGroup=holeShots*floor((single(miIndex(i))-1)/holeShots)+1; % index of first image in group
+%         if holeGroup>numel(si.mi)
+%             error([num2str([si.miIndex(i) holeGroup]) ' holeGroup out of range.']);
+%         end;
+        gName=si.mi{holeGroup}.baseFilename;
+            line=sprintf('%s %d %d %6.2f %g %5.3f %g %g %g %g %s',imgName,defU,defV,ang,kV,alpha,Cs,mag,detPixel,fom,gName);
         if phasePlate
             line=[line ' ' num2str(phaseShift)];
         end;
         if unsubToo
             line=[line ' ' imgUName];
         end;
+%         line=[line ' ' micrographPart];
         fprintf(fi,'%s\n',line);        
-    else
-%        disp([num2str([i]) ' skipped.  SD= ' num2str(s)]);
     end;
 end;
 nim1=sum(af1);
 fprintf(fi,'\n');
 fclose(fi);
-%%
-% if doNormalize
-%     [normImgs,vars,means]=NormalizeImages(imgs1,1,0,doGlobalNorm);  % global normalization
-% %     if unsubToo
-% %         normUImgs=imgsU0;
-% %         for 
-% %         normUIngs=(imgsU0-repmat(means,[imgSize(1:2) i]))./rep
-%     disp(['Variance before normalization: ' num2str(median(vars))]);
-% end;
-% 
-% if reverseContrast
-%     normImgs=-normImgs;
-% end;
-% % eliminate outliers in std
-% 
-% upperThresh=3;  % beyond 3 sds is an outlier!
-% lowerThresh=-3;
-% normImgs(normImgs>upperThresh)=upperThresh;
-% normImgs(normImgs<lowerThresh)=lowerThresh;
-
+%% Normalize and write stacks
+disp(['Normalization add,mul: ' num2str([mean(means) 1/mesds])]);
+% normImgs=(imgs0-shiftdim(repmat(means,1,n,n),1))/mesds;
+for i=1:nim
+    normImgs(:,:,i)=(imgs0(:,:,i)-means(i))/mesds;
+end;
 if writeStacks
-    disp(['Writing ' stackName]);
-    WriteMRC(normImgs,si.pixA,stackName);
+    disp(['Writing ' siPath stackName]);
+    WriteMRC(normImgs,si.pixA,[siPath stackName]);
     
     if unsubToo
-        disp(['Reading ' inputStackUName]);
-        normImgs=ReadMRC(inputStackUName)/mesds;
-        disp(['Writing ' stackUName]);
-        WriteMRC(normImgs,si.pixA,stackUName);
+        disp(['Reading ' siPath inputStackUName]);
+        imgs0=ReadMRC([siPath inputStackUName]);
+        for i=1:nim
+            normImgs(:,:,i)=(imgs0(:,:,i)-means(i))/mesds;
+        end;
+        disp(['Writing ' siPath stackUName]);
+        WriteMRC(normImgs,si.pixA,[siPath stackUName]);
     end;
 else
     disp('Not writing stacks.');
 end;
-% 
-% 
+%
+%
 % data_images
 % loop_
 % _rlnImageName

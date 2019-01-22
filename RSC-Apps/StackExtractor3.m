@@ -7,6 +7,10 @@
 % reversed so protein is white.
 % Supports mi.particle.picks(:,10) flag for active particles.
 
+batchMode=1;
+allMiName='Info/allMis1.mat';
+doDisplay=0;
+
 boxSize=128;  % Size of boxes to be extracted from merged images.
 %  boxSize=192;  % Size of boxes to be extracted from merged images.
 % boxSize=256;
@@ -43,7 +47,7 @@ tempUStackName='TempUStack2.mrc';
 inputModeSuffix=''; % expected suffix for input files
 
 % Output file naming
-stackDir='Stack1/';
+stackDir='Stack2/';
 dirVesicles='Vesicles/'; % location of modeled vesicle images
 stackSuffix='tstack.mrc';
 ustackSuffix='tustack.mrc';
@@ -87,7 +91,11 @@ dsScale=1;   % scaling that depends on downsampling ratio
 dds=2;       % further downsampling for micrograph display
 vindex=0;    % 0 means force all vesicles to be modeled
 
-if restoreFromSiFile
+if batchMode
+    load(allMiName);
+    nmi=numel(allMis);
+    pa=[AddSlash(pwd) 'Info/'];
+elseif restoreFromSiFile
     disp('Select si file');
     [oldSiName,pa]=uigetfile('*si.mat','Select si file to read');
     if isnumeric(pa)
@@ -119,6 +127,8 @@ end;
 
 [rootPath, infoPath]=ParsePath(pa); % back out of Info or Stack directory
 cd(rootPath);
+disp(rootPath);
+
 if ~exist(stackDir,'dir')
     mkdir(stackDir);
 end;
@@ -146,8 +156,10 @@ fh=0;   % temp stack file handles
 fhU=0;  % temp unsubtracted stack file
 sumTotalStack=0;
 sumTotalStackU=0;
-figure(1);
-clf;
+if doDisplay
+    figure(1);
+    clf;
+end;
 
 fileIndex=1;
 %%  Scan over files
@@ -168,7 +180,8 @@ while fileIndex<= nmi
     % Make new entries into the mi file
     mi.boxSize=boxSize;
     mi.stackPath=AddSlash(stackDir);
-    si.mi{fileIndex}=mi;  % store a copy of the micrograph info
+    si.mi{fileIndex}=mi;  % store a copy of the micrograph info even if there are
+%                           no particles.
     
     if isfield(mi.particle,'picks') && numel(mi.particle.picks)>0
         if size(mi.particle.picks,2)<10 % don't have the flag field
@@ -200,7 +213,7 @@ while fileIndex<= nmi
         warning(['Change in pixA values: ' num2str([pixA0 pixA]) '  ' miNames{fileIndex}]);
     end;
     if fileIndex==1
-        disp(['   box size in Å, box size in pixels: ' num2str([boxSize*pixA boxSize])]);
+        disp(['   box size in A, box size in pixels: ' num2str([boxSize*pixA boxSize])]);
     end;
     
     disp(['Read images ' num2str(fileIndex) ' ' mi.baseFilename 'mi.txt  ' num2str(nParts)]);
@@ -251,10 +264,12 @@ while fileIndex<= nmi
     end;
     
     %             We now have unfiltered mMergeU and mvMergeU.
-    subplot(121);
+    if doDisplay
+        subplot(121);
     imags(GaussFilt(mvMerge,dfc*ds));
     title([num2str(fileIndex) ' ' mi.baseFilename],'interpreter','none');
     drawnow;
+    end;
    
     %             Extract from a single image pair
     if doExtractParticles
@@ -321,7 +336,7 @@ while fileIndex<= nmi
             stackImg(:,:,i)=ximg2;
             sumImg=sumImg+ximg2;
             
-            if showAllParticles || i==1
+            if showAllParticles || (doDisplay && i==1)
                 subplot(2,4,3);
                 imags(xsub2);
                 title(mi.baseFilename,'interpreter','none');
@@ -330,7 +345,7 @@ while fileIndex<= nmi
                 imags(ximg2);
             end;
             
-            if showAllParticles
+            if doDisplay && showAllParticles
                 %                         Show the sums fsrom this micrograph
                 subplot(2,4,7)
                 imags(sumSub);
@@ -365,12 +380,14 @@ while fileIndex<= nmi
         
         totalNParts=totalNParts+nParts;
         %                 figure(1);
+        if doDisplay
         subplot(2,4,7)
         imags(sumTotalStack);  % unrotated image
         title(totalNParts);
         subplot(2,4,8);
         imags(sumTotalStackU);
         drawnow;
+        end;
         
         if ~restoreFromSiFile && updateMiFile
             WriteMiFile(mi,[infoPath miNames{fileIndex}]);
@@ -446,7 +463,7 @@ if totalNParts>0 || ~doExtractParticles % We'll write out .si and perhaps stack 
     outname=[mi.stackPath baseName sizeString modeSuffix];
     disp(['Base output name: ' outname]);
     siName=[outname 'tsi.mat'];
-    if exist(siName,'file')
+    if exist(siName,'file') && ~batchMode
         ch=MyInput(['Overwrite the file ' siName],'n');
         if ch~='y'
             outname=MyInput('New base name',[outname 'z']);
