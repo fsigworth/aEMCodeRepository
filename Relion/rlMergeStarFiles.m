@@ -1,4 +1,7 @@
 % rlMergeStarFiles
+% Open multiple star files; find the common fieldnames and create a new
+% struct with only those fields, with data concatenated from the input
+% files. Write out this struct as a star file.
 
 nData=zeros(0,1);
 names=cell(0,1);
@@ -42,7 +45,7 @@ disp([num2str(nComNames) ' common names.']);
 % Copy the first file into the big struct.
 s=struct;
 for i=1:nComNames
-    s.(commonNames{i})=s0.(commonNames{i});
+    s.(commonNames{i})=blockData{1}.(commonNames{i});
 end;
 for j=2:nSets
     for i=1:nComNames

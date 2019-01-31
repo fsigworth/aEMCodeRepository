@@ -256,6 +256,7 @@ rawMask=~meGetMask(mi,dis.ndis);
 
 disp(['Defocus ' num2str(defoci,4) '  Dose ' num2str(mi.doses,3)...
     '  Vesicle amp ',num2str(vesAmp*1000,3)]);
+disp([num2str(numel(mi.vesicle.x)) ' vesicles.']);
 
 
 % Copy image and vesicle model into rscc

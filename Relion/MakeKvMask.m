@@ -1,9 +1,11 @@
 % MakeKvMask.m
 outputName='KvMask.mrc';
 n=96;
+n0=96; %??
 pixA=3.066;
 us=1.1;
-[m0,s]=ReadMRC('Kv1.2Tetramer64.mrc');
+pa='/Users/fred/Structures/kv1.2/';
+[m0,s]=ReadMRC([pa 'Kv1.2Tetramer64.mrc']);
 m0=shiftdim(m0,2);
 m0=circshift(m0,[0 0 3]);
 ms=DownsampleGeneral(m0,n0,s.pixA/pixA*us);

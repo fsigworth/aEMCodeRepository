@@ -13,6 +13,11 @@ function cimg=rspMakeRGB(dis,img,masks)
 % ghostColorBad
 %
 [nx, ny]=size(img);
+if any([nx ny]==0)
+    cimg=zeros([dis.size 3],'single');
+    return
+end;
+
 
 % Make the gray-scale image
 cfim=repmat(rot90(img),[1 1 3]);  % copy into R G B channels
@@ -21,6 +26,9 @@ cfim=repmat(rot90(img),[1 1 3]);  % copy into R G B channels
 if dis.showGhosts
     gColor=(1-dis.ghostColor)*dis.ghostAmp; % color to subtract for membrane
     oColor=(1-dis.overlapColor);
+    if size(masks,3)<5
+        masks(1,1,5)=0;
+    end;
     for i=1:3
         cfim(:,:,i)=cfim(:,:,i).*(1-rot90(masks(:,:,1))*gColor(i))...
                                 .*(1-rot90(masks(:,:,5)*oColor(i)));

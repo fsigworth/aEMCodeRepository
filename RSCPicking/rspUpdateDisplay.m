@@ -1,6 +1,6 @@
 function rspUpdateDisplay(mi,dis,imgs,masks,picks,ptrs);
 % Version 2 handles boxes with corners more elegantly
-if ~dis.imageMode
+if ~dis.imageMode || numel(imgs)==0
     return
 end;
 
@@ -80,7 +80,7 @@ if dis.showBoxes
 end;
 
 % Show statistics at the top of the display
-labels=['  ' dis.imgLabels{dis.mode} ...
+labels=['  ' num2str(numel(mi.vesicle.x)) ' ' dis.imgLabels{dis.mode} ...
     '  ' num2str(dis.pars(1),2) '  ' num2str(dis.pars(10),2) ...
     ':    ' num2str(ptrs(3)) ' particles.    Defocus ' num2str(mi.ctf(1).defocus,3)];
 if isfield(mi.ctf(1),'phi') && mi.ctf(1).phi~=0

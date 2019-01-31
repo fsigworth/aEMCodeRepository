@@ -1,6 +1,7 @@
 % SiToStarFile
 % Create .star and .mrcs files from our si.mat and stack.mrc files.
 batchMode=1;
+siPath='Stack2/';
 % in which case siPath and siName must be defined.
 
 holeShots=7; % num,ber of micrographs to group together
@@ -54,8 +55,8 @@ if numel(nm)<3
 end;
 inputStackName=[nm(1:end-2) stackSuffixIn];
 inputStackUName=[nm(1:end-2) stackUSuffixIn];
-disp(['Reading ' siPath inputStackName]);
-imgs0=imgScale*ReadMRC([siPath inputStackName]);
+disp(['Reading ' inputStackName]);
+imgs0=imgScale*ReadMRC(inputStackName);
 
 % Crop the stack
 % if cropSize >0 && cropSize<size(imgs0,1)

@@ -16,25 +16,35 @@ miNPicks=zeros(nEntries,1);
 miDef=zeros(nEntries,1);
 medianVar=zeros(nEntries,1);
 nPicks=0;
-totalRawPicks=0;
 startEntry=1;
 nmi=0;
 
 
 % for sq04_1
+% Criteria for "good" particles
 th0=2.88;  % base threshold
+    th0=2.6; %%% new base.
 th1=1.4;  % quadratic term of threshold
+    th1=2;  % quadratic term of threshold
 mxv0=6;
-mxv1=0.5;
+    mxv0=7; %% var is not very sensitive
+mxv1=0.4; % linear term of variance
+maxFiltMax=4;
+minDefocus=1.5;
 
-% for sq07_2
-th0=3
-mxv0=7
-mxv1=0.7
+maxNum=40;  % ignore any micrograph with more than this number of otherwise ok particles.
+
+% % for sq07_2
+% th0=3
+% mxv0=7
+% mxv1=0.7;
+% 
+% %for sq07_3
+% mxv1=0.5
 
 okParticles=cell(nEntries,1);
 
-for i=startEntry:nEntries
+for i=startEntry:nEntries % loop over micrographs
     if useAllMis
         mi=allMis{i};
         name=[infoDir mi.baseFilename 'mi.txt'];
@@ -50,28 +60,38 @@ for i=startEntry:nEntries
     miDef(nmi)=d;
     thresh=th0+th1/d^2;
     maxVar=mxv0+mxv1*d;
-    if size(mi.particle.picks,1)>0
+    np0=size(mi.particle.picks,1);
+    if np0>0
         flags=mi.particle.picks(:,3);
         amps=mi.particle.picks(:,5);
         vars=mi.particle.picks(:,8);
+        filtMax=mi.particle.picks(:,11);
+        defs=d+0*vars;
         %             num=sum(flags>=16 & flags<48);
         okAmps=(flags==32 & amps>thresh);
-        medianVar(nmi)=median(vars(okAmps));
-        okp=okAmps & vars<maxVar;
-disp([num2str(nmi) ' ' num2str( max(vars(okp)))]);
+        okFiltMax=filtMax<maxFiltMax;
+        okVars=vars<maxVar;
+        okDefocus=defs>minDefocus;
         
+        medianVar(nmi)=median(vars(okAmps));
+        
+        okp=okAmps & okFiltMax & okDefocus & okVars;
+        okNum=sum(okp)<maxNum;
+        okp=okp & okNum;
         num=sum(okp);
+
+        disp([num2str(nmi) ' ' num2str([np0 num]) '  ' name]);
+        
         okParticles{nmi}=okp;
         nPicks=nPicks+num;
         miNPicks(nmi)=num;
-        totalRawPicks=totalRawPicks+numel(amps);
     else
         num=0;
         okParticles{nmi}=[];
     end;
-    if mod(nmi,stride)==0 || i>nEntries-3  % print out every 'stride' entries
-        disp([num2str(nmi) ' ' name '  ' num2str([num nPicks])]);
-    end;
+%     if mod(nmi,stride)==0 || i>nEntries-3  % print out every 'stride' entries
+%         disp([num2str(nmi) ' ' name '  ' num2str([num nPicks])]);
+%     end;
 end;
 %
 figure(1);
@@ -105,11 +125,8 @@ plot(miDef,medianVar,'o');
 xlabel('Defocus, um');
 ylabel('Median var');
 
-nmi
 totalParticles=sum(miNPicks)
 particlesPerImage=totalParticles/nmi
-totalRawPicks
-
 
 return
 

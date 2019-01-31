@@ -92,9 +92,12 @@ end;
                         coords(7)=coords(7)-360;  % wrap the alpha angle
                     end;
                 end;
-                coords(8)=rspResidualSpectrum(mi,rscc,dis,coords,0);
+                [rVar,xVals]=rspResidualSpectrum(mi,rscc,dis,coords,0);
+                coords(8)=rVar;
                 coords(9)=single(rscc.mxCCU(ix,iy));
                 disp(['ampU is ' num2str(coords(9))]);
+                nxv=numel(xVals);
+                coords(1,11:10+nxv)=xVals;
                 %                 coords(5)=single(rscc.mxRsos(ix,iy));
             else
                 error('Negative coordinates');
@@ -254,9 +257,10 @@ end;  % switch
                 dists=sqrt((coords(1)-mi.vesicle.x(:)).^2+(coords(2)-mi.vesicle.y(:)).^2);
                 dists(vind)=inf;
                 [minv, vind2]=min(dists);
-                disp(['        Bobbing dist ' num2str(round((r-vesr)*mi.pixA))]);
-                disp(['        Next vesicle dist '...
+                disp(['        Bobbing dist ' num2str(round((r-vesr)*mi.pixA)) ...
+                '    Next vesicle dist ' ...
                     num2str(round((minv-mi.vesicle.r(vind2))*mi.pixA))]);
+                disp(['        Extrema ' num2str(coords(11:end)')]);
             end;
         end;
         if dis.showSpectrumInfo
