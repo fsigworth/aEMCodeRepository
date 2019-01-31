@@ -25,7 +25,8 @@ else
 end;
 
 % wrap t about zero, not -pi
-td=t/(2*pi)+(t<0);
+% td=t/(2*pi)+(t<0);
+td=t/(2*pi)+.5;
 d=64*(1-eps); % magic factor
 md=257+floor(r*d)+64*floor(d*td);
 

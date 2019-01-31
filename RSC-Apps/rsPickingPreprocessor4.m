@@ -154,7 +154,11 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         continue;
     end;
     
-    if isfield(mi,'vesicle')&& numel(mi.vesicle.x)>0
+    numVesicles=0;
+    if isfield(mi.'vesicle')
+        numVesicles=numel(mi.vesicle.x);
+    end;
+    if numVesicles>0
         %     Pick up the merged image
         [origImg, mergeFullPath, mergedImgOk]=meReadMergedImage(mi,0,pars.mergedImageSuffix);
         if ~mergedImgOk
@@ -481,11 +485,11 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         mskl=fuzzymask(nl,2,msklRadius,0.12*msklRadius);  % local mask
         npts=sum(mskl(:));
         
-        nves=numel(goodVesicle);
+%         nves=numel(goodVesicle);
         disp(['Total vesicle entries: ' num2str(nves)]);
         maskPadding=ceil(maskPaddingA/pixA);
         
-        for i=1:nves  % loop over all possible vesicles
+        for i=1:numVesicles  % loop over all possible vesicles
             ctr=round([mic.vesicle.x(i) mic.vesicle.y(i)]/ds+1);  % shift to 1-based coords
             xDist=Radius(n,ctr)-mic.vesicle.r(i)/ds;  % Get the distance map, distance from mbn center
             qDist=xDist<mxDist;

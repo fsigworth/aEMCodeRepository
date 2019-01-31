@@ -2,10 +2,12 @@ function WriteStarFileStruct(s,dataName,fileName,activeFlags)
 % function WriteStarFileStruct(s,dataName,fileName,activeFlags)
 % function WriteStarFileStruct(s,FID)
 % Write a STAR file from the fields of the struct s.  These fields are
-% assumed to be numeric or cell arrays (of strings).  The arrays must all
+% assumed to be numeric arrays or cell arrays (of strings).  The arrays must all
 % have the same number of elements, which we'll call nLines.
+% The char array dataName is appended to 'data_' in the first line of the
+% file.  Leave it as an empty string '' if you don't need it.
 % The optional nLines x 1 boolean array activeFlags determines which lines
-% actually get writen out rather than skipped.
+% actually get written out rather than skipped.
 % 
 % Give a file handle FID instead of fileName if you want to write several
 % structs to a single file.  In this case you'd call

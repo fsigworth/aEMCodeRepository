@@ -1,6 +1,9 @@
 % rsPickerStats.m
 % run after rsCountParticles.m
 
+% MiLoadAll;
+%%
+
 infoDir='Info/';
     load([infoDir 'allMis.mat']);
     nEntries=numel(allMis);

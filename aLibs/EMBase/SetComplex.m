@@ -15,6 +15,7 @@ r01=sin(pi/2*(0:1/21:21/22)); % 21 points
 r00=zeros(1,21);
 gray=0:1/255:1;     % 256 points
 
+% four color arrays, 64 elements each
 ared=[r10 r00 r01];
 agrn=[r01 r10 r00];
 ablu=[r00 r01 r10];

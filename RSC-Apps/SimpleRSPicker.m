@@ -1,4 +1,3 @@
-
 % SimpleRSPicker.m
 % F. Sigworth, Jan '13
 %  See rspLoadPicksFromMi.m to see assignment of ptrs
@@ -80,10 +79,12 @@ if ~disOk
     dis.listParticleInfo=1;
     dis.contrast=[5 5]; % Black, white threshold re median of normalized image
     dis.varThresh=40;
-    dis.pars=[.4 .63 1000 150 150 100 70 100 50 20];  % min, max amp; max var; rso offset;
-    dis.pars=[3.6    6   1000  300  150  0   70  100   50   12 .6 .8];
-    %     particle blank radius, vesicle blank radius, maxBob, border,
-    %     maskRadius, spect., spectFactor, ampFactor
+%     dis.pars=[.4 .63 1000 150 ...  
+%                 150 100 70 200 50 20]; 
+    dis.pars=[3.6    6   1000  300  150  0   70  100   50   12 1 1];
+%     pars(1:12) are:  minAmp, maxAmp; max var; rso offset;
+%     particle blank radius, vesicle blank radius, maxBob, border, maskRadius, spect.
+%     spectFactor, ampFactor
     dis.pars(20)=150;  % box size in A.
     dis.minDist=dis.pars(20)/5;  % distance in original pixels, based on box size
     dis.filter=[1000 20 0];  % inverse frequency in A; third is % inverse CTF
@@ -94,11 +95,11 @@ if ~disOk
     dis.zeroPreviousPicks=0;
     dis.spectrumMaskRadiusA=100;
     dis.spectrumScale=8;
-    dis.tFactor=1.05;  % threshold step factor
+    dis.tFactor=1.03;  % threshold step factor
     dis.TFactor=1.1;
     dis.readAutopickPars=0;  % read stored autopick parameters from file
-    dis.useSpectrumCorrectionTable=1;
-    dis.useAmpCorrectionTable=1;
+    dis.useSpectrumCorrectionTable=0;
+    dis.useAmpCorrectionTable=0;
 %     Tables(:,1) are defocus, (:,2) are factors to multiply spect and amp
 %     values in autopicking.
     dis.spectTable=[.7  9 ; 1 10 ; 1.2 11 ; 1.5 12 ; 1.7 15 ; 1.9 16 ; 2.5 17
@@ -116,7 +117,9 @@ end;
 % dis.spectrumScale=8;
 dis.zeroPreviousPicks=0;
 dis.filter(4)=0;  % initialization
-
+dis.tFactor=1.03; %%%
+dis.pars(3)=inf; %%%
+dis.pars(12)=1; %%%
 if dis.miNameIndex
     disp('Loading the file Info/allNamesSorted.mat');
     try
@@ -174,6 +177,11 @@ previousDisMode=1;
 axes3On=false;
 dis.roboFitStep=0;
 roboChar='naa';
+
+% Automatic scanning, a variant of RoboFit.
+scan=struct;
+scan.active=false;
+
 dis.clearFigure=1;
 %%
 % % interactive loop
@@ -215,7 +223,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     end;
                     switch b(1)  % second character
                         case 'a'  % aa: Go ahead and do the auto-picking
-                            disp(['Auto-picker parameters: ' num2str(dis.pars)]);
+                            disp(['Auto-picker parameters: ' num2str(dis.pars([1 2 10]))]);
                         case 'g'  % ag: change geometry parameters, then auto-pick
                             dis.pars(4)=MyInput(' RSO offset, A  ',dis.pars(4));
                             dis.pars(5)=MyInput(' Blank radius, A',dis.pars(5));
@@ -258,7 +266,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     %                     BinaryConvolve() is too slow, so use Gaussian filter
                     masks(:,:,3)=GaussFilt(netMask,.16/rKernel)>.1;
                     %                     Auto-picking
-                    [coords, ovMask, endCC]=rscAutoParticleFinder(mi,rscc,...
+                    [coords, ovMask, endCC]=rspAutoParticleFinder(mi,rscc,...
                         dis,masks(:,:,3));
                     imgs(:,:,7)=150*(ovMask-.5);
                     masks(:,:,5)=ovMask>1.5;
@@ -575,17 +583,66 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             else
                 set(gcf,'name',mi.baseFilename);
             end;
-        case 'R'  % toggle roboFit
+        case 'S' % new version of statistics collection
+            % First, run autopicking with relaxed limits
+            oldPars=dis.pars;
+            dis.pars(1)=0.75*dis.pars(1);
+            dis.pars(10)=1.5*dis.pars(10);            
+                               [coords, ovMask, endCC]=rspAutoParticleFinder(mi,rscc,...
+                        dis,masks(:,:,3));
+                    imgs(:,:,8)=imscale(endCC,256);
+%                     [ptrs(3), ncf]=size(coords);
+%                     picks(3,1:ptrs(3),1:ncf)=coords;
+                %                 update the found particles display
+                refreshReconstruct=1;
+                % update the mask display
+                rspUpdateDisplay(mi,dis,imgs,masks,picks,ptrs);
+                disp([num2str(ptrs(3)) ' Particles found.']);
+                nParts=size(coords,1);
+%                 nParts=ptrs(3);
+              stats=coords(:,[5 8]);
+%             stats=reshape(picks(3,1:nParts,[5 8]),nParts,2);
+            [h1,x1]=hist(stats(:,1));
+            d1=x1(2)-x1(1);
+            [h2,x2]=hist(stats(:,2));
+            d2=x2(2)-x2(1);
+            counts=zeros(numel(x1),numel(x2));
+            for i=1:numel(x1)
+                for j=1:numel(x2)
+                    counts(i,j)=sum(stats(:,1)>=x1(i)-d1 & stats(:,2)<x2(j)+d2);
+                end;
+            end;
+            sum(counts(:))
+            q=ptrs(3)
+                axes(dis.ax2);
+                cla;
+                axes(dis.ax3);
+            contourf(x2,x1,counts);
+            colorbar;
+            dis.pars=oldPars;
+            
+        case {'R' 'S'} % toggle roboFit
             if dis.roboFitStep==0
-                dis.roboFitStep=1;
+                dis.roboFitStep=1; % turn it on.
+                str='on';
                 MyBusyread('init');
-                disp('Robo Fit on');
                 dis.clearFigure=0;
             else
                 dis.roboFitStep=0;
-                disp('Robo Fit off');
+                scan.active=false; % turn of scanning too.
+                str='off';
                 dis.clearFigure=1;
             end;
+            if b=='S' % scan fit mode
+                dis.roboFitStep=2*dis.roboFitStep; % skip the first character
+%                 If we call rspScanStep('init') with roboFitStep>0,
+%                 this turns on scanning:
+                scan=rspScanStep('init',scan,dis);
+                disp(['Scan Fit ' str]);
+            else
+                disp(['RoboFit ' str]);
+            end;
+
         case 's'  % save mi file
             if numel(dis.infoName)>3
                 if dis.readOnlyMode
@@ -663,14 +720,17 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             disp('r: show residual after subtraction of expected particles');
             disp(' ');
     end;  %switch
-    oldB=b(1);  % store the previous key
+% -----get the next click or keypress----
 
-    if dis.roboFitStep==0
+    oldB=b(1);  % store the previous key
+    if dis.roboFitStep==0 % not doing automatic fitting, wait for key
         [coords, b]=rspGetClick(dis);
     else
-        if dis.roboFitStep>numel(roboChar)
-            dis.roboFitStep=1;
+        dis.roboFitStep=dis.roboFitStep+1;
+        if dis.roboFitStep>numel(roboChar) % wrap
+            dis.roboFitStep=1+scan.active;
         end;
+        %         RoboFit or Scan running: a keypress halts it.
         [x,y,b]=MyBusyread;
         if b>0  % a click of some sort
             dis.roboFitStep=0;  % turn off robo-fitting;
@@ -679,10 +739,15 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             [coords,b]=rspGetClick(dis);
         else  % continue robo-fitting
             b=roboChar(dis.roboFitStep);
-            dis.roboFitStep=dis.roboFitStep+1;
+            [scan,dis,scanDone]=rspScanStep('next',scan,dis,ptrs(3));
+            if scanDone
+                disp('Scan fit completed.');
+                dis.roboFitStep=0;
+                [coords,b]=rspGetClick(dis);
+            end;
         end;
     end;
-
+    
     if b>31
         axes(dis.ax1);  % put the main display in front.
     end;

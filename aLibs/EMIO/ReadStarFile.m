@@ -1,4 +1,4 @@
-function [blockNames,blockData,ok]=ReadStarFile(name)
+function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay)
 % function [blockNames,blockData,ok]=ReadStarFile(name)
 % Read a Relion .star file and put its contents into two cell arrays.
 % blockNames is a cell array of the blockNames.  For example here are
@@ -24,6 +24,9 @@ function [blockNames,blockData,ok]=ReadStarFile(name)
 % cd('/Users/fred/EMWork/relion13_tutorial/betagal/PrecalculatedResults/Refine3D')
 % 
 % name='post_run1.star';
+if nargin<2
+    doDisplay=0;
+end;
 
 blockNames={};
 blockData={};
@@ -40,7 +43,10 @@ nLines=0;
 C=cell(1,1);
 
 % Load the whole file into the cell array C, handling comments
-disp('loading...');
+if doDisplay
+    disp('loading...');
+end;
+
 while ~feof(fi)
     line=fgetl(fi);
     p=strfind(line,commentMarkers);
@@ -64,7 +70,9 @@ fclose(fi);
 nBlocks=0;
 P=1;  % line pointer
 
-disp('scanning...');
+if doDisplay
+    disp('scanning...');
+end;
 while P<=numel(C) % loop through all the entries
     
     % skip blank lines
@@ -109,7 +117,7 @@ while P<=numel(C) % loop through all the entries
     nFields=0;
     fieldNames=cell(0,1);
     fieldVals=cell(1,0);
-    while numel(C{P})>0 && numel(C{P}{1})>0 && numel(C{P}{1}{1})>0 && C{P}{1}{1}(1)=='_' % begins with underscore
+    while numel(C)>=P && numel(C{P})>0 && numel(C{P}{1})>0 && numel(C{P}{1}{1})>0 && C{P}{1}{1}(1)=='_' % begins with underscore
         nFields=nFields+1;
         fieldNames{nFields}=C{P}{1}{1}(2:end);
         if ~loopMode
@@ -151,6 +159,8 @@ while P<=numel(C) % loop through all the entries
    
     blockData{nBlocks,1}=q;
 end;
-disp('done.');
+if doDisplay
+    disp('done.');
+end;
 return;
 

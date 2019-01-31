@@ -6,6 +6,8 @@
 % images, and *tsi.mat which contains the total si structure. Contrast is
 % reversed so protein is white.
 % Supports mi.particle.picks(:,10) flag for active particles.
+batchMode=1;
+allMiName='Info/allMis1.mat';
 
 batchMode=1;
 allMiName='Info/allMis1.mat';
