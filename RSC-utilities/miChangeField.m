@@ -3,7 +3,7 @@
 % change, and gives the new value.  It is replaced in each mi file.
 
 % Have the user select some mi files
-[fname, pa]=uigetfile('*mi.mat','Select mi files to change','multiselect','on');
+[fname, pa]=uigetfile('*mi.txt','Select mi files to change','multiselect','on');
 [rootPath, infoPath]=ParsePath(pa);
 if ~iscell(fname)
     fname={fname};
@@ -23,7 +23,7 @@ disp([num2str(nFiles) fileStr ' starting with ' fname{1}]);
 ok=1;
 while ok
     miName=[infoPath fname{1}];
-    load(miName);
+    mi=ReadMiFile(miName);
     disp(mi);
     field=input('Name of field to change, or q to quit ? ','s');
     if lower(field(1))=='q'
@@ -60,9 +60,9 @@ while ok
                 disp(['Changing ' num2str(nFiles) fileStr]);
                 for fileIndex=1:nFiles; % Operate on a single mi file
                     miName=[infoPath fname{fileIndex}];
-                    load(miName);
+                    mi=ReadMiFile(miName);
                     mi.(field)=val;
-                    save(miName,'mi');
+                    WriteMiFile(mi,miName);
                     disp(miName);
                 end;
             end;

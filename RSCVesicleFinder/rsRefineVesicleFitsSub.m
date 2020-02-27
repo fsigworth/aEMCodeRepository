@@ -18,6 +18,7 @@ dpars.listFits=0;
 dpars.limitOrigNTerms=4;
 dpars.maxVesiclesToFit=inf;
 dpars.radiusStepsA=0;
+dpars.disA=1200;  % display/fitted window size in angstroms
 
 % Merge the defaults with the given mpars
 pars=SetOptionValues(dpars,pars);
@@ -47,7 +48,7 @@ doFitAmp
 maxMaskLayers=2;   % Don't include any masking beyond merge and beam
 useOkField=1;      % refine every vesicle for which ok is true.
 doDownsampling=1;  % Downsample for speed
-disA=1200;          % size of displayed/fitted window in angstroms
+disA=pars.disA;          % size of displayed/fitted window in angstroms
 fHP=.003;          % Gauss high-pass filter for fitting
 nZeros=1;          % number of zeros used in the merged CTF
 tinySValue=1e-4;   % negligible amplitude threshold
@@ -200,7 +201,7 @@ end;
 miNew.vesicle.ok(:,3)=miNew.vesicle.ok(:,1);  % we'll mark unfitted vesicles here.
 
 if pars.listFits
-    disp('  ind   1000s    r(�)  pick   ok     nTerms ------- 100s/s(1) -------------');
+    disp('  ind   1000s    r (A) pick   ok     nTerms ------- 100s/s(1) -------------');
     %        1    2.779     205   2  1 1 1 1    4    24.80   23.71    0.00    0.00   0
 end;
 figure(2);

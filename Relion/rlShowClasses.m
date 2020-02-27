@@ -29,7 +29,7 @@ xName=[nm ex];
 end;
 
 if doSort
-[pSort,iSort]=sort(p);
+[pSort,iSort]=sort(p,'descend');
 else
     pSort=p;
     iSort=1:ncls;

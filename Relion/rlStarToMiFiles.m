@@ -1,114 +1,116 @@
-% rlStarToMiFiles
-% Takes the star file created by Gctf and makes a set of mi files.
+% rlStarToMiFiles.m
+% From a micrographs_ctf.star file, read the image filenames and ctf parameters
+% and create a set of mi files and padded, normalized micrograph files.
+% We assume we're already in the relion project directory.  We create two
+% folders, Info/ and Merged/ to contain the mi and micrograph files
+% respectively.
 
-% Currently set up to read Jesper's Piezo micrographs, e.g.
-% Micrograph/piezo_560_2xsum_DW.mrc
-% and the file Micrograph/micrographs_ctf.star
+basePath=pwd; % assume we're in the relion project directory
 
-lp.cameraIndex=5; % K2
-lp.cpe=0.2;  % should be 0.2 for superres movie binned by MC2
-lp.bFactor=20;
-lp.mergeMode=3;  % single exposure, no phase-flip
-baseNameTrumcString='_DW';
-imageNameAddString='_DW';
-defaultAlpha=.02;
+cameraIndex=5; % K2
+% cpe=0.8;  % counts per electron, for K2 counting mode. For super-res data
+cameraIndex=6; % 'Falcon2' as we don't have info for Falcon 3 yet.
+cpe=64;
+% processed by MotionCor2, this should be 0.2 I think.
+dose=60; % Approx total movie dose in e/A^2
+ds=8;  % downsampling factor for 'small' images
+writeFullSize=1; % write out full-size *.m image
+writeDownsampled=1;
+WriteMiFile=1;
 
-writeMiFiles=1;
-
-rootPath=AddSlash(pwd);
-micrographPath='Micrograph/';
-moviePath='movie_frames/';
-% refName='movie_frames/SuperRef_Aug10_14.58.56.dm4';
-refName='';
-dirInfo='Info/';
-starName=[micrographPath 'micrographs_ctf.star'];
-
-disp(['Reading ' starName]);
-[blockNames,blockData,ok]=ReadStarFile(starName);
-if ~ok
-    error('Invalid star file.');
+disp('Getting a star file');
+[starName,starPath]=uigetfile('*.star');
+if isnumeric(starPath) % user clicked Cancel
+    return
 end;
 %%
-dat=blockData{1};
-nmi=numel(dat.rlnMicrographName);
+[names,dat]=ReadStarFile([starPath starName]);
+d=dat{1}; % read only the first data block
+nim=numel(d.rlnMicrographName);
 
-CheckAndMakeDir(dirInfo,1);
+basePath=AddSlash(basePath);
 
-% Get the point at which we truncate the micrograph name to make the
-% basename.  We examine the first micrograph name
-p=strfind(dat.rlnMicrographName{1},'_DW'); % if _DW is present, truncate there.
-if numel(p)<1                              % otherwise, just remove the extension.
-    [pa,nm,ex]=fileparts(dat.rlnMicrographName{1});
-    p=strfind(dat.rlnMicrographName{1},ex);
-end;
-baseNameEnd=p(1)-1;
+mi0=meCreateMicrographInfoStruct14;
 
-% Create the basic mi structure
-mi0=meCreateMicrographInfoStruct14;  % Get the mi file template
-    % Put in the invariant parameters
-mi0.camera=lp.cameraIndex;
-mi0.cpe=lp.cpe;
-mi0.originalBasePath=rootPath;
-mi0.basePath=mi0.originalBasePath;
-mi0.gainRefName=refName;
-mi0.infoPath=dirInfo;
-mi0.ctf=struct;
-mi0.imagePath=micrographPath;
-mi0.moviePath=moviePath;
-mis=cell(nmi,1);
-miNames=cell(nmi,1);
-
-% Create mi files for the micrographs.
-iStart=463;
-iEnd=472;
-for i=iStart:iEnd
-%     prefix=sprintf('%05d_',i);
-    prefix='';
+CheckAndMakeDir([basePath mi0.procPath]);
+CheckAndMakeDir([basePath mi0.infoPath]);
+lastImage=nim;
+% lastImage=1;
+disp(['Processing ' num2str(lastImage) ' micrographs']);
+for i=1:lastImage
     mi=mi0;
+    [imagePath,baseName,ex]=fileparts(d.rlnMicrographName{i});
+%     imagePath='';
+    mi.baseFilename=baseName;
+    mi.originalBasePath=AddSlash(basePath);
+    mi.basePath=mi.originalBasePath;
+    mi.moviePath='';
+    mi.imagePath=AddSlash(imagePath);
+    mi.imageFilenames{1}=[baseName ex];
+    mi.pixA=1e4*d.rlnDetectorPixelSize(i)/d.rlnMagnification(i);
+    mi.doses=dose;
+    mi.kV=d.rlnVoltage(i);
+    mi.camera=cameraIndex;
+    mi.cpe=cpe;
     
-    name=dat.rlnMicrographName{i};
-    [pa,nm,ex]=fileparts(name);
-    imageName=[nm '_DW' ex];
+    mi.weights=1;
     
-%     truncFilename=dat.rlnMicrographName{i}(1:baseNameEnd);
-%     truncFilename=name(1:baseNameEnd);
-    truncFilename=nm;
-    mi.baseFilename=[prefix truncFilename];
-   % mi.imageFilenames=dat.rlnMicrographName(i);  % a cell scalar
-    mi.imageFilenames={imageName};  % a cell scalar
-    [~,s]=ReadMRC([mi.imagePath mi.imageFilenames{1}]);
-    mi.imageSize=[s.nx s.ny];
-    mi.kV=dat.rlnVoltage(i);
-    mi.pixA=dat.rlnDetectorPixelSize(i)/dat.rlnMagnification(i)*1e4;
-    mi.mergeMatrix=[1 0 0; 0 1 0; 0 0 0];
-    defU=dat.rlnDefocusU(i);
-    defV=dat.rlnDefocusV(i);
+    %     CTF parameters
+    mi.ctf=struct;
+    mi.ctf.defocus=(d.rlnDefocusU(i)+d.rlnDefocusV(i))/2e4;
+    mi.ctf.deltadef=(d.rlnDefocusU(i)-d.rlnDefocusV(i))/2e4;
+    mi.ctf.theta=d.rlnDefocusAngle(i)*pi/180;
+    mi.ctf.Cs=d.rlnSphericalAberration(i);
+    mi.ctf.alpha=d.rlnAmplitudeContrast(i);
+    mi.ctf.B=40;
     mi.ctf.lambda=EWavelength(mi.kV);
-    mi.ctf.defocus=(defU+defV)/2e4;
-    mi.ctf.deltadef=(defU-defV)/2e4;
-    mi.ctf.theta=dat.rlnDefocusAngle(i)*pi/180;
-    if defaultAlpha
-        mi.ctf.alpha=defaultAlpha;
-    else
-    mi.ctf.alpha=dat.rlnAmplitudeContrast(i);
-    end;
-    if isfield(dat,'rlnPhaseShift')
-        mi.ctf.phi=dat.rlnPhaseShift(i)*pi/180;
-    end;
-%     mi.ctf.maxres=dat.rlnCtfMaxResolution(i);
-    mi.ctf.Cs=dat.rlnSphericalAberration(i);
-    mi.ctf.B=lp.bFactor;
-    mi.ctf.ampFactor=1;
-    mi.ctf.mergeMode=lp.mergeMode;
-    if mi.kV>200
+    
+    mi.mergeMatrix=eye(3);
+    
+    % Use the G&G damage model
+    if mi.kV>250
         mi.damageModelCode='.245*f.^-1.665+2.81; % Grant&Grigorieff 300 kV';
-    else
+    else % 200 kV code
         mi.damageModelCode='.184*f.^-1.665+2.1; % Grant&Grigorieff 200 kV';
     end;
-    miNames{i}=[mi.infoPath mi.baseFilename 'mi.txt'];
-    if writeMiFiles
-        WriteMiFile(mi,miNames{i});
+    
+    
+    %     Read the micrograph; pad and rescale it.
+    mrcFilename=[mi.imagePath mi.imageFilenames{1}];
+    if exist(mrcFilename,'file') && (writeFullSize || WriteDownsampled)
+        disp([num2str(i) ': Reading ' mrcFilename]);
+        [m,s]=ReadMRC(mrcFilename);
+        n0=size(m);
+        n=NextNiceNumber(n0,5,8);  % new size, e.g. 3840 x 3840
+        mi.imageSize=n;
+        
+        %     Pad and scale the image. We no longer calculate absolute
+        %     contrast, but simply scale according to the STD of the image.
+        me=mean(m(:));
+        m1=Crop(m,n,0,me);
+        m2=(m1-me)/(5*std(m1(:))); % arbitrary simple scaling, rather than absolute contrast.
+       
+        %     Write out processed images into the Merged folder.
+        if writeFullSize
+            disp(['Writing ' num2str(n) ' pixels: ' mi.procPath mi.baseFilename 'm.mrc']);
+            WriteMRC(m2,mi.pixA,[mi.procPath mi.baseFilename 'm.mrc']);
+        end;
+        if writeDownsampled
+            nd=n/ds;
+            m2d=Downsample(m2,nd);
+            disp(['Writing ' num2str(nd) ' pixels: ' mi.procPath mi.baseFilename 'ms.mrc']);
+            WriteMRC(m2d,mi.pixA*ds,[mi.procPath mi.baseFilename 'ms.mrc']);
+        end;
+    else
+        disp(['Micrograph file not written: ' mrcFilename]);
+        [~,s]=ReadMRC(mrcFilename,1,0); % Get just the header
+        n0=[s.nx s.ny];
+        n=NextNiceNumber(n0,5,8);  % new size, e.g. 3840 x 3840
+        mi.imageSize=n;
     end;
-    disp(miNames{i});
-    mis{i}=mi;
+    if WriteMiFile
+        disp(['Writing ' mi.baseFilename 'mi.txt']);
+        WriteMiFile(mi);
+    end;
 end;
+

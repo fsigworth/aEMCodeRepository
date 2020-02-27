@@ -2,11 +2,13 @@ function rsRefineVesicleFits(miNames,mpars)
 % function rsRefineVesicleFits(miNames,mpars)
 % Fits distorted vesicles.
 % Revised version with acceleration options.
-% Given an info structure mi, find and subtract vesicles
+% miNames is a cell array of mi file names (with path)
+% mpars is a struct of parameters (see the default values set below)
+% Find and subtract vesicles
 % and return the updated mi containing the vesicle coordinates, radius
 % expansion and amplitude angular expansion.
 % If desired, a vesicle model file is stored in Temp/ as <basename>v.mrc.
-% If desired, a subtracted file is stored in Merged/ as <basename>mvz.tif.
+% If desired, a subtracted file is stored in Merged/ as <basename>mv.tif.
 
 % if nargin<1
 %     miNames=[];
@@ -25,12 +27,21 @@ dpars.overwrite=1;
 dpars.writeMiFile=1;
 dpars.doPreSubtraction=1;
 dpars.listFits=1;  % print out each fit's parameters
-dpars.scaleOriginalAmplitudes=1;
+dpars.scaleOriginalAmplitudes=1; % multiply amplitudes by this value
+
+dpars.writeSubZTiff=0;    % Write subtracted images into Merged/
+suffix='';  % extra character ? for XXmv?z.tif output file
+dpars.writeSubMRC=1;
+dpars.writeSmallSubMRC=1;
+dpars.writeVesFiles=0;   % Write vesicle models into Temp/
+
 % dpars.scaleOriginalAmplitudes=0.5; %%%%%%
 % Number of terms (for both radius and amplitude fitting) is set thusly:
 %    nTerms=find(vesicle.r(ind,1) < pars.rTerms/mi.pixA,1);
 % i.e. nTerms is the index of last entry of rTerms smaller than our radius.
-dpars.rTerms=[100 150 200 250 250 300 inf];
+% dpars.rTerms=[100 150 200 250 250 300 inf];
+dpars.rTerms=[100 150 200 300 inf];  % quick
+% dpars.rTerms=[150 200 inf];  % for Mengqiu
 
 % Define the fitting mode for each round
 % dpars.fitModes={'RadiusOnly' 'RadiusAndLin'};
@@ -42,7 +53,9 @@ dpars.radiusStepsA=[-100 -50 0 50]; % repeat radius-only fitting with perturbed 
 % Extra peaks in the scattering profile
 dpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
 dpars.targetPixA=10;  % downsampled image resolution for radius fitting
-
+dpars.disA=1200;  % size of the fit window, in angstroms
+% dpars.disA=1600;  % for Mengqiu
+dpars.dsSmall=4;
 dpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
 
 % Merge the defaults with the given mpars
@@ -66,19 +79,13 @@ displayOn=~batchMode;
 % displayOn=0; %####### 1: show results at end of each fit; 2 update while fitting.
 
 dsModel=4;  % net downsampling of "full res" model relative to orig micrograph
-dsSmall=4;  % net downsampling of 'small' output file.
+dsSmall=pars.dsSmall;  % net downsampling of 'small' output file.
 
 forceNewModel=0;   % Always ask the user to select a new refined model
   % on the first micrograph (can be from the same micrograph)
 resetBasePath=1;   % update the basePath field of the mi file.
 
 writeMiFile=pars.writeMiFile;     % Save the updated mi file
-
-writeSubZTiff=0;    % Write subtracted images into Merged/
-suffix='';  % extra character ? for XXmv?z.tif output file
-writeSubMRC=1;
-writeSmallSubMRC=1;
-writeVesFiles=0;   % Write vesicle models into Temp/
 
 vm=struct;         % our local vesicle (membrane) model
 vmGood=0;          % model is valid
@@ -92,8 +99,7 @@ if ~(exist('miNames','var') && numel(miNames)>0)
     [rootPath, infoPath]=ParsePath(pa);
     cd(rootPath);
 else
-    infoPath='Info/'; %%%%%%%%%%%%%%
-    infoPath='';
+    infoPath='';  % We assume that names include path
     rootPath=AddSlash(pwd);
 end;
 if ~iscell(miNames)
@@ -106,15 +112,19 @@ vmOk=0;
 %% --------loop over files --------
 for fileIndex=1:numel(miNames)
     %%
-    disp(['Reading ' infoPath miNames{fileIndex}]);
+    disp(['Reading ' num2str(fileIndex) ' ' infoPath miNames{fileIndex}]);
     mi=ReadMiFile([infoPath miNames{fileIndex}]);
     if resetBasePath
         mi.basePath=rootPath;
+    end;
+    if ~isfield(mi,'mergeMode')
+        mi.mergeMode=3;
     end;
     if ~(isfield(mi,'vesicle') && isfield(mi.vesicle,'x'))
         disp('No vesicles.');
         continue;  % skip on to the next file
     end;
+    
     %     check if there is something to do.
     ampsNotRefined= size(mi.vesicle.s,2)<2 || all(all(mi.vesicle.s(:,2:end)==0));
     if numel(mi.vesicle.x)>0 && (ampsNotRefined || pars.overwrite) % something to do
@@ -213,6 +223,7 @@ for fileIndex=1:numel(miNames)
                 p.extraSD=pars.xPeakSigmaA{ind}/mi.pixA;
                 p.rTerms=pars.rTerms;
                 p.targetPixA=pars.targetPixA;
+                p.disA=pars.disA;
                 maxRTerms=numel(p.rTerms);
                 % Set up parameters
                 p.limitOrigNTerms=round(pars.fractionStartingTerms(ind)*maxRTerms+1);
@@ -236,8 +247,8 @@ for fileIndex=1:numel(miNames)
             
             if writeMiFile
                 mi.log{end+1,1}=['rsRefineVesicleFits ' TimeStamp];
-                outName=WriteMiFile(mi,miNames{fileIndex});
-                disp([outName ' saved']);
+                outName=WriteMiFile(mi,[infoPath miNames{fileIndex}]);
+                disp([infoPath outName ' saved']);
             end;
             
             %             Compute and store model vesicles
@@ -264,7 +275,7 @@ for fileIndex=1:numel(miNames)
             end;
             
             
-            if writeVesFiles  % Write .mrc and .jpg files.
+            if pars.writeVesFiles  % Write .mrc and .jpg files.
                 outVesName=[mi.tempPath mi.baseFilename 'v'];
                 %             WriteMRC(vsm,pixA0,[outVesName '.mrc']);
                 %             WriteJpeg(vsm,outVesName);
@@ -274,7 +285,7 @@ for fileIndex=1:numel(miNames)
                 disp([outVesName ' saved']);
             end;
             
-            if writeSubZTiff  % write a zTiff file
+            if pars.writeSubZTiff  % write a zTiff file
                 ztPars=struct;
                 ztPars.lfCutoff=.1;
                 ztPars.snrRatio=300;
@@ -283,12 +294,13 @@ for fileIndex=1:numel(miNames)
                 disp([outSubName ' saved']);
             end;
             
-            if writeSubMRC  % write an MRC file
+            if pars.writeSubMRC  % write an MRC file
                 outSubName=[mi.procPath mi.baseFilename 'mv' suffix '.mrc'];
                 WriteMRC(m0-vsm,pixA0,outSubName);
                 disp([outSubName ' saved']);
             end;
-            if writeSmallSubMRC
+            
+            if pars.writeSmallSubMRC
                 nSmall=mi.imageSize/dsSmall;
                 outSubName=[mi.procPath mi.baseFilename 'mvs' suffix '.mrc'];
                 WriteMRC(Downsample(m0-vsm,nSmall),mi.pixA*dsSmall,outSubName);

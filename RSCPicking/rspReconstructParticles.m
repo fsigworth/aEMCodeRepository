@@ -89,7 +89,7 @@ pwFiltPars=[.002 0; .01 .5];  % generic pw filter parameters
 T=meGetNoiseWhiteningFilter(mi,np,ds,1,fHP*mi.pixA*ds);
 if numel(T)<2
     disp('Using a generic PW filter function.');
-    freqs=RadiusNorm(np)/pixA+1e-6;  % in inverse Å, prevent divide by zero
+    freqs=RadiusNorm(np)/mi.pixA+1e-6;  % in inverse Å, prevent divide by zero
     T=ones(np,'single');
     for i=1:size(pwFiltPars,1)  % product of (gauss + const) terms.
         f0=pwFiltPars(i,1);

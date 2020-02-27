@@ -1,6 +1,6 @@
 function [coords, b]=rspGetClick(dis)
-% Get a click or keypress and return the coordinates relative to the
-% original micrograph, zero-based.
+% Get a click or keypress and return the coordinates in units of the original
+% micrograph pixels, zero-based.
 
 pointers={'thicksquare' 'squareshadow' };
 ptrIndex=dis.readOnlyMode+1;  % squareShadow pointer in normal mode.

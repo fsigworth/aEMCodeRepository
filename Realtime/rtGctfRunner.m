@@ -8,6 +8,7 @@ if nargin<2
     mpars=struct;
 end;
 
+
 % Parameter defaults:
 pars.phasePlate=0;
 pars.B=40;
@@ -16,19 +17,26 @@ pars.doPhaseFlip=0;
 pars.minDefocus=0.2;
 pars.maxDefocus=12;
 pars.lowResolution=50;
-pars.highResolution=4;
+pars.highResolution=3;
 pars.alpha=.02;
 pars.detectorPixelSize=5;
 pars.gpuID=2;
 pars.doDisplay=0;
-
+pars.tempDir='Logs/';
 pars=SetOptionValues(pars,mpars);
 % mi.imageFilenames{1}=[mi.baseFilename 'ala.mrc'];
 imageName=[mi.imagePath mi.imageFilenames{1}];
+if ~exist(imageName,'file')
+    error(['File not found: ' imageName]);
+end;
 [~,baseImageName]=fileparts(mi.imageFilenames{1});
 
 %GctfEx='Gctf.exe';
-GctfEx='Gctf-v1.06_sm_30_cu8.0_x86_64';
+% GctfEx='Gctf-v1.06_sm_30_cu8.0_x86_64';
+%GctfEx='/ysm-gpfs/apps/software/Gctf/1.18_b2-fosscuda-2018b_sm61_cu9.2/Gctf_v1.18_b2_sm61_cu9.2';
+GctfEx='$RELION_GCTF_EXECUTABLE';
+%GctfEx='Gctf.exe';
+
 if pars.phasePlate
     ppString=' --phase_shift_L 0 --phase_shift_H 180';
     pars.maxDefocus=1;
@@ -44,17 +52,21 @@ strings{3}=['--defL ' num2str(pars.minDefocus*1e4) ' --defH ' num2str(pars.maxDe
     ' --resL ' num2str(pars.lowResolution) ' --resH ' num2str(pars.highResolution) ...
     ' --bfac ' num2str(pars.B) ' --ac ' num2str(pars.alpha) ' \'];
 strings{4}=['--dstep ' num2str(pars.detectorPixelSize) ' --write_local_ctf 1' ' --do_EPA 1 \'];
-strings{5}=[' --gid ' num2str(pars.gpuID) ' ' imageName ' >> ' mi.tempPath 'GctfOut.txt'];
+strings{5}=[' --gid ' num2str(pars.gpuID) ' ' imageName ' &> ' mi.tempPath 'GctfOut.txt'];
 %disp(strings{1});
-exf=fopen('temp/ExecGctf.sh','w');
+tempFile=[pars.tempDir 'Gctf.sh'];
+exf=fopen(tempFile,'w');
+if exf<1
+    error(['File could not be opened: ' tempFile]);
+end;
 for i=1:numel(strings)
     disp(strings{i});
     fprintf(exf,'%s\n',strings{i});
 end;
+disp(' ');
 fclose(exf);
-system('chmod a+x temp/ExecGctf.sh');
-system('temp/ExecGctf.sh');
-
+system(['chmod a+x ' tempFile]);
+system(tempFile);
 [epaVals,ctfVals,ctfImage]=rtReadGctfLogs(mi);
 
 mi.ctf=struct;

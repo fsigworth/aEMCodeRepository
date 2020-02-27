@@ -21,7 +21,7 @@ maxS1Ratio=10;
 minRadiusA=80; % vesicles smaller than this won't be tracked at all.
 ampRefitScale=0.75;  % Re-fitted amplitudes are high by about 30%
 startInd=1;     % Which vesicle index to start with (for debugging)
-
+minRDecay=.2;
 
 ds1=1;  % no further downsampling
 mi=h.mi;
@@ -199,7 +199,7 @@ for ind=startInd:nv;
     mi1.vesicle.r=r*ds;
     mi1.vesicle.s=mi.vesicle.s(ind,1);
 %     mi1.vesicle.s=.001;
-    mi1.vesicle.s(1,nTerms)=0;
+    mi1.vesicle.s(1,nTerms)=0; % pad with zeros
     % mi1.vesicle.extraS=mi1.vesicle.s;
     mi1.vesicle.ok=true(1,4);
     v1=meMakeModelVesicles(mi1,n,1,0,0);
@@ -247,8 +247,10 @@ for ind=startInd:nv;
         % if tracking was successful.
         r01=mi2.vesicle.r(ind,1)*mi2.pixA;
         s01=mi2.vesicle.s(ind,1);
+rDecay=minRDecay+(1-minRDecay)/(1+(r01/200)^2); % help for big vesicles.
+
         flag=(r01>=h.sav.vesicleRadii(1) && r01<=h.sav.vesicleRadii(2) ...
-            && s01>=h.sav.vesicleAmps(1) && s01<=h.sav.vesicleAmps(2));
+            && s01>=h.sav.vesicleAmps(1)*rDecay && s01<=h.sav.vesicleAmps(2));
         mi2.vesicle.ok(ind,:)=[1 flag 1 0];
 
         % blank all vesicles whose centers overlap with our new vesicle.

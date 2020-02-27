@@ -6,20 +6,22 @@
 % images, and *tsi.mat which contains the total si structure. Contrast is
 % reversed so protein is white.
 % Supports mi.particle.picks(:,10) flag for active particles.
-batchMode=1;
-allMiName='Info/allMis1.mat';
 
-batchMode=1;
-allMiName='Info/allMis1.mat';
-doDisplay=0;
+batchMode=0;
+allMiName='Info/allMis.mat';
+doDisplay=1;
+doPrint=1; % print filename, number of particles to command window.
+setAllActive=1;  % all valid particles are set to be active.
+fHighPass=.002;  % A^-1
 
-boxSize=128;  % Size of boxes to be extracted from merged images.
-%  boxSize=192;  % Size of boxes to be extracted from merged images.
+% boxSize=128;  % Size of boxes to be extracted from merged images.
+boxSize=192;  % Size of boxes to be extracted from merged images.
 % boxSize=256;
 ds=2;        % downsampling of boxed particles from original micrograph
 dfc=.1;      % Gauss filter for display (relative to original micrograph)
 
 types=[16 32]; % flags for valid particles
+% how to get filenames (default is file selector)
 restoreFromSiFile=0; % Use info from an si file instead of mi files.
 loadAllMisFile=1;
 
@@ -49,7 +51,7 @@ tempUStackName='TempUStack2.mrc';
 inputModeSuffix=''; % expected suffix for input files
 
 % Output file naming
-stackDir='Stack2/';
+stackDir='Stack3/';
 dirVesicles='Vesicles/'; % location of modeled vesicle images
 stackSuffix='tstack.mrc';
 ustackSuffix='tustack.mrc';
@@ -97,6 +99,7 @@ if batchMode
     load(allMiName);
     nmi=numel(allMis);
     pa=[AddSlash(pwd) 'Info/'];
+    loadAllMisFile=1;
 elseif restoreFromSiFile
     disp('Select si file');
     [oldSiName,pa]=uigetfile('*si.mat','Select si file to read');
@@ -170,7 +173,9 @@ while fileIndex<= nmi
         mi=allMis{fileIndex};
 %         disp(mi.baseFilename);
     else
-        disp(['Reading ' miNames{fileIndex}]);
+        if doPrint
+            disp(miNames{fileIndex});
+        end;
         mi=ReadMiFile([infoPath miNames{fileIndex}]);  % Load the mi file
     end;
     if ~isa(mi,'struct')  % a valid structure
@@ -186,22 +191,27 @@ while fileIndex<= nmi
 %                           no particles.
     
     if isfield(mi.particle,'picks') && numel(mi.particle.picks)>0
-        if size(mi.particle.picks,2)<10 % don't have the flag field
-            if fileIndex==1
-                disp('Setting default pick(10) flags.');
-            end;
-            mi.particle.picks(:,10)=(typeArray>=types(1) & typeArray<=types(2)); % set them all active
+        if size(mi.particle.picks,2)<10 || setAllActive% don't have the flag field
+%             if fileIndex==1
+%                 disp('Setting default pick(10) flags.');
+%             end;
+            flags=mi.particle.picks(:,3);
+            mi.particle.picks(:,10)=(flags>=types(1)) & (flags <=types(2)); % all valid particles are active
             si.mi{fileIndex}=mi;  % update the copy of micrograph info
         end;
         active=mi.particle.picks(:,10)>0;
         nParts=sum(active);
         ourPicks=mi.particle.picks(active,:);
         ourMiParticles=find(active);
-        typeArray=ourPicks(:,3);
+        if doPrint
+            disp(nParts);
+        end;
     else
         nParts=0;
         ourPicks=[];
-        disp([num2str(fileIndex) ' no picks.']);
+        if doPrint
+        disp(['fileIndex ' num2str(fileIndex) ': no picks.']);
+        end;
         fileIndex=fileIndex+1;
         continue;
     end;
@@ -218,7 +228,7 @@ while fileIndex<= nmi
         disp(['   box size in A, box size in pixels: ' num2str([boxSize*pixA boxSize])]);
     end;
     
-    disp(['Read images ' num2str(fileIndex) ' ' mi.baseFilename 'mi.txt  ' num2str(nParts)]);
+  %  disp(['Read images ' num2str(fileIndex) ' ' mi.baseFilename 'mi.txt  ' num2str(nParts)]);
     %     [mMergeU,pa,mImageOk]=meReadMergedImage(mi,0,inputModeSuffix);  % merged image
     %     subplot(1,2,1);
     %     imags(BinImage(mMergeU,dds));
@@ -265,11 +275,15 @@ while fileIndex<= nmi
         continue;
     end;
     
-    %             We now have unfiltered mMergeU and mvMergeU.
+    %             We now have unfiltered mMerge and mvMerge, with pixA
+    %             being the pixel size.
+    mvfMerge=GaussHP(mvMerge,fHighPass*pixA);
+    mfMerge=GaussHP(mMerge,fHighPass*pixA);
+    
     if doDisplay
         subplot(121);
-    imags(GaussFilt(mvMerge,dfc*ds));
-    title([num2str(fileIndex) ' ' mi.baseFilename],'interpreter','none');
+    imags(GaussFilt(mvfMerge,dfc*ds));
+    title([num2str(fileIndex) '  ' mi.baseFilename '  ' num2str(nParts)],'interpreter','none');
     drawnow;
     end;
    
@@ -318,8 +332,8 @@ while fileIndex<= nmi
             iCoordsList(i,:)=iCoords;  % store for box display
             intCoords=round(iCoords);  % downsampled coordinates
 %             fraCoords=iCoords-intCoords;
-            xm=ExtractImage(mMerge,intCoords,boxSize);
-            xmv=ExtractImage(mvMerge,intCoords,boxSize);
+            xm=ExtractImage(mfMerge,intCoords,boxSize);
+            xmv=ExtractImage(mvfMerge,intCoords,boxSize);
             %    Pad and reverse the contrast.
             ximg2=-xm;
             xsub2=-xmv;
@@ -341,7 +355,7 @@ while fileIndex<= nmi
             if showAllParticles || (doDisplay && i==1)
                 subplot(2,4,3);
                 imags(xsub2);
-                title(mi.baseFilename,'interpreter','none');
+%                 title(mi.baseFilename,'interpreter','none');
                 %                         Show the particle image, and subtracted image
                 subplot(2,4,4);
                 imags(ximg2);
@@ -381,6 +395,7 @@ while fileIndex<= nmi
         sumTotalStackU=sumTotalStackU+sum(stackImg,3);
         
         totalNParts=totalNParts+nParts;
+        
         %                 figure(1);
         if doDisplay
         subplot(2,4,7)
@@ -406,6 +421,8 @@ while fileIndex<= nmi
     fileIndex=fileIndex+1;
 end; % while fileIndex
 %
+        disp(['Total particles extracted: ' num2str(totalNParts)]);
+
 if fh>0 % we wrote something, finalize the files.
     frewind(fh);
     WriteMRCHeader(xsub2,pixA,tempStackName,[boxSize boxSize totalNParts],0,2,0,fh);
@@ -445,7 +462,11 @@ if totalNParts>0 || ~doExtractParticles % We'll write out .si and perhaps stack 
         si.activeFlags=true(np,1);
         si.activeFlagLog={[date '  StackExtractor3']};
     end;
-    si.mergeMode=mi.mergeMode;
+    if isfield(mi,'mergeMode')
+        si.mergeMode=mi.mergeMode;
+    else
+        si.mergeMode=0;
+    end;
     %
     %%  Construct the stack file name
     %     Basename is up to 2nd underscore
@@ -456,13 +477,18 @@ if totalNParts>0 || ~doExtractParticles % We'll write out .si and perhaps stack 
         baseName=mi.baseFilename;
     end;
     
-    sizeString=sprintf('p%d',boxSize);
+    sizeString=sprintf('p%g',boxSize);
     modeSuffix='';
-    if mi.mergeMode>1
-        modeSuffix=['m' num2str(mergeMode)];
+    if si.mergeMode>1
+        modeSuffix=['m' num2str(si.mergeMode)];
     end;
-    
-    outname=[mi.stackPath baseName sizeString modeSuffix];
+    if ds>1
+        dsSuffix=sprintf('ds%g',ds);
+    end;
+    if fHighPass>0
+        filtSuffix=sprintf('fh%g',round(1000*fHighPass));
+    end;
+    outname=[mi.stackPath baseName sizeString dsSuffix modeSuffix filtSuffix];
     disp(['Base output name: ' outname]);
     siName=[outname 'tsi.mat'];
     if exist(siName,'file') && ~batchMode

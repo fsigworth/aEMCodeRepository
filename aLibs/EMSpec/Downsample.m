@@ -9,6 +9,7 @@ function [out, fx]=Downsample(in,szout,stack,mask)
 %  The size argument szout can be chosen to change the aspect ratio of the
 % output; however the routine will not allow one dimension to be scaled
 % down and another scaled up.
+% This function handles complex inputs too.
 %
 % If the optional mask argument is given, this is used as the zero-centered
 % Fourier mask for the resampling.  The size of mask should be the same as
@@ -22,7 +23,7 @@ function [out, fx]=Downsample(in,szout,stack,mask)
 
 % Modified to operate on complex input: fs 15 Sep 2010.
 % Modified to operate on rectangular 2D images fs Jan 2012
-
+% Started writing code to downsample logical arrays, but quit. Aug 2019
 
 if nargin<3
     stack=0;
@@ -31,6 +32,8 @@ end;
 if isa(in,'integer')
     in=single(in);
 end;
+
+% % isLogical=isa(in,'logical');
 
 nim=1;
 ndim=sum(size(in)>1);  % number of non-singleton dimensions
@@ -67,6 +70,9 @@ down=all(szout<=szin);  % scaling down
 if ~down && any(szout<szin)  % Not all scaling up
     error('Incompatible dimension change');
 end;
+% down=1;
+
+
 
 if nargin<4 || numel(mask)<2
     mask=1;
@@ -80,9 +86,11 @@ end;
 
 % ns=(szin-szout)/2;  % shift
 if ~copy
-    if ~isa(in,'double');
+    if isnumeric(in) && ~isa(in,'double');
     out=single(zeros([szout nim]));
-    else
+% %     elseif isLogical
+% %         out=false([szout nim]);
+    else % double
         out=zeros([szout nim]);
     end;
 end;
@@ -106,6 +114,19 @@ switch ndim
             end;
         end;
     case 2
+% %         if isLogical
+% %             if down
+% %                 step=szin./szout;
+% %                 iin=round(1:step(1):szout(1));
+% %                 jin=round(1:step(2):szout(2));
+% %                 out=in(iin,jin);
+% %             else
+% %                 step=szout./szin;
+% %                 iin=round(1:step(1):szin(1));
+% %                 jin=round(1:step(2):szin(2));
+% %                 out=in(iin,jin);
+% %             end;
+% %         else
         if down
             for i=1:nim
                 fx=Crop(fftshift(fftn(in(:,:,i))),szout).*mask;
@@ -119,6 +140,7 @@ switch ndim
                 out(:,:,i)=ifftn(ifftshift(fx))*(prod(szout)/prod(szin));
             end;
         end;
+% %         end; % if isLogical
     case 1
         out=zeros([szout nim]);
         if down  % scaling down
@@ -139,4 +161,6 @@ end;
 if isreal(in)
     out=real(out);
 end;
+% % if ~isLogical
 fx=ifftshift(fx);  % shift back to the origin.
+% % end;

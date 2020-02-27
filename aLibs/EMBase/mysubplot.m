@@ -30,7 +30,8 @@ xorg=xEdgeL+xs*hpos+hpos*xwid;
 yorg=yEdgeL+ys*vpos+vpos*ywid;
 
 pos=[xorg yorg xwid ywid];
-subplot('position',pos);
+subplot('position',pos); % we assume normalized coordinates
+
 % Turn off interior tick labels
 if hpos>0
     set(gca,'YTickLabel','');

@@ -30,7 +30,7 @@ mergeMode=max(1,mergeMode);
 if nargin<5
     nzeros=1;  % default is to include only the 1st zero in later images
 end;
-if ~isfield(mi,'weights') || numel(mi.weights)<numel(mi.doses)
+if ~isfield(mi,'weights') || numel(mi.weights)<numel(mi.doses) || all(mi.weights==0)
     mi.weights=single(mi.doses>0);
 end;
 effPixA=mi.pixA*ds;

@@ -19,6 +19,7 @@ pars.useSmallImage=0;
 pars.nb=256;
 % pars.nb=64; %%%%
 
+pars.k2Mode=0;
 pars.writeFigs=1; % make fig 1 a standard size and write it out as a jpeg.
 pars.listFitProgress=0;
 pars=SetOptionValues(pars,mpars);
@@ -245,8 +246,11 @@ for fileIndex=startIndex:numel(fname)
     plot(freqs,[sp/40 c]);
     
     % -----------Fit the power spectrum with NoiseModel.*c^2+shot-----------
-%     noiseModelFcn='NoiseModel1';
+if pars.k2Mode
     noiseModelFcn='NoiseModel2';
+else
+    noiseModelFcn='NoiseModel1';
+end;
     niters=zeros(3,1);
     % Get the effective CTFs
     effctf=sectr(meGetEffectiveCTF(mi,nb,ds));
@@ -279,8 +283,12 @@ for fileIndex=startIndex:numel(fname)
     %     ac(2,:)=[ 1   1    1    1    0   1    1     1 ];
     %
     p0(3,:)=[10*q 1*q  0*q .007  bf0  .8*q   1.5   1.5  .2*q];
-    ac(3,:)=[1   1    0      0    0    1       1     1    1 ];
+    ac(3,:)=[1   1    0      0    0    1       1     1    1 ];    
     niters(3)=1000;
+    
+    if ~pars.k2Mode
+        ac(:,5)=1; % allow bf0 to be fitted
+    end;
     
     ps=p0(1:nPSets,:);   % Store the final parameters
     ac=logical(ac);

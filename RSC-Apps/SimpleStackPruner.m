@@ -413,7 +413,6 @@ while (b~='q') && (b~='Q') && (b~=4) % q = quit; double-click=quit.
                 rspUpdateDisplay(mi,dis,imgs,masks,picks,ptrs);
                 figure(2);
             end;
-            q
         case 'f'  % set filtering
             if dis.imageMode
                 disp('Setting the filter:');

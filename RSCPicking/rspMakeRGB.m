@@ -23,7 +23,7 @@ end;
 cfim=repmat(rot90(img),[1 1 3]);  % copy into R G B channels
 
 % Add in the vesicle ghosts
-if dis.showGhosts
+if dis.showGhosts==1
     gColor=(1-dis.ghostColor)*dis.ghostAmp; % color to subtract for membrane
     oColor=(1-dis.overlapColor);
     if size(masks,3)<5

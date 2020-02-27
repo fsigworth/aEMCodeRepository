@@ -30,6 +30,9 @@ function [coeffs, mergedCTF, dctfs, modFilter]=meComputeMergeCoeffs3( freqs, mi,
 % high-defocus images actually contain more signal than expected from the
 % theoretical ctfs.  So we don't use the ampFactors in computing the coeffs
 % but we do put them into the mergedCTF.
+%
+% mergedCTF is ALWAYS POSITIVE up to the first zero.
+%
 % - dctfs is an array of the 'raw' ctfs of each image.  They include radiation
 % damage and are truncated after nzeros zeros.  They are not multiplied by
 % weights or ctf.ampFactors.  These are the ctfs used to compute the
@@ -280,7 +283,7 @@ switch mode
         modFilter=dctfs(:,1)./(mergedCTF+epsi);
 %         modFilter(abs(dctfs(:,1))<epsi)=1;
         coeffs=coeffs.*repmat(modFilter,1,nim);
-        mergedCTF=dctfs(:,1);
+        mergedCTF=-dctfs(:,1);
     otherwise
         error('Unrecognized merging mode');
 end;

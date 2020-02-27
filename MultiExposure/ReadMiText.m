@@ -377,17 +377,25 @@ end;
         P=P+1;
         ok=(P<=nLines);
         if ok
-            %             strsplit seems to be very slow...
-            if isa(A{P},'char')
-                cline=strsplit(A{P},commentMarkers); % discard after comments
-                line=cline{1};
-            elseif nargout<2
-                error('End of file');
+            str=A{P};
+            if isa(str,'char')
+                p=numel(str)+1;
+                for i=1:numel(commentMarkers)
+                    q=strfind(str,commentMarkers{i});
+                    if numel(q)>0
+                        p=min(p,q(1));                       
+                    end
+                end;
+                line=str(1:p-1);
             end;
+            %             %             strsplit seems to be very slow...
+            %             if isa(A{P},'char')
+            %                 cline=strsplit(A{P},commentMarkers); % discard after comments
+            %                 line=cline{1};
+        elseif nargout<2
+%            error('End of file');
         end;
-        
     end
-
-
+    
 
 end

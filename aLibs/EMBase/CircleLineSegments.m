@@ -17,7 +17,9 @@ x=[];
 y=[];
 a=a(:);
 a0=real(a(1));
-
+    if a0<=1
+        return
+    end;
     nSegments=NextNiceNumber(floor(2*pi*a0/dx));
     if nSegments<1
         return

@@ -10,6 +10,9 @@ function precomp=gridMakePreComp(n, nw)
 % function computed here is multiplied by the real-space function along each dimension.
 % The function is symmetric about np/2+1.
 
+if mod(n,8)~=0
+    error('Input array size n must be a multiple of 8')
+end;
 np=n*gridPadFactor('grid');
 alpha=gridGetAlpha(nw);
 

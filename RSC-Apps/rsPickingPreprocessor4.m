@@ -21,11 +21,14 @@ if nargin<2
     pars=struct;
 end;
 
-defPars.overwrite=1;
+defPars.overwrite=0; % overwrite existing *rscc.mat files
 defPars.mapMode='Kv';
 defPars.imSuffix='s';  % use the small merged images
+defPars.doNoiseWhitening=0; % if 0, use only a HP filter.
+defPars.onlyChangedFlags=0; % do only mi files where the log shows flags were changed.
+
 showTemplates=0;
-readSubtractedImage=1;
+defPars.readSubtractedImage=1;
 pwFiltPars=[.002 0; .01 .5];  % generic pw filter parameters
 defocusfHP=.001; % highpass in A^-1
 phasefHP=.003;  % highpass to use if phase plate is in use.
@@ -43,13 +46,13 @@ defPars.outputImageSize=960;  % size of output images.
 % defPars.outputImageSize=768;
 defPars.mergedImageSuffix='s';
 defPars.mapMode='Kv';
-defPars.checkLog=1;
+defPars.checkLog=0;
 
 pars=SetOptionValues(defPars,pars);
 
 
 nterms=26;
-nterms=51;
+% nterms=51;
 % nterms=1;
 simulateImage=0;
 
@@ -62,6 +65,8 @@ mapPath=AddSlash(fileparts(which('arGetRefVolumes'))); % Get our directory
 
 disp(['Map: ' pars.mapMode]);
 
+mapPath=AddSlash(fileparts(which('arGetRefVolumes'))); % Get our directory
+
 switch pars.mapMode
     case 'Kv'
         ppVals.membraneOffsetA = 52;  % membrane is 52 � above particle center for RSO particle
@@ -71,18 +76,17 @@ switch pars.mapMode
         %
         %     mapName='/Users/fred/Structures/kv1.2/KvMap.mrc';
         %     mapName='~/Structures/kv1.2/KvMap.mrc'; % weak membrane subtraction
-        mapName='~/Structures/kv1.2/KvMapMbnSub.mrc';  % stronger membrane subtraction.
+        mapName=[mapPath '/KvMapMbnSub.mrc'];  % stronger membrane subtraction.
         dimShift=2;
         symmetry=4;
     case 'AMPAR'  % AMPAR
         ppVals.membraneOffsetA = -70;  % Membrane center is this distance from particle center
-        mapName='/Users/fred/Structures/AMPAR/3KG2map58.mrc';
+        mapName=[mapPath '3KG2map58.mrc'];
         dimShift=0;
         symmetry=2;
     case 'slo2'
         mapName='Slo2AMbnSub.mrc';
-        pa=AddSlash(fileparts(which('arGetRefVolumes'))); % Get our directory
-        mapName=[pa mapName];
+        mapName=[mapPath mapName];
         ppVals.membraneOffsetA=26;
         dimShift=2;
         symmetry=4;
@@ -103,7 +107,9 @@ switch pars.mapMode
     otherwise
         warning('Unrecognized mapMode');
 end;
-
+if ~exist(mapName,'file')
+    error(['The 3D map, full name ' mapName ' doesn''t exist.'])'
+end
 % new tighter values
 ppVals.nAlpha=36;
 ppVals.nBeta=12;  % even is best; number of betas per hemisphere.
@@ -114,7 +120,7 @@ ppVals.nGamma=24/symmetry;
 % mapName='/Volumes/TetraData/Structures/AMPAR/3KG2mapsub5.8A.mrc';
 
 % Have the user select some mi files: boilerplate
-if ~exist('fname','var') || ~exist('doBatchProcessing','var') || ~doBatchProcessing
+if ~exist('fname','var') || numel(fname)<1 || ~exist('doBatchProcessing','var') || ~doBatchProcessing
     [fname, pa]=uigetfile('*mi.txt','Select mi files','multiselect','on');
     if isnumeric(pa) % File selection cancelled
         return
@@ -131,6 +137,7 @@ else
 end;
 
 oldPixA=0;
+figure(1);
 %%
 for fileIndex=1:numel(fname) % Operate on a single micrograph
     tic
@@ -139,8 +146,13 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
     else
       miName=[infoPath fname{fileIndex}];
     end;
-    disp(['Reading ' miName]);
+    disp([num2str(fileIndex) ' Reading ' miName]);
     mi=ReadMiFile(miName);
+    
+    if pars.onlyChangedFlags && ~strncmp(mi.log{end},'SimpleRSP:ChangedFlags',22)
+        disp('--no vesicle changes, skipped.');
+        continue;
+    end;
     mi.basePath=rootPath;
     logIndices=miDecodeLog(mi);
     outFileName=[mi.procPath mi.baseFilename 'rscc.mat'];
@@ -155,7 +167,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
     end;
     
     numVesicles=0;
-    if isfield(mi.'vesicle')
+    if isfield(mi,'vesicle')
         numVesicles=numel(mi.vesicle.x);
     end;
     if numVesicles>0
@@ -175,7 +187,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
             dsm=overrideDsm;
         end;
         n=n1/dsm;                      % Output size
-        if dsm~=1  % further downsampling
+        if dsm>1  % further downsampling
             m0=DownsampleGeneral(origImg,round(n));
         else
             m0=origImg;
@@ -189,7 +201,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         goodVesicle=all(mi.vesicle.ok(:,2:3),2); % in-range and refined
         badVesicle=~mi.vesicle.ok(:,2) & mi.vesicle.ok(:,3);  % found but out of range.
         
-        if readSubtractedImage
+        if pars.readSubtractedImage
             [origSubImg, mergeFullPath, subImgOk]=meReadMergedImage(mi,0,['v' pars.mergedImageSuffix]);
             if ~subImgOk
                 disp('No subtracted image. Skipping.');
@@ -217,7 +229,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         end;
         
         % Noise-whiten the image ----
-        useNoiseWhitening=(numel(mi.noiseModelPars)>0);
+        useNoiseWhitening=pars.doNoiseWhitening && (numel(mi.noiseModelPars)>0);
         if isfield(mi.ctf(1),'phi') && mi.ctf(1).phi>0
             fHP=phasefHP;
             disp('HP filter set for phase-plate data');
@@ -248,7 +260,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
 %         m2=m2-vCorr;
         %     m=m1-ves;  % vesicle subtraction
         %  --------Start making the figure--------
-        figure(1);
+%         figure(1);
         colormap jet(256);
         mysubplot(221);
         imaga(imscale(GaussFilt(m2,.3),256,.001));  % prewhitened image
@@ -397,7 +409,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                         end;
                     end;
                 end;
-                figure(1);
+                figure(5);
                 ImagicDisplay2(rImgAlt,2);
                 
                 % % %         Create a set of references for Fig. 4 of the paper
@@ -406,7 +418,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                 for k=1:nHemiAngles
                     kImgs(:,:,k)=rot90(reshape(timgs*qList(:,k),ne,ne),3);
                 end;
-                
+                figure(1);
             else  % just show the reconstructed templates
                 %%  % Make a complete set of reconstructions for comparison
                 %   and make the average power spectrum
@@ -432,8 +444,9 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                 title('Average reference power spectra');
                 mysubplot(2,1,2);
                 plot([cumsum(spr0) cumsum(spr)]);
-                figure(1);  % show the reconstructed image
+                figure(5);  % show the reconstructed image
                 ImagicDisplay2(rImg);
+                figure(1);
             end;
         end;
         % mic=rsSortVesicles(mi);  % make a copy with the vesicles sorted by position.
@@ -486,6 +499,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         npts=sum(mskl(:));
         
 %         nves=numel(goodVesicle);
+nves=numVesicles;
         disp(['Total vesicle entries: ' num2str(nves)]);
         maskPadding=ceil(maskPaddingA/pixA);
         
@@ -623,7 +637,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
             'pwfRef','pwfImg','mVesGood','mVesBad','logTxt');
         disp(['written: ' mi.procPath mi.baseFilename 'rscc.mat']);
     mi.log{end+1,:}=logTxt;
-    WriteMiFile(mi,miName);
+    WriteMiFile(mi,miName); % miName includes the infoPath
 
     else
         disp('No vesicles found.');

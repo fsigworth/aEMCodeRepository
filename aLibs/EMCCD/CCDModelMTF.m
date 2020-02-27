@@ -35,7 +35,7 @@ switch iCamera
         f0=p(1); a0=p(2); f1=p(3); f2=p(4); f3=p(5);
         mtf=a0./(1+(f/f0).^2)+(1-a0)*(1+(f/f2).^2)./((1+(f/f1).^2).*(1+(f/f3).^3));
     
-    case 5 % k2 camera, fit to 7e/pix/s curve in Ruskin et al. JSB13
+    case {5,7} % k2/k3 camera, fit to 7e/pix/s curve in Ruskin et al. JSB13
         x=f*2;  % fraction of Nyquist.  Fit from Curve Fitting Tool.
 %         The value of mtf at f=0 is 0.772; includes counting loss.
        p1 =      0.5704; %  (0.4634, 0.6773)

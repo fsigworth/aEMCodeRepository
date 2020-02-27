@@ -13,7 +13,10 @@ inputExtensions={'.mrc' '.tif' '.mrcs'};
 % inputExtensions={'.mrcs'};
 sumStacks=1;
 
-outputDir='/ysm-gpfs/project/fjs2/181216/No5Graphene/sq05_1/JpegSums/';
+% outputDir='/ysm-gpfs/project/fjs2/181216/No5Graphene/sq05_1/JpegSums/';
+outputDir='../Jpeg/';
+
+suffixes={'ms' 'mvs'};
 
 disp(['Converting EM files to jpgs from directory ' pwd]);
 nargin=0;
@@ -26,24 +29,30 @@ if len>0
     if outputDir(len)~='/' % doesn't end with slash
         outputDir=[outputDir '/'];
     end;
+CheckAndMakeDir(outputDir,1);
+
     disp(['Writing output files to ' outputDir]);
 end;
+
 if nargin<2
-    binning=4;
+    binning=1;
 end;
 if nargin<3
     display=1;
 end;
 if nargin<4
-    defaultPixA=0;
-    defaultPixA=1.87;
+    defaultPixA=4.2;
 end;
 d=dir;
 for i=3:numel(d)
-    disp(d(i).name);
-    [~,~,ex]=fileparts(d(i).name);
+%     disp(d(i).name);
+    [~,nm,ex]=fileparts(d(i).name);
     ok=any(strcmp(ex,inputExtensions)); % one of the image file types
-    if ok
+    sufOk=numel(suffixes)==0;
+    for j=1:numel(suffixes)
+        sufOk=sufOk || strndcmp(nm,suffixes{j});
+    end;
+    if ok && sufOk
         if strcmp(ex,'.mrcs')
             [mi, s, ok]=ReadMovie(d(i).name);
             pixA=s.pixA;
@@ -53,7 +62,7 @@ for i=3:numel(d)
     else
         continue;
     end;
-    nim=size(mi,3)
+    nim=size(mi,3);
     ok=ok && (sumStacks ||size(mi,3)==1);  % don't do stacks
     if ok
         disp(d(i).name);
@@ -89,8 +98,13 @@ for i=3:numel(d)
             drawnow;
         end;
         [~, nm]=fileparts(d(i).name);
-        imwrite(ms,[outputDir nm '.jpg'],'jpg');
-    else
+        fullOutName=[outputDir nm '.jpg'];
+        if ~exist(fullOutName,'file')
+            imwrite(ms,fullOutName,'jpg');
+        else
+            disp(' --exists, not written.');
+        end;
+        else
         disp(['Skipped: ' d(i).name]);
     end;
 end;

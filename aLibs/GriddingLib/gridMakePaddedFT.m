@@ -2,14 +2,15 @@ function P=gridMakePaddedFT(m, mode, precomp)
 % function P=gridMakePaddedFT(m, mode, precomp)
 % Take a band-limited, floated image or volume m and compute its interpolated and
 % padded Fourier transform for use with sinc or gridding interpolation.
+% The size of m must be a multiple of 8.
 % For sinc interpolation (no gridding), use padfactor = 2;
 % for gridding use padfactor=1.25.
 % The argument precomp is either 1 (for no pre-compensation) or a 1D array created by
 % gridMakePrecomp to compensate for the roll-off of the interpolation
 % kernel.  It is expanded to the proper dimension and multiplies m before
 % tranforming.
-% The output Fourier transform is presented as a real array of CAS values.
-% Its dimension is determined from the dimension of m, either 2 or 3.
+% The output Fourier transform is presented as a real array of cosine-and-
+% sin (CAS) values. Its dimension is determined from the dimension of m, either 2 or 3.
 %
 % P is a data structure containing
 %   np the initial padded size (np=padfactor*n)
@@ -22,12 +23,18 @@ function P=gridMakePaddedFT(m, mode, precomp)
 if nargin<3
     precomp=1;
 end;
-if nargin<2
+if nargin<2 || numel(mode)<2; % default or empty string 
     mode='grid';
 end;
 
 padfactor=gridPadFactor(mode);
 sizes=size(m);
+if ~all(sizes==sizes(1))
+    error('gridMakePaddedFT: input dimensions are not equal');
+end;
+if mod(sizes(1),8) ~=0
+    error('gridMakePaddedFT: input size must be a multiple of 8');
+end;
 n=sizes(1);
 dimension=ndims(m);
 if sizes(2)==1

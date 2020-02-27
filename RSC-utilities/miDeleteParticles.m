@@ -12,16 +12,21 @@ doDelete=1;
         fname={fname};
     end;
     cd(rootPath);
+    if doDelete
+        str='deleted.'
+    else
+        str='';
+    end;
     %%
 for i=1:numel(fname)
     name=[infoPath fname{i}];
     mi=ReadMiFile(name);
     nPicks=size(mi.particle.picks,1);
-    disp(name);
-    disp(nPicks);
-    
+    disp([name ' ' num2str(nPicks) ' ' str]);    
     if doDelete
+        mi.particle=struct;
 mi.particle.picks=[];
+mi.particle.autopickPars=[];
 WriteMiFile(mi,name);
     end;
 end;

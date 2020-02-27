@@ -1,10 +1,9 @@
 % SiToStarFile
 % Create .star and .mrcs files from our si.mat and stack.mrc files.
-batchMode=1;
-siPath='Stack2/';
+batchMode=0;
 % in which case siPath and siName must be defined.
-
-holeShots=7; % num,ber of micrographs to group together
+doIndividualNormalization=1;
+holeShots=1; % num,ber of micrographs to group together
 
 dataName='images';
 stackSuffixIn='stack.mrc';
@@ -55,8 +54,8 @@ if numel(nm)<3
 end;
 inputStackName=[nm(1:end-2) stackSuffixIn];
 inputStackUName=[nm(1:end-2) stackUSuffixIn];
-disp(['Reading ' inputStackName]);
-imgs0=imgScale*ReadMRC(inputStackName);
+disp(['Reading ' siPath inputStackName]);
+imgs0=imgScale*ReadMRC([siPath inputStackName]);
 
 % Crop the stack
 % if cropSize >0 && cropSize<size(imgs0,1)
@@ -85,6 +84,7 @@ sds=std(imgEdgeVecs,1)';
 %
 af1=activeFlags;
 sdWidth=2.5;
+sdWdith=10;
 meWidth=3;
 
 for ip=1:5
@@ -172,6 +172,12 @@ for i=1:nim
             mi.weights=setWeights;
         end;
         ds=si.pixA/mi.pixA;
+                    coords=mi.particle.picks(si.miParticle(i),:);
+                    if numel(coords)>9
+                        rsActive=coords(10);
+                    else
+                        rsActive=0;
+                    end;
         if shiftParticle
             coords=mi.particle.picks(si.miParticle(i),:);
             rsoSign=sign(coords(7)-.5);  % +1 for rso, -1 for iso
@@ -209,12 +215,13 @@ for i=1:nim
         Cs=ctf.Cs;
         fom=si.sVesicle(i)*100;  % figure of merit is vesicle amplitude *100
         % Get the micrograph (group) name
-        holeGroup=holeShots*floor((single(miIndex(i))-1)/holeShots)+1; % index of first image in group
+        holeGroup=holeShots*floor((single(si.miIndex(i))-1)/holeShots)+1; % index of first image in group
 %         if holeGroup>numel(si.mi)
 %             error([num2str([si.miIndex(i) holeGroup]) ' holeGroup out of range.']);
 %         end;
         gName=si.mi{holeGroup}.baseFilename;
-            line=sprintf('%s %d %d %6.2f %g %5.3f %g %g %g %g %s',imgName,defU,defV,ang,kV,alpha,Cs,mag,detPixel,fom,gName);
+            line=sprintf('%s %d %d %6.2f %g %5.3f %g %g %g %g %s', ...
+            imgName,defU,defV,ang,kV,alpha,Cs,mag,detPixel,fom,gName);
         if phasePlate
             line=[line ' ' num2str(phaseShift)];
         end;
@@ -228,11 +235,22 @@ end;
 nim1=sum(af1);
 fprintf(fi,'\n');
 fclose(fi);
+
+%% 
+
+
 %% Normalize and write stacks
-disp(['Normalization add,mul: ' num2str([mean(means) 1/mesds])]);
-% normImgs=(imgs0-shiftdim(repmat(means,1,n,n),1))/mesds;
-for i=1:nim
-    normImgs(:,:,i)=(imgs0(:,:,i)-means(i))/mesds;
+
+if doIndividualNormalization
+    [normImgs,means,vars]=NormalizeImages(imgs0,1,0);
+    mesdx=sqrt(vars);
+else
+    disp(['Normalization add,mul: ' num2str([mean(means) 1/mesds])]);
+    % normImgs=(imgs0-shiftdim(repmat(means,1,n,n),1))/mesds;
+    for i=1:nim
+        normImgs(:,:,i)=(imgs0(:,:,i)-means(i))/mesds;
+    end;
+    mesdx=mesds*ones(nim,1);
 end;
 if writeStacks
     disp(['Writing ' siPath stackName]);
@@ -242,7 +260,7 @@ if writeStacks
         disp(['Reading ' siPath inputStackUName]);
         imgs0=ReadMRC([siPath inputStackUName]);
         for i=1:nim
-            normImgs(:,:,i)=(imgs0(:,:,i)-means(i))/mesds;
+            normImgs(:,:,i)=(imgs0(:,:,i)-means(i))/mesdx(i);
         end;
         disp(['Writing ' siPath stackUName]);
         WriteMRC(normImgs,si.pixA,[siPath stackUName]);
@@ -259,6 +277,7 @@ end;
 % _rlnDefocusV
 % _rlnDefocusAngle
 % _rlnVoltage
+
 % _rlnAmplitudeContrast
 % _rlnSphericalAberration
 % 000001@/lmb/home/scheres/data/VP7/all_images.mrcs 13538 13985 109.45 300 0.15 2

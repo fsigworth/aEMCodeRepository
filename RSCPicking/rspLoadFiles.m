@@ -1,19 +1,30 @@
-function [dis, mi, rscc, rs, imgs, masks, rawMask,success]=rspLoadFiles(dis)
+function [dis, mi, rscc, rs, imgs, masks, rawMask,success]=rspLoadFiles(dis,si)
 % Given the info file name and path (in the dis structure), load the mi, merged image and rscc
 % files.  If a vesicle file is also present load it, otherwise compute the
 % vesicles.
+dsc=4; % downsample factor for fake rscc sie
 forceModelVesicles=0; % force the computing of vesicle models.
-dis.infoPath=AddSlash(dis.infoPath);
+
 dis.basePath=AddSlash(pwd);
 disp(' ');
-if dis.miNameIndex
-    disp(['file index: ' num2str(dis.miNameIndex)]);
+if dis.miIndex
+    disp(['file index: ' num2str(dis.miIndex)]);
 end;
 disp([dis.infoPath dis.infoName]);
-mi=ReadMiFile([dis.infoPath dis.infoName],1);  % get the mi structure
+
+if dis.miMode
+    mi=ReadMiFile([AddSlash(dis.infoPath) dis.infoName],1);  % get the mi structure
+else
+    mi=si.mi{dis.miIndex};
+end;
 mi.basePath=dis.basePath;
 set(gcf,'name',[dis.infoName ' - loading...']);
 dis.miValid=1;
+
+% handle bug where weights are zero.
+if sum(mi.weights)==0
+    mi.weights=ones(numel(mi.ctf),1);
+end;
 
 % Default returned values
 rscc=struct;
@@ -39,10 +50,10 @@ disp(rsccName);
 dis.rsMode=exist(rsccName,'file');
 if dis.rsMode
     rscc=load(rsccName);
+    % ---------check and set the window size-------
     nRscc=size(rscc.mxCC,1);
     if nRscc ~= dis.ndis(1)
-        warning(['rscc entries are the wrong size: ' num2str(nRscc)]);
-        return
+        dis=ChangeTheWindowSize(dis,rscc);
     end;
     if isfield(rscc,'ppVals')
         mi.ppVals=rscc.ppVals;   % copy the parameters from the picking preprocessor
@@ -54,10 +65,10 @@ if dis.rsMode
         rscc.mxCCU=rscc.mxCC*.001;
         disp('mxCCU not present, using mxCC.');
     end;
-
+    
 else % set up for generic particle picking
     disp('...not found');
-    return
+    %     return
     
     
     
@@ -65,7 +76,7 @@ else % set up for generic particle picking
         mi.imageSize=dis.ndis(1);
     end;
     rscc.spMode=1;
-    rscc.mxVars=zeros(ceil(mi.imageSize/2),'single');
+    rscc.mxVars=zeros(dis.ndis,'single');
     rscc.mxCC=rscc.mxVars;
     rscc.mxCCU=rscc.mxVars;
     rscc.mxVesInds=rscc.mxVars;
@@ -73,8 +84,15 @@ else % set up for generic particle picking
     rscc.mxRsos=rscc.mxVars;
     rscc.mVes=rscc.mxVars;
     rscc.eigenImgs=zeros(32,32,20,'single');
-
 end;
+
+% initialize the CC for autopicking
+if dis.useRawAmplitudes
+    rscc.mxCC2=rscc.mxCCU*dis.ccuScale;
+else
+    rscc.mxCC2=rscc.mxCC;
+end;
+
 if ~isfield(rscc,'membraneOffsetA')
     rscc.membraneOffsetA=0;
 end;
@@ -96,13 +114,14 @@ mi.mbnOffset=rscc.membraneOffsetA/mi.pixA;
 
 if ~isfield(mi,'ctf') || ~isfield(mi.ctf,'defocus')
     disp('No ctf information.');
-    return
-end;
-
+    defoci=1;
+else
+    
     defoci=zeros(1,numel(mi.ctf));
-    for i=1:defoci
+    for i=1:numel(defoci)
         defoci(i)=mi.ctf(i).defocus;
     end;
+end;
 vesOk=all(mi.vesicle.ok,2);
 if sum(vesOk)>0
     vesAmp=median(mi.vesicle.s(vesOk,1));
@@ -115,24 +134,6 @@ end;
 % screenSize=get(0,'screensize');
 % Set the display size according to the preprocessing size--
 % This avoids scaling bugs
-% dis.ndis=size(rscc.mxCC);
-% if any(dis.size~=dis.ndis)  % have to redraw the figure
-%     dis.size=(dis.ndis);
-%     figure(1);
-%     if dis.clearFigure
-%         clf;
-%     end;
-%     % Put the window near the top middle of the screen
-%     set(gcf,'position',[(screenSize(3)-dis.size(1))/2 ((screenSize(4)-50)-dis.size(2))*0.9 dis.size],...
-%         'toolbar','none','resize','off');
-%     % Main display
-%     axsiz=dis.size(1)-3;
-%     aysiz=dis.size(2)-3;
-%     dis.ax1=axes('units','pixels','position',[2 3 axsiz aysiz]); %,'ticklength',[0 0]);
-%     dis.ax2=axes('position',[.8 0 .2 .2]);
-%     dis.ax3=axes('outerposition',[.8 0 .2 .2]);
-%     axes(dis.ax1);
-% end;
 
 dis.ds=mi.imageSize(1)/dis.ndis(1); % downsampling factor from original micrograph
 if ~isfield(mi,'particle')
@@ -140,14 +141,26 @@ if ~isfield(mi,'particle')
 end;
 
 if dis.readAutopickPars && isfield(mi.particle,'autopickPars') && numel(mi.particle.autopickPars)>2 ...
-        && mi.particle.autopickPars(1)>0 && ~dis.roboFitStep % Has valid parameters
-    npars=numel(mi.particle.autopickPars);
-    dis.pars(1:npars)=mi.particle.autopickPars;
+        && mi.particle.autopickPars(1)>0
+%     && ~dis.roboFitStep % Has valid parameters  % we'll allow this also
+%     for robo-fitting.
+    npars=numel(mi.particle.autopickPars);        
+    if dis.readAutopickPars==1  % set the 'ap' parameters
+            mask=false(1,max(npars,10));
+            mask([1 2 10])=1;
+            mask(npars+1:end)=[];
+            dis.pars(mask)=mi.particle.autopickPars(mask);
+            npars=sum(mask);
+    else
+            dis.pars(1:npars)=mi.particle.autopickPars;
+    end;
+    disp([num2str(npars) ' autopick parameters set.']);    
 end;
 
-warning('off');
-save(dis.datName,'dis');  % store the preliminary settings for next time.
-warning('on');
+% % warning('off');
+% % save(dis.datName,'dis');  % store the preliminary settings for next time.
+% save(dis.datName,'dis','-nocompression', '-v7.3');  % fast saving
+% % warning('on');
 
 % Set up the spectFactor value for this micrograph, depending on defocus
 sFactor=1;
@@ -160,7 +173,7 @@ if dis.useSpectrumCorrectionTable % let it depend on defocus
     else
         sFactor=interp1(dis.spectTable(:,1),dis.spectTable(:,2),defocus);
     end;
-%     disp(['sFactor: ' num2str(sFactor)]);
+    %     disp(['sFactor: ' num2str(sFactor)]);
 end;
 dis.pars(11)=sFactor;
 
@@ -187,7 +200,7 @@ m0=DownsampleGeneral(mc,dis.ndis);  % scale down merged image
 % rscc.eigenImgs=DownsampleGeneral(rscc.eigenImgs,nei,mag,1);
 % if numel(dis.invPWF)>1
 %     dis.invPWF=DownsampleGeneral(dis.invPWF,nei,mag);
-% end; 
+% end;
 % rscc.mxVesInds=DownsampleNearest(rscc.mxVesInds,dis.ndis);
 % rscc.mxTemplInds=DownsampleNearest(rscc.mxTemplInds,dis.ndis);
 % rscc.mxRsos=DownsampleNearest(rscc.mxRsos,dis.ndis);
@@ -204,7 +217,7 @@ end;
 vesOk=false;
 if dis.readVesicleImage
     vName=[mi.basePath 'Vesicles/' mi.baseFilename 'v.mrc'];
-%     [vName,vesOk]=CheckForImageOrZTiff(vName);
+    %     [vName,vesOk]=CheckForImageOrZTiff(vName);
     [vName,vesOk]=CheckForAltImage(vName,sufExts);
     if vesOk
         mVesGood=DownsampleGeneral(ReadEMFile(vName),dis.ndis);
@@ -212,7 +225,7 @@ if dis.readVesicleImage
     end;
 elseif dis.readSubImage
     mvName=[mi.basePath mi.procPath mi.baseFilename 'mv.mrc'];
-%     [mvName,vesOk]=CheckForImageOrZTiff(mvName);
+    %     [mvName,vesOk]=CheckForImageOrZTiff(mvName);
     [mvName,vesOk]=CheckForAltImage(mvName,sufExts);
     if vesOk
         disp([mvName]);
@@ -227,14 +240,14 @@ if ~vesOk % didn't already read it, check in rscc structure.
         mVesBad=DownsampleGeneral(rscc.mVesBad,dis.ndis);
     else
         % Create the vesicle models
-%         First, fix up the vesicle.ok array
+        %         First, fix up the vesicle.ok array
         if size(mi.vesicle.ok,1)<numel(mi.vesicle.x)
             mi.vesicle.ok=true(numel(mi.vesicle.x),4);
         end;
         if size(mi.vesicle.ok,2)<4  % handle old mi files; all ves are good.
             mi.vesicle.ok=repmat(mi.vesicle.ok,1,4);
         end;
-
+        
         if numel(mi.vesicle.ok)>0
             goodVes=all(mi.vesicle.ok(:,2:3),2);  % vesicle in range and refined
             badVes=mi.vesicle.ok(:,1) & ~goodVes; % refined but not in range
@@ -274,7 +287,7 @@ end;
 rs.mxVars=DownsampleGeneral(rscc.mxVars,dis.ndis);
 
 % All the images for display. 1 is unsub, 2 is vesicle-subtracted
-imgs=zeros([dis.ndis 7],'single');  
+imgs=zeros([dis.ndis 7],'single');
 [imgs(:,:,1:2),dis.mulr,dis.addr]=rspFilterAndScaleImages(mi,dis,rscc);
 imgs(:,:,3)=0;  % to receive model picked particles
 imgs(:,:,4)=imgs(:,:,1); % to receive difference orig - model
@@ -311,4 +324,31 @@ else
 end;
 dis.org=[0 0];
 dis.mode=min(2,dis.mode);
+dis.jpegCounter=1;
 success=true;
+end
+
+function dis=ChangeTheWindowSize(dis,rscc)
+rsz=size(rscc.mxCC);
+if any(rsz)==0
+    return
+end;
+if any(rsz~=dis.ndis)  % have to redraw the figure
+    dis.ndis=rsz;
+    dis.size=(dis.ndis);
+    figure(1);
+    if dis.clearFigure
+        clf;
+    end;
+    % Keep the window in the old position
+    pos=get(gcf,'position');
+    set(gcf,'position',[pos(1:2) dis.size],'toolbar','none','resize','off');
+    % Main display
+    axsiz=dis.size(1)-3;
+    aysiz=dis.size(2)-3;
+    dis.ax1=axes('units','pixels','position',[2 3 axsiz aysiz]); %,'ticklength',[0 0]);
+    dis.ax2=axes('position',[.8 0 .2 .2]);
+    dis.ax3=axes('outerposition',[.8 0 .2 .2]);
+    axes(dis.ax1);
+end;
+end

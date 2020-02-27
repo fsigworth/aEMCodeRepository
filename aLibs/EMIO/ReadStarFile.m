@@ -2,8 +2,10 @@ function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay)
 % function [blockNames,blockData,ok]=ReadStarFile(name)
 % Read a Relion .star file and put its contents into two cell arrays.
 % blockNames is a cell array of the blockNames.  For example here are
-% values from reading a post_run.star file.
-% 
+% values from reading a post_run.star file. doDisplay (default 0) enables
+% listing of progress.
+% Sped up by pre-allocating fieldVals
+
 % >> blockNames{1} =
 %   1×12 char array
 % data_general
@@ -24,6 +26,7 @@ function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay)
 % cd('/Users/fred/EMWork/relion13_tutorial/betagal/PrecalculatedResults/Refine3D')
 % 
 % name='post_run1.star';
+
 if nargin<2
     doDisplay=0;
 end;
@@ -44,7 +47,7 @@ C=cell(1,1);
 
 % Load the whole file into the cell array C, handling comments
 if doDisplay
-    disp('loading...');
+    fprintf('loading.');
 end;
 
 while ~feof(fi)
@@ -61,8 +64,13 @@ while ~feof(fi)
     else
         C{nLines}=textscan(line,'%s');
     end;
+    if mod(nLines,1e4)==0
+        fprintf('.');
+    end;
 end;
 fclose(fi);
+fprintf(' %g lines\n',nLines);
+
 %% ------------------
 % C is a cell array {1,1} (a single '%s' is picked up) containing a cell
 % array {nc,1} where nc is the number of tokens in the line.
@@ -79,6 +87,9 @@ while P<=numel(C) % loop through all the entries
     while numel(C{P})<1 || numel(C{P}{1})<1
         P=P+1;
         if P>numel(C)
+            if doDisplay
+                disp('done.');
+            end;
             return  % exit the function.
         end;
     end;
@@ -89,7 +100,9 @@ while P<=numel(C) % loop through all the entries
         nBlocks=nBlocks+1;
         blockNames{nBlocks,1}=C{P}{1}{1};  % whole string data_xxx
     else
-        error(['''data_'' expected at line ' num2str(nLines)])
+        disp(C{P}{1}{1});
+        warning(['''data_'' expected at line ' num2str(nLines) ' . Returning.'])
+        return
     end;
     P=P+1;
     
@@ -133,20 +146,34 @@ while P<=numel(C) % loop through all the entries
     nRows=1;
     if loopMode  % Now the values follow immediately after the fieldnames
         nRows=0;
-        fieldVals=cell(0,nFields);
-        while numel(C{P}{1})>=nFields
+        fieldVals=cell(nLines,nFields);
+        while P<numel(C) && numel(C{P}{1})>=nFields
             nRows=nRows+1;
             fieldVals(nRows,:)=C{P}{1}';
             P=P+1;
         end;
     end;
-    
+   fieldVals=fieldVals(1:nRows,:); % truncate the array
+
+    % %  return
 %     Convert fieldVals to numeric when possible
     q=struct;
     for i=1:nFields
         fn=fieldNames{i};
-        numericFVs=str2double(fieldVals(:,i));
-        if all(~isnan(numericFVs))
+%         numericFVs=str2double(fieldVals(:,i)); %% faster code below.
+        numericFVs=zeros(nRows,1);
+        numeric=true;
+        for j=1:nRows
+            str=fieldVals{j,i};
+            [val,~,~,nextIndex] = sscanf(str,'%f',1);
+            if nextIndex <= numel(str)
+                numeric=false;
+                break
+            end;
+            numericFVs(j)=val;
+        end;
+%         if all(~isnan(numericFVs))
+        if numeric
             q.(fn)=numericFVs;
         else
             if nRows==1
@@ -156,7 +183,6 @@ while P<=numel(C) % loop through all the entries
             end;
         end;
     end;
-   
     blockData{nBlocks,1}=q;
 end;
 if doDisplay

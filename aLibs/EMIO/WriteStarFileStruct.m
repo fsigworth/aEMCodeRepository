@@ -51,7 +51,7 @@ for iLine=1:nLines
         for iField=1:nFields
             x=s.(fnames{iField});
             if isa(x,'numeric')
-                fprintf(fi,'%12.6g ',x(iLine));
+                fprintf(fi,'%g ',x(iLine));
             elseif isa(x,'char')
                 fprintf(fi,'%s ',x);
                 if iLine>1

@@ -15,8 +15,10 @@ miRef=ReadMiFile([infoPath refName]);
 frameSets=miRef.frameSets
 
 model=miRef.vesicleModel;
+n=numel(miRef.vesicleModel);
+z=-(n-1)/2*miRef.pixA:miRef.pixA:(n-1)/2*miRef.pixA;
 figure(1); clf;
-plot(model);
+plot(z,mi1.vesicleModel)
 
 disp('Get the first file to update');
 [firstName,pa]=uigetfile('*mi.txt');
@@ -25,7 +27,6 @@ if isnumeric(firstName)
 end;
 [rootPath,infoPath]=ParsePath(pa);
 cd(rootPath);
-
 
 % plot(model);
 % title([refName],'interpreter','none');
@@ -40,8 +41,9 @@ startInd=1;
             if size(mi.vesicle.s,2)<2 % not refined
                 %             if ~isfield(mi,'frameSets') || mi.frameSets(1,2)<15
                 %                 mi.frameSets=frameSets; disp([name ' changed']);
+                model=meDownsampleVesicleModel(miRef.vesicleModel,mi.pixA/miRef.pixA);
                 mi.vesicleModel=model;
-                disp(name);
+%                 disp(name);
                 %             nCtf=numel(mi.ctf);
                 % %             for i=1:nCTF
                 %                 mi.ctf(i).B=BValue; mi.ampFactor=1;

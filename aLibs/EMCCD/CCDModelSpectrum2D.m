@@ -27,7 +27,7 @@ switch iCamera
     case 5
         n0=[3840 3840];  % k2 camera
     otherwise
-        n0=[4096 4096]; % indices 1,2,4
+        n0=[4096 4096]; % indices 1,2,4,7
 end;
 if nargin<2
     n=n0;
@@ -47,9 +47,10 @@ if numel(pa)<1
 end;
 load([pa '/SpectModel2D.mat']);
 
-if iCamera>numel(models)
+if iCamera>numel(models) && iCamera~=7  % 7 is a special case
     error('CCDModelSpectrum2D: iCamera index too large');
 end;
+models(7)=models(5);  % special case
 
 p=models(iCamera).spectPars;
 cameraName=models(iCamera).camera;
@@ -66,7 +67,7 @@ switch iCamera
         ya=ccDE12Model(fAliased,theta,p);
         S=y0+ya;
         
-    case 5  % K2 camera, assume a constant spectrum
+    case {5 7}  % K2 camera, assume a constant spectrum
         S=models(5).spectPars(4)*ones(n,'single');
         
 %     case 6  % doesn't quite work yet.

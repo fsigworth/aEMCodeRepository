@@ -8,15 +8,21 @@ end;
 % Downsample each image in the current directory.
 
 % suffixes={'.mrc' 'z.tif'};
-defPars.suffixes={'m.mrc'};
+% defPars.suffixes={'m.mrc'};
+defPars.suffixes={'mv.mrc'};
 defPars.inputDir='Merged/';
-defPars.outputSuffix='ms.mrc';
+% defPars.outputSuffix='ms.mrc';
+defPars.outputSuffix='mvs.mrc';
 defPars.outputDir='Merged/';
+defPars.writeJpegs=0;
+defPars.jpegDir='Merged/Jpeg/';
 defPars.overwrite=0;
+defPars.doWrite=1;
 
 defPars.writeZTiff=0;
 defPars.writeMRC=1;
 defPars.outputImageSize=960;
+% defPars.outputImageSize=1024;
 defPars.doReplace=0;
 
 pars=SetOptionValues(defPars,ipars);
@@ -24,13 +30,16 @@ pars=SetOptionValues(defPars,ipars);
 names=cell(0,1);
 outNames=cell(0,1);
 numNames=0;
-
+numTotal=0;
 if numel(inNames)<1
     d=dir(pars.inputDir);
     numD=numel(d);
     for i=1:numD
         nm=d(i).name;
         [ok,outName]=TestSuffixes(nm,pars.suffixes,pars.outputSuffix);
+        if ok
+            numTotal=numTotal+1;
+        end;
         fullInName=[pars.inputDir nm];
         fullOutName=[pars.outputDir outName];
         if ok && (pars.overwrite || ~exist(fullOutName,'file'))
@@ -40,7 +49,7 @@ if numel(inNames)<1
         end;
     end;
 else
-    numNames=numel(inNames);
+    numNames=numel(inNames);    
     for i=1:numNames
         mi=ReadMiFile(inNames{i});
         names{i}=[pars.inputDir mi.baseFilename pars.suffixes{1}];
@@ -50,11 +59,21 @@ else
 end;
 
 
-disp([num2str(numNames) ' files to convert in ' pwd]);
+disp([num2str(numNames) ' files to convert in ' pwd ...
+                        ' of total ' num2str(numTotal)]);
 szo=pars.outputImageSize;
 disp(['Downsampling to ' num2str(szo)]);
-CheckAndMakeDir(pars.outputDir,1);
 
+if ~pars.doWrite
+    disp('not writing.');
+    return
+end;
+
+CheckAndMakeDir(pars.outputDir,1);
+if pars.writeJpegs
+    CheckAndMakeDir(pars.jpegDir,1);
+end;
+%%
 for i=1:numNames
     name=names{i};
     outName=outNames{i};
@@ -62,6 +81,8 @@ for i=1:numNames
     ds=size(m,1)/szo(1);
     if ds>=1
         md=Downsample(m,szo);
+        imags(md);
+        drawnow;
         if pars.writeZTiff
             ztPars.snrRatio=200;  % target noise-to-noise ratio
             ztPars.lfCutoff=.2; % radius of frequency domain not fitted
@@ -69,13 +90,21 @@ for i=1:numNames
         elseif pars.writeMRC
             WriteMRC(md,ds*pixA,outName);
         end;
-        disp([name ' -> ' outName]);
+         % disp([num2str(i) ' ' name ' -> ' outName]);
+        if pars.writeJpegs
+            [pa,nm,ex]=fileparts(outName);
+            jpegName=[pars.jpegDir nm '.jpg'];
+            WriteJpeg(md,jpegName);
+        disp([name ' -> ' jpegName]);
+        end;
         if pars.doReplace
             str=['mv ' outName ' ' name];
             system(str);
+            disp(str);
         end;
     else
         disp([name ' is too small to downsample: ' num2str(szo*ds)]);
+        pause
     end;
     
 end;

@@ -2,7 +2,7 @@
 
 displayAngle=45;
 % displayAngle=90
-zFraction=.3;
+zFraction=.7;
 
 [modelName,modelPath]=uigetfile('*model.star');
 cd(modelPath);

@@ -1,23 +1,28 @@
-function [ind,loc,b]=imagsar(imageStack, contrastFraction, showLabels, LabelOffset)
-% function imagsar(imageStack, contrastFraction, ShowLabels, LabelOffset)
+function [ind,loc,b]=imagsar(imageStack, contrastFraction, showLabels, labels)
+% function [ind,loc,b]=imagsar(imageStack, contrastFraction, ShowLabels, labels)
 % Interactive display of an image array.
 % --previously ImagicDisplay3--
-% Alternative call: recover clicked-on panels by calling with no
+% Alternative call: recover the index of a clicked-on panel by calling with no
 %   arguments.
 % imagsar('GetClick');
 % imagsar('Mark',indices,markInfo);
 %  markInfo has the fields marker and markerSize.
+% imagsar('Clear')
 % 
 % Make an EMAN-like, resizable, scrollable display of the image stack in the current
 % figure window (or create one if no figures exist).  Only the first
 % argument is required.
+% ...imagsar() or ...imagsar('GetClick') displays the selection index in
+% the window title.
 % contrastFraction is the fraction of grayscale to skip; .01 means contrast
 % is raised such that it saturates with lowest and highest 1% of pixel
 % values.  Grayscale scaling is global, not individual for images.
 % If ShowLabels=1 only first one in each
-% row is labeled.  If ShowLabels=0 (default) no labels are drawn.
-% LabelOffset is an offset added to each panel number; by default this is
-% zero, so the first panel is panel 1.  Resizing works as
+% row is labeled.  ShowLabels=2 causes every panel to be labeled. 
+% If ShowLabels=0 (default) no labels are drawn.
+% Labels are by default the panel number. Labels is a cell array of strings
+% that label each panel.
+% Resizing works as
 % long as the window exists.
 
 % fs, Sep 2014, based on ImagicDisplay by Yunhui Liu, Aug 2011 based on an earlier version by fs
@@ -56,6 +61,9 @@ if ischar(imageStack)
                 marks{end,2}=mk;
             end;
             DrawMarks(inds,markInfo);
+        case 'clear'
+            set(gcf,'ButtonDownFcn','');
+            clf;
     end;
 else  % Initialization: we have a stack to draw
     click=0;
@@ -65,7 +73,7 @@ else  % Initialization: we have a stack to draw
     marks=cell(0,0);
     
     if nargin<4
-        LabelOffset=0;
+        labels={};
     end;
     if nargin<3
         showLabels=0;    % Labels only at the start of columns
@@ -78,22 +86,40 @@ else  % Initialization: we have a stack to draw
     end;
     [n0, ~ ,nim]=size(imageStack);
     
+%     Make default labels
+    if numel(labels)<nim
+        for i=numel(labels)+1:nim
+            labels{i}=num2str(i);
+        end;
+    end;
+    
     [rangeMin,rangeMax]=Percentile(imageStack(:),contrastFraction);
     n1= n0+1;            % add  1 pixel as border
     
     h=gcf;
+    
     hSP=[];
         
-    set(h,'Units','pixels','ResizeFcn',@redraw_boxes,'Toolbar','none','ButtonDownFcn',@button_down);
-    
+    set(h,'Units','pixels','ResizeFcn',@redraw_boxes,'Toolbar','none', ...
+        'ButtonDownFcn',@button_down,'Name','');
     api=struct;
-    fsize=9;  % smallest readable size
     
     redraw_boxes(0,0);
     
 end; % nargin
 
-
+%     function DeleteFcn(src, eventData)
+%         % To find out which button was pressed, have to find the Figure handle
+%         h=src;
+%         h
+%         while ~isa(h,'matlab.ui.Figure')
+%             h=get(h,'parent');
+%             pos=get(h,'children');
+%         end;
+%         set(h,'Units','pixels','ResizeFcn','','Toolbar','default','ButtonDownFcn','', ...
+%         'Name','');
+% disp('delete');
+%     end;
 
     function ButtonDownFcn(src, eventData)
         offs=[3 3];
@@ -125,6 +151,8 @@ end; % nargin
         %         yind=floor((pt(1,2))/n1);
         %         Compute the index of the panel that was clicked on
         ind=floor((pt(1,1))/n1)+col_max*floor((pt(1,2))/n1)+1;
+        % put the index into the window header.
+        h.Name=['panel ' num2str(ind)]; 
 %         if ind>nim
 %             return
 %         end;
@@ -154,6 +182,8 @@ end; % nargin
         pos=pt(1,1:2)-offs;
         ind=floor((pos(1))/n1)+col_max*floor((pos(2))/n1)+1;
         click=ind;
+        set(gcf,'Name','yyyy');
+        
         %         plot(xind*n1+n0/2,yind*n1+n0/2,marker,'markersize',n0*mSize);
         %         disp([button ' ' num2str(ind)]);
         %         disp(pos)
@@ -164,11 +194,11 @@ end; % nargin
         %         pta=get(get(hFig,'currentaxes'),'currentpoint')
     end
 
+% -----------------------Draw the basic figure------------------
     function  redraw_boxes(src,evt)
         h0=gcf;
         clf;
         P=get(h0,'Position');
-        %     fsize=max(7,min(10,round(showboxsize/4)));  % font size
         win_width = P(3); win_height=P(4);
         col_max= floor(win_width/n1);  % each line can contain as max as col_max number image
         rows = ceil(nim/col_max);
@@ -179,8 +209,8 @@ end; % nargin
         index = 1;  % indexes the images
         for j=1:rows
             yOrg1=(j-1)*n1;
-            for i= 1:col_max
-                xOrg=(i-1)*n1;
+            for iCol= 1:col_max
+                xOrg=(iCol-1)*n1;
                 if index<=nim
                     bigmatrix(yOrg1+1:yOrg1+n0,xOrg+1:xOrg+n0) = rot90(imageStack(:,:,index));
                 end;
@@ -188,7 +218,6 @@ end; % nargin
             end
         end
         
-% hu=uipanel('position',[0 0 .5 1]);
         apos1=[0 win_height-rows*n1 n1*col_max n1*rows];
         ha=axes(h0,'Units','pixels','Position',apos1);  % axes handle
         set(ha, 'color', [0 0 0],'xtick',[],'ytick',[]);
@@ -200,15 +229,32 @@ end; % nargin
         hold on;
 
         if showLabels>0  % Show some labels
+                    fsize=max(7,min(12,round(n0/8)));  % font size
+                    vertOffset=fsize/4;
+
+%           bkgColor=[.2 0 .2];
+            bkgColor='none';
+            vertOffset=0;
+            
             set(gca,'defaultTextHorizontalAlignment','right',...
                 'defaultTextVerticalAlignment','bottom',...
-                'defaultTextColor','w','defaultTextBackgroundColor',[.2 0 .2],...
+                'defaultTextColor','w','defaultTextBackgroundColor',bkgColor,...
                 'defaultTextFontsize',fsize);
             %             ,'defaultTextUnits','pixels');
             index=1;
-            for i=1:rows
-                text(n1-3 ,i*n1 ,num2str(index+LabelOffset));
-                index=index+col_max;
+            if showLabels>1 % =2 or larger causes every panel to be labeled.
+                cols=col_max;
+            else
+                cols=1;
+            end;
+            for iRow=1:rows
+                for j=1:cols
+                if index<=nim && numel(labels{index})>0
+                    text(j*n1-3 ,iRow*n1-vertOffset,labels{index});
+                    index=index+1;
+                end;
+                end;
+                index=index+col_max-cols;
             end
         end
         if (rows*n1 > win_height) % have to make a scroll panel
@@ -241,6 +287,7 @@ end; % nargin
         DrawMarks(marks);
 
     end
+
 
     function DrawMarks(inds,markInfo)
         if nargin<2 % inds is really the marks cell array

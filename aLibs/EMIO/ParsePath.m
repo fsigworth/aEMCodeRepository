@@ -7,19 +7,17 @@ function [base, final]=ParsePath(pathText)
 % strings) end with a file separator.
 
 % defaults
-base=AddSlash(pathText);
-    final='';
-
+pathText=AddSlash(pathText);
+    final=pathText;
+    base='';
 nt=numel(pathText);
 p=strfind(pathText,filesep);
 np=numel(p);
-if np==0
-    return
-end;
 if p(np)==nt  % ignore trailing slash
     np=np-1;
 end;
-if np>0 && p(np)<nt
+
+if np>0
     final=pathText(p(np)+1:nt);
     final=AddSlash(final);
     base=pathText(1:p(np));

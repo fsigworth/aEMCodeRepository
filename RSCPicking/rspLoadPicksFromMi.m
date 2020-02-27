@@ -1,4 +1,4 @@
-function [picks, ptrs, mi]=rspLoadPicksFromMi(mi,picks,ptrs)
+function [picks, ptrs, classes, mi]=rspLoadPicksFromMi(mi,picks,ptrs)
 % Load the arrays from the mi file
 % particle types are the following
 % 0-15 not displayed
@@ -29,6 +29,12 @@ nflags=max(lut);
 % [x y type vesicleIndex cc template rso 0]
 
 np=size(mi.particle.picks,1);  % number of total entries
+if isfield(mi.particle,'class')
+    cls=mi.particle.class;
+else
+    cls=zeros(np,1,'single');
+end;
+
 % np1=max(np,100);
 np1=np;
 ptrs(7)=0;  % extend to this size.
@@ -37,6 +43,7 @@ if oldNBlanks>0
     oldBlanks=picks(4,1:oldNBlanks,1:3);
 end;
 picks=single(zeros(nflags,np1,9));
+classes=picks;
 ptrs=zeros(1,nflags);
 % copy the blank entries from before.
 ptrs(4)=oldNBlanks;
@@ -53,6 +60,7 @@ for i=1:np
         if ind>0
             ptrs(ind)=ptrs(ind)+1;
             picks(ind,ptrs(ind),1:ncf)=c;
+            classes(ind,ptrs(ind))=cls(i);
         else
             disp(['rspLoadPicks: ignored particle type: ' num2str(c(3))]);
         end;

@@ -1,6 +1,12 @@
 % rsCountParticles
 % Count all the picks in a directory full of info files
 useAllMis=1;
+loadAllMis=0;
+
+if loadAllMis
+    MiLoadAll
+end;
+
 infoDir='Info/';
 maxEntries=inf;
 stride=1000;
@@ -23,16 +29,16 @@ nmi=0;
 % for sq04_1
 % Criteria for "good" particles
 th0=2.88;  % base threshold
-    th0=2.6; %%% new base.
+    th0=2.8; %%% new base.
 th1=1.4;  % quadratic term of threshold
-    th1=2;  % quadratic term of threshold
+%    th1=2;  % quadratic term of threshold
 mxv0=6;
     mxv0=7; %% var is not very sensitive
 mxv1=0.4; % linear term of variance
-maxFiltMax=4;
+maxFiltMax=3.8;
 minDefocus=1.5;
 
-maxNum=40;  % ignore any micrograph with more than this number of otherwise ok particles.
+maxNum=30;  % ignore any micrograph with more than this number of otherwise ok particles.
 
 % % for sq07_2
 % th0=3
@@ -94,10 +100,9 @@ for i=startEntry:nEntries % loop over micrographs
 %     end;
 end;
 %
-figure(1);
+figure(2);
 miNPicks=miNPicks(1:nmi);
 miDef=miDef(1:nmi);
-figure(1);
 subplot(413)
 hist(miNPicks,100);
 xlabel('Particles per micrograph');
@@ -115,7 +120,9 @@ subplot(411);
 plot(miDef);
 ylabel('Defocus, \mum');
 xlabel('Micrograph');
-figure(2);
+
+
+figure(3);
 subplot(211);
 plot(miDef,miNPicks,'o');
 xlabel('Defocus, um');
@@ -128,8 +135,8 @@ ylabel('Median var');
 totalParticles=sum(miNPicks)
 particlesPerImage=totalParticles/nmi
 
-return
 
+return
 
 %% Write modified info files.
 doWrite=1;

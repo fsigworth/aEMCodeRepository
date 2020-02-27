@@ -5,9 +5,9 @@
 getNamesOnly=0;
 batchMode=1;
 if batchMode
-    names=f2FindInfoFiles;
-    outPath='Info/';
-    infoPath='';
+    outPath='';
+    infoPath='Info/';
+    names=f2FindInfoFiles(infoPath);
 else
     [names, pathName]=uigetfile({'*mi.txt';'*mi.mat'},'Select mi files','multiselect','on');
     if isnumeric(pathName) % File selection was cancelled
@@ -28,15 +28,24 @@ allNames=cell(nNames,1);
 for i=1:nNames
     disp(names{i});
     %     allNames{i}=[infoPath names{i}];
-    allNames{i}=[infoPath names{i}];
+    allNames{i}=names{i};
     if ~getNamesOnly
         allMis{i,1}=ReadMiFile(allNames{i});
     end;
 end;
 save([outPath 'allNames.mat'],'allNames');
-disp('allNames.mat saved.');
+disp([outPath 'allNames.mat saved.']);
 if ~getNamesOnly
     save([outPath 'allMis.mat'],'allMis','allNames');
-    disp('allMis.mat saved.');
+    disp([outPath 'allMis.mat saved.']);
 end;
 
+return
+
+%% Make histogram of defocus values
+defs=zeros(nNames,1);
+for i=1:nNames
+    defs(i)=allMis{i}.ctf(1).defocus;
+end;
+
+hist(defs);

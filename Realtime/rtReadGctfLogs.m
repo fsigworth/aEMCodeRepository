@@ -25,7 +25,8 @@ if fEPA>0 % We got a valid file
     %     nCols=5;  % hard-wired number of columns
     header=textscan(fEPA,'%s',1,'delimiter','\n'); % 1st line of the file
 %    disp(header{1});
-    data=textscan(fEPA,'%f%f%f%f%f');
+%     data=textscan(fEPA,'%f%f%f%f%f');
+    data=textscan(fEPA,'%f%f%f%f%f%f');
     fclose(fEPA);
 end;
 epaVals=struct;
@@ -33,7 +34,8 @@ epaVals.resolution=data{1};
 epaVals.ctfSim=data{2};
 epaVals.epaRaw=data{3};
 epaVals.epaBkgSub=data{4};
-epaVals.ccc=data{5};
+epaVals.epaRawMinusBg=data{5};
+epaVals.ccc=data{6};
 
 % by default, return an empty structure for ctfVals.
 ctfVals=struct;

@@ -18,16 +18,16 @@ function [compositeMap, proteinMap]=SolventAndProteinDensity(atomCoords, atomTyp
 % multiplication by pixA means that a projection (sum along projection
 % direction) of this map will have units of volt-angstroms.
 % Zhiguo Shang and F. Sigworth 2011
-originAtEdge=1; %%%%%%%%%%%
+% originAtEdge=1; %%%%%%%%%%%
 if nargin<4
-    minBox=0; % create a centered map.
+    minBox=1; % create a centered map;
 end;
 if nargin<3
     mode=1; % smooth grid function
 end;
 useStepFunction=~mode;
 if nargin<1
-    [atomCoords,path]=uigetfile('*.pdb');
+    [atomCoords,path]=uigetfile({'*.pdb' '*.ent'});
     if isnumeric(path)
         return
     end;
@@ -100,12 +100,15 @@ type=type(q);            % atom types of valid entries
 na=numel(type);          % number of atoms
 
 % put protein into a solvent box, which will be created in the next step;
-mincoord=min(a0,[],2);  % this is vector of the minimum coordinates
-maxcoord=max(a0,[],2);
-
+% mincoord=[];
+% maxcoord=[];
+% for i=1:3
+    mincoord=min(a0,[],2);  % this is vector of the minimum coordinates
+    maxcoord=max(a0,[],2);
+% end;
 if minBox % Make the smallest box that will fit, regardless of centering
 ctrcoord=(mincoord+maxcoord)/2;
-span=max(max(maxcoord-mincoord));  % largest span
+span=max(maxcoord-ctrcoord)-min(mincoord-ctrcoord);  % largest span
 else
     ctrcoord=[0 0 0]';
     span=2*max(max(abs(maxcoord),abs(mincoord)));
@@ -114,13 +117,13 @@ boundary=15;  % number of A of boundary
 n=2*ceil((span+2*boundary)*gridfactor/2);
 a=(a0+n/2+1-repmat(ctrcoord,1,na))*gridfactor;  % center the coordinates in our box.
 
-if originAtEdge  % Force the zero coordinate to be at the low corner of the box:
-    disp('Origin at edge');
-    
-span=max(max(maxcoord));  % largest coord
-n=2*ceil(span/2+boundary);
-a=a0;
-end;
+% if originAtEdge  % Force the zero coordinate to be at the low corner of the box:
+%     disp('Origin at edge');
+%     
+% span=max(max(maxcoord));  % largest coord
+% n=2*ceil(span/2+boundary);
+% a=a0;
+% end;
 
 
 %% Obtain the minimium distance map of solvent grid mask and EM map caused

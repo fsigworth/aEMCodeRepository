@@ -4,6 +4,11 @@ function [ccMax, ovMask]=rscBlankOverlaps(mi,ccMax,overlapRadius)
 % if overlapRadius==0, nothing is masked.
 % 
 n=size(ccMax);
+ovMask=zeros(n,'single');  % We'll mask the CC where msk > 1 due to overlap.
+if overlapRadius==0
+    return
+end;
+
 ds=mi.imageSize(1)/n(1);
 % Convert everything to pixels on ccMax
 vesx=mi.vesicle.x/ds+1;
@@ -12,13 +17,9 @@ vesr=mi.vesicle.r/ds;
 ovr=overlapRadius/(mi.pixA*ds);
 numv=numel(mi.vesicle.x);
 
-ovMask=single(zeros(n));  % We'll mask the CC where msk > 1 due to overlap.
-if overlapRadius==0
-    return
-end;
 
 for i=1:numv
-    if all(mi.vesicle.ok(i,1:2:3)) % vesicle exists and was fitted
+    if all(mi.vesicle.ok(i,[1 3])) % vesicle exists and was fitted
     r1=vesr(i)+ovr;  % r1 = radius + ovr of the ith vesicle
 %     Clip the vesicle coordinates
     x0=max(1,floor(vesx(i)-r1));

@@ -11,8 +11,8 @@
 % proper scaling.
 
 %boxSize=96;  % Size of boxes to be extracted from merged images.
-%  boxSize=192;  % Size of boxes to be extracted from merged images.
-boxSize=216;
+boxSize=384;  % Size of boxes to be extracted from merged images.
+%boxSize=216;
 % boxSize=256;
 ds=1;        % downsampling of boxed particles from original micrograph
 
@@ -28,7 +28,7 @@ vus=2;  % default upsampling factor (used if we construct vesicle models)
 
 % Options for Relion are 3,0,0 respectively:
 %mergeMode=2;  % new merging, changed to 1st exposure's ctf, flipped.
-mergeMode=1;  % original merging is left untouched.
+mergeMode=3;  % 1: original merging is left untouched.
 noDamage=0;   % use damage-filtering
 doAlphaRotation=0; % rotate in-plane according to position on vesicle
 usePWFilter=0;  % prewhitening filter
@@ -132,6 +132,7 @@ if ~exist(stackDir,'dir')
     mkdir(stackDir);
 end;
 
+CheckAndMakeDir(stackDir,1);
 %%
 % Initialize the si structure
 totalNParts=0;
@@ -161,7 +162,7 @@ clf;
 fileIndex=1;
 %%  Scan over files
 while fileIndex<= numel(miFiles)
-    disp(['File index ' num2str(fileindex)]);
+    disp(['File index ' num2str(fileIndex)]);
     if restoreFromSiFile
         mi=miFiles{fileIndex};
         if any(setWeights)

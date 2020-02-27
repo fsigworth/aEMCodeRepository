@@ -17,14 +17,14 @@ function msk=meGetMask(mi,n,indices)
 %   center of the image; R=0.5 just touches the edges.
 %   for 'RLE' data is a structure that is read by the RLE decoder.
 
-maxExpandedImage=16384;  % maximum temporary array dimension: 1GB of singles.
+maxExpandedImage=3*1024;  % maximum temporary array dimension;
+%                       if larger than this, we use Fourier interpolation
 if n==0
     indices=indices(1);
     msk=true;
 else
     msk=true(n);  % default
 end;
-
 
 if isfield(mi,'mask')
     nim=numel(mi.mask);

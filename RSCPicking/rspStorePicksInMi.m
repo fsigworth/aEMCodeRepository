@@ -1,4 +1,7 @@
-function mi=rspStorePicksInMi(mi,picks,ptrs)
+function mi=rspStorePicksInMi(mi,picks,ptrs,doDisplay)
+if nargin<4
+    doDisplay=1;
+end;
 % 
 % particle types are the following
 % 0-1 not displayed
@@ -28,7 +31,16 @@ for j=1:numel(ptrs)  % There are 7 elements of ptrs, 7 classes of picks
             mi.particle.picks(k,:)=c;
             if c(3)==3 % bad vesicle
                 mi.vesicle.ok(c(4),4)=false;
+%                 --this actually does nothing as ok(:,4) is usually 0
+%                 anyway.
             end;
         end;
     end;
+end;
+if doDisplay
+    [np,npv,npa]=rspGetParticleStats(mi);
+    sp='•  ';
+      disp([sp num2str(np) ' particles']);
+        disp([sp num2str(npv,3) ' particles/vesicle']);
+        disp([sp num2str(npa,3), ' particles/area']);
 end;

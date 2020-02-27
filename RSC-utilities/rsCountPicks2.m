@@ -70,6 +70,7 @@ pi.coords=zeros(nl,14,'single');
 pi.pickerPars=zeros(nl,4,'single');
 pi.miIndex=zeros(nl,1,'single');
 pi.label=zeros(nl,2,'single');
+pi.baseName=cell(nl,1);
 
 parsText={'amp'; 'var'; 'filtMax'; 'filtMaxOfResidual'};
 for i=1:nl
@@ -80,6 +81,7 @@ for i=1:nl
     pi.miIndex(i)=si.miIndex(j);
     mi=si.mi{si.miIndex(j)};
     mip=si.miParticle(j);
+    pi.baseName{i,:}=mi.baseFilename;
     coords=mi.particle.picks(mip,:);
     nc=numel(coords);
     pi.coords(i,1:nc)=coords;

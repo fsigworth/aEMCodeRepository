@@ -1,4 +1,11 @@
 function varargout = Vesicle_finding_GUI(varargin)
+% Find vesicles in micrographs.
+% Vesicle_finding_GUI() calls this in graphical interactive mode.
+% Vesicle_finding_GUI(fileList,[contextFile]) has this run in batch mode. fileList is a
+% cell array of strings being the mi.txt files to process, and the optional contextFile
+% is a string giving the VFContext.mat file to use for parameters;
+% otherwise the VFContextFile stored with the executable file is used.
+%
 % VESICLE_FINDING_GUI M-file for Vesicle_finding_GUI.fig
 %      VESICLE_FINDING_GUI, by itself, creates a new VESICLE_FINDING_GUI or raises the existing
 %      singleton*.
@@ -22,7 +29,7 @@ function varargout = Vesicle_finding_GUI(varargin)
 
 % Edit the above text to modify the response to help Vesicle_finding_GUI
 
-% Last Modified by GUIDE v2.5 08-Mar-2018 15:03:29
+% Last Modified by GUIDE v2.5 17-Jul-2019 15:28:35
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -54,6 +61,7 @@ function Vesicle_finding_GUI_OpeningFcn(hObject, ~, h, varargin)
 % varargin   command line arguments to Vesicle_finding_GUI (see VARARGIN)
 %%%%% always show this main window in the center
 %pixels
+
 set( gcf, 'Units', 'pixels' );
 
 %get your display size
@@ -84,7 +92,6 @@ amPars.denseFilt=.0015;  % A^-1
 amPars.dense=.5;
 
 sav.automaskPars=amPars;  % saved variables, stored in "VFContext.mat"
-sav.basePath='';
 sav.fullInfoPath='';
 sav.baseName='';
 sav.vesicleAmps=[2e-3 5e-3 0];
@@ -96,22 +103,54 @@ sav.beamPars=[0 0 100];  % X, Y and R
 sav.black=.6;
 sav.white=1.2;
 sav.automaskFixed=0;
-sav.initTheVesicles=0;
-sav.eraseOldPicks=0;
+% sav.initTheVesicles=0;
+sav.eraseOldPicks=0; % i.e don't load the old vesicles, but delete them.
+sav.startPath='';
+sav.startFile='';
+sav.findInMask=1;
 
 % State variables
 h.sav=sav;
 
-if numel(varargin)>0
-    h.batchMode=1;
-    h.fileList=varargin{1};
-    disp([num2str(numel(h.fileList)) ' files to process.']);
-else
-    h.fileList={};
-    h.batchMode=0;
-end;
-h.fileIndex=0;
+disp(['The current path is ' pwd]);
 
+% Use a context file to get the parameters h.sav
+% First, find our source directory
+pa=fileparts(which('Vesicle_finding_GUI'));
+ourContextName=[pa '/VFContext.mat'];
+if numel(varargin)>0 && isa(varargin(1),'cell') % batch mode!
+    disp('Batch mode.');
+    h.batchMode=true;
+    h.jpegDir='Jpeg/';
+    CheckAndMakeDir(h.jpegDir,1);
+    h.fileList=varargin{1};
+    h.fileIndex=1;
+    disp([num2str(numel(h.fileList)) ' files to process.']);
+    if numel(varargin)>1 % attempt to use our given context file
+        if exist(varargin{2},'file')
+            ourContextName=varargin{2};
+        else
+            disp([varargin{2} '  (context file) not found.']);
+        end;
+    end;
+else
+    h.batchMode=false;
+    h.fileIndex=0;
+    h.fileList={};
+end;
+% Load the context file
+if exist(ourContextName,'file')
+    disp(['Loading ' ourContextName]);
+    sav1=load(ourContextName);
+%     Any field that sav1 lacks is loaded from h.sav (defaults)
+    h.sav=SetDefaultValues(h.sav,sav1.sav);
+    %%%%%%
+%     h.sav.initTheVesicles=0;
+else
+    disp(['Doesn''t exist:  ' ourContextName]);
+end;
+
+h.doPrinting=false; %%%%%%%%
 h.imageLoaded=false;
 h.readOnly=false;
 h.pixA=1;
@@ -125,7 +164,7 @@ h.ctf=single(0);
 h.filtVesImage=single(0);
 h.ccVals=0;     % values of cc maxima
 h.ccValsScaled=0;
-h.ccRadii=0;    % est. radius corresponding to cc maximum.
+% h.ccRadii=0;    % est. radius corresponding to cc maximum.
 h.displayMode=0;  % show the raw data
 h.maxDisplayMode=3;
 h.oldFilterFreqs=[0 0];
@@ -149,10 +188,11 @@ h.manualMaskActive=false;
 h.manualMaskCoords=zeros(0,'single');
 h.oldVesicleModel=[];
 h.e1CtrValue=0;
-h.useFirstExposure=1;  % Flag to ignore first exposure in doing masking.
+h.useFirstExposure=0;  % Flag to ignore first exposure in doing masking.
 h.doTrackMembranes=1;
 h.roboTrackMembranes=1;
-h.makeModelVesicles=1;
+h.makeModelVesicles=1;  % compute the model vesicles on loading
+h.maxNVes=500;  % don't try to find more than this many.
 
 % if ~isfield(h,'automaskBeamOn')
 h.automaskBeamOn=0;  % don't change this if alreay defined.
@@ -169,17 +209,25 @@ h.hNav=0;
 h.ih=0;
 % h.sav.automaskPars
 
-%%% read a context file to get the parameters h.sav
-% Find our local directory
-pa=fileparts(which('Vesicle_finding_GUI'));
-% Retrieve parameters from VesiclePara.mat in the local directory
-if exist([pa '/VFContext.mat'],'file')
-    disp('Loading VFContext.mat');
-    sav=load([pa '/VFContext.mat']);
-    h.sav=sav.sav;
-    %%%%%%
-    h.sav.initTheVesicles=1;
-end;
+% disp(['The current path is ' pwd]);
+% % Read a context file to get the parameters h.sav
+% % First, find our source directory
+% pa=fileparts(which('Vesicle_finding_GUI'));
+% ourContextName=[pa '/VFContext.mat'];
+% if h.batchMode && numel(varargin)>1 % attempt to use our given context file
+%     if exist(varargin{2},'file')
+%         ourContextName=varargin{2};
+%     else
+%         disp([varargin{2} '  (context file) not found.']);
+%     end;
+% end;
+% if exist(ourContextName,'file')
+%     disp(['Loading ' ourContextName]);
+%     sav=load([pa '/VFContext.mat']);
+%     h.sav=sav.sav;
+%     %%%%%%
+%     h.sav.initTheVesicles=0;
+% end;
 
 % set the slider parameters
 set(h.slider_Threshold,'Min', 0);
@@ -230,12 +278,11 @@ set(h.edit_Lowpass,'string',num2str(h.sav.filterFreqs(2)));
 set(h.edit_beamX,'string',num2str(h.sav.beamPars(1)));
 set(h.edit_beamY,'string',num2str(h.sav.beamPars(2)));
 set(h.edit_beamR,'string',num2str(h.sav.beamPars(3)));
-
-set(h.FindInMaskButton,'value',h.findInMask);
-h.sav.eraseOldPicks=0;  %%%%%
+% h.sav.findInMask=1; %%%%
+set(h.FindInMaskButton,'value',h.sav.findInMask);
+% h.sav.eraseOldPicks=0; %%%%
 set(h.EraseOldPicksButton,'value',h.sav.eraseOldPicks);
 set(h.textFilename,'string','---');
-
 
 h.output = hObject;
 % h.altBasePath='';  % mi.basePath value if the original one doesn't work.
@@ -247,24 +294,66 @@ set(h.MaskRadiobuttons,'SelectedObject',[]);
 % Update h structure
 % UIWAIT makes Vesicle_finding_GUI wait for user response (see UIRESUME)
 % uiwait(h.figure1);
-% put up the file selector
+
+if ~h.batchMode
+    h=GetFileList(h);
+end;
+h=LoadAFile(h);
+set(h.togglebutton_RoboFit,'value',h.batchMode); % start RoboFit automatically in batch
 guidata(hObject, h);
 
-pushbutton_LoadFile_Callback(h.pushbutton_LoadFile,0,h)
-
 if h.batchMode
-        h=guidata(hObject);
-        h.jpegDir='Jpeg/';
-        CheckAndMakeDir(h.jpegDir,1);
-    set(h.togglebutton_RoboFit,'value',1);
     doRobofit(hObject,h);
+    disp(' ');
+    disp('Vesicle_finding_GUI done.');
+    delete(hObject); % remove the GUI
 end;
-end
+end % Vesicle_finding_GUI_OpeningFcn
 
 
 % --- Outputs from this function are returned to the command line.
 function varargout = Vesicle_finding_GUI_OutputFcn(~, ~, h)
-varargout{1} = h.output;
+%     varargout{1} = h.output;
+varargout={};
+end
+
+
+function h=GetFileList(h);
+% Put up a file selector and pick one mi file. Change directory to the one above where the mi file sits.
+% Also create a list of all mi
+% files in that directory, which will allow moving forward and backward.
+% h.fileIndex points to the name you selected in the
+% whole h.fileList (cell array of strings.)
+
+% Check to see if we have a starting file.
+if exist(h.sav.startPath,'dir') ...
+        && exist([AddSlash(h.sav.startPath) h.sav.startFile],'file')==2
+    basePath=h.sav.startPath;
+    [infoPath,nm,ex]=fileparts(h.sav.startFile);
+    nm=[nm ex];
+else % put up the file selector
+    disp('Getting an mi.txt file');
+    [nm,pa]=uigetfile('*mi.txt','Get an mi file.');
+    if isnumeric(pa) % user clicked Cancel
+        return
+    end;
+    [basePath,infoPath]=ParsePath(pa);
+end;
+
+cd(basePath);
+% Build up the file list
+    h.fileList={};
+    h.fileIndex=1;
+d=dir(infoPath);
+for i=1:numel(d);
+    if strndcmp(d(i).name,'mi.txt')
+        name=[AddSlash(infoPath) d(i).name];
+        h.fileList=[h.fileList; {name}];
+        if strcmp(d(i).name,nm) % look for the one we selected
+            h.fileIndex=numel(h.fileList);
+        end;
+    end;
+end;
 end
 
 
@@ -272,37 +361,39 @@ end
 function togglebutton_RoboFit_Callback(hObject, eventdata, h)
 active=get(hObject,'value');
 if active
-    disp('RoboFit starting.');
-    [h ok]=LoadAnotherMiFile(h,1);
-    if ok doRobofit(hObject,h);
-    disp('RoboFit ended.');
+    h.fileIndex=h.fileIndex+1;
+    [h,ok]=LoadAFile(h);
+    if ok
+        doRobofit(hObject,h);
         guidata(hObject,h);
     end;
 else
-    disp('RoboFit stopping...');
+    disp('----RoboFit stopping----');
 end;
 end
 
 function doRobofit(hObject,h);
+disp(['RoboFit starting. ' datestr(now)]);
 % Robo-fit loop
 %     We check the state of the button after loading each file.
 while h.imageLoaded && get(h.togglebutton_RoboFit,'value')
     %         delete the old automask
     h=NewAutomask(h,false);
     set(h.togglebutton_Automask,'value',0);
-    h.doTrackMembranes=0;
-    %         guidata(hObject,h);
-    %         Find vesicles
-    DoFind(h.pushbutton_Find, 0, h);
-    h=guidata(hObject);
-    pause(0.1);
-    pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
-    h=guidata(hObject);
-    pause(0.1);
-    %         Make a new automask
-    disp('Automask on.');
-    set(h.togglebutton_Automask,'value',1);
-    h=guidata(hObject);
+            h.doTrackMembranes=0;
+            %         guidata(hObject,h);
+            %         Find vesicles
+%             guidata(hObject,h);
+            DoFind(h.pushbutton_Find, 0, h);
+            h=guidata(hObject);
+            pause(0.1);
+            pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
+            h=guidata(hObject);
+            pause(0.1);
+            %         Make a new automask
+            disp('Automask on.');
+            set(h.togglebutton_Automask,'value',1);
+%     guidata(hObject,h);
     togglebutton_Automask_Callback(h.togglebutton_Automask, 0, h)
     %         %
     %         %         set(h.togglebutton_Automask,'value',0);
@@ -312,20 +403,24 @@ while h.imageLoaded && get(h.togglebutton_RoboFit,'value')
     DoFind(h.pushbutton_Find, 0, h)
     h=guidata(hObject);
     pause(0.1);
-    pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
+    %     pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
     
-    %         Make a new automask
-    set(h.togglebutton_Automask,'value',1);
-    h=guidata(hObject);
-    togglebutton_Automask_Callback(h.togglebutton_Automask, 0, h)
-    pause(0.1);
-    h=guidata(hObject);
-    if h.batchMode
+%     %         Make a new automask
+%     set(h.togglebutton_Automask,'value',1);
+%     h=guidata(hObject);
+%     togglebutton_Automask_Callback(h.togglebutton_Automask, 0, h)
+%     pause(0.1);
+%     h=guidata(hObject);
+    if h.batchMode && h.doPrinting
         print('-djpeg',[h.jpegDir h.mi.baseFilename 'vf.jpg']);
     end;
-    [h ok]=LoadAnotherMiFile(h,1);
+%     guidata(hObject,h);
+    pushbutton_nextName_Callback(h.pushbutton_nextName,0,h);
+    h=guidata(hObject);
+%     h=LoadAFile(h);
 end;
-
+        disp(['RoboFit ended. ' datestr(now)]);
+guidata(hObject,h);
 end
 
 
@@ -337,20 +432,42 @@ end
 
 
 function figure1_CloseRequestFcn(hObject, eventdata, h)
-pa=fileparts(which('Vesicle_finding_GUI'));
-% Save parameters from VesiclePara.mat in the local directory
-sav=h.sav;
-save([pa '/VFContext.mat'],'sav');
-CloseFile(h);
+h=CloseFile(h);
 h.miChanged=0;
 rsFindVesicles3('end');  % purge the variables
+pa=AddSlash(fileparts(which('Vesicle_finding_GUI')));
+% Save parameters from VesiclePara.mat in the local directory
+sav=h.sav;
+sav.startPath=pwd;
+sav.startFile='';
+if h.fileIndex>0 && numel(h.fileList)>0
+    sav.startFile=h.fileList{min(h.fileIndex,end)};
+end;
+contextFilename='VFContext.mat';
+contextArchiveName=[pa contextFilename];
+disp(' ');
+try
+    disp(['saving ' contextFilename]);
+    save(contextFilename,'sav');
+catch
+    disp('  ...unsuccessful!');
+end;
+try
+    disp(['saving ' contextArchiveName]);
+    save(contextArchiveName,'sav');
+catch
+    disp('  ...unsuccessful!');
+end
+
+disp('--Vesicle finder done.');
+disp(' ');
 delete(hObject);
 end
 
 
-function CloseFile(h) % store the results of operations
+function h=CloseFile(h) % store the results of operations
 if ~h.imageLoaded || ~h.miChanged
-    disp('No changes to mi file.  Not written.');
+%     disp('No changes to mi file.  Not written.');
     return
 end;
 
@@ -371,95 +488,210 @@ else
     mi=rsMergeVesicleList2(h.mi,h.miOriginal);
 end;
 if numel(h.oldVesicleModel)>0  % Restore the old vesicle model
-    mi.vesicleModel=h.oldVesicleModel;
+%     mi.vesicleModel=h.oldVesicleModel;
 end;
 mi.log{end+1,1}=['Vesicle_finding_GUI ' TimeStamp];
-outName=[h.sav.basePath mi.infoPath mi.baseFilename 'mi.txt'];
+outName=[mi.infoPath mi.baseFilename 'mi.txt'];
 nameWritten=WriteMiFile(mi,outName);
-disp(['Saved: ' nameWritten]);
+
+disp(['Saved: ' mi.infoPath nameWritten]);
+disp(' ');
+h.miChanged=false;
+h.imageLoaded=false;
+
 end
 
 
 % ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 % --- Executes on button press in pushbutton_LoadFile.
+% function pushbutton_LoadFile_Callback(h.pushbutton_LoadFile,0,h)
+% % Get a completely new file list, and load the selected file.
+% [h.fileList,h.fileIndex]=GetFileList;
+% [h,ok]=LoadFile(h);
+% if ~ok
+%     disp('File couldn''t be loaded.');
+% end;
+% guidata(hObject, h);
+% end
+
 function pushbutton_LoadFile_Callback(hObject, ~, h)
-% We'll read an mi file
+% We'll load a file list, and read the selected mi file
+h=CloseFile(h);
+h.sav.startFile=''; % Force the file selector to be used.
 disp('LoadFile');
-if h.batchMode
-    h.fileIndex=h.fileIndex+1;
-    infoPath='';
-    fileName=h.fileList{h.fileIndex};
-else
-    
-    
-    if ~isempty(h.sav.basePath)&& exist(h.sav.basePath,'dir')
-        cd(h.sav.basePath);
-    end;
-    [fileName,infoPath] = uigetfile({'*mi.txt'},'Load Data File');
-    if (fileName==0)
-        return
-    end;
-    h.sav.fullInfoPath=AddSlash(infoPath);
-    h.sav.basePath=ParsePath(infoPath);
-end;
-
-CloseFile(h);  % Save the previous file.
-h.miChanged=0;
-
-disp(['Reading ' fileName]);
-mi=ReadMiFile([infoPath fileName]);  % loads mi
-[pa,nm,ext]=fileparts(fileName);
-nim=min(min(numel(mi.ctf),numel(mi.doses)),size(mi.frameSets,1));
-for i=1:nim
-    disp([num2str(mi.ctf(i).defocus,3) 'um.  frames: ' num2str(mi.frameSets(i,:)) '  dose: ' num2str(mi.doses(i),3)]);
-end;
-h.sav.baseName=nm(1:end-2);  % delete the 'mi'
-
-if h.sav.initTheVesicles
-    mi=ZeroOutVesicles(mi,h);
-end;
-
-
-[h, ok]=GetImageFile(mi,h);
+h=GetFileList(h);
+[h,ok]=LoadAFile(h);
 if ~ok
-    h.imageLoaded=false;
+    disp('File couldn''t be loaded.');
+    guidata(hObject,h);
     return
 end;
-
-h=InitDisplay(h);
+h=LoadAFile(h);
 guidata(hObject, h);
 end
 
-function mis=ZeroOutVesicles(mis,h)
-% Initialize all the vesicle fields in the mi structure
-% membrane model
-vLipid=h.sav.membranePars(1);
-thk=h.sav.membranePars(2);
-rise=h.sav.membranePars(3);
-pixA=mis.pixA;
-% Create the model, which is sampled in units of the original pixel size.
-nm0=ceil(thk/(2*pixA))*2+3;  % array for vesicle model; 60A nominal
-mis.vesicleModel=fuzzymask(nm0,1,thk/pixA/2,rise/pixA)...
-    *vLipid;  % units of V
-% Zero out the previous picks
-mis.vesicle.x=[];
-mis.vesicle.y=[];
-mis.vesicle.r=[];
-mis.vesicle.s=[];
-mis.vesicle.ok=[];
-mis.vesicle.shiftX=[];
-mis.vesicle.shiftY=[];
-mis.vesicle.shiftOk=[];
-mis.vesicle.af=[];
-mis.vesicle.refined=0;
-mis.vesicle.extraPeaks=[];
-mis.vesicle.extraSD=0;
-mis.vesicle.extraS=[];
+
+% --- Executes on button press in pushbutton_formerName.
+function pushbutton_formerName_Callback(hObject, ~, h)
+    h.fileIndex=h.fileIndex-1;
+    h=LoadAFile(h);
+    guidata(hObject,h);
 end
 
+% --- Executes on button press in pushbutton_nextName.
+function pushbutton_nextName_Callback(hObject, ~, h)
+    h.fileIndex=h.fileIndex+1;
+    h=LoadAFile(h);
+    guidata(hObject,h);
+end
+
+% function [h, ok]=LoadAnotherMiFile(h,offset)
+% ok=0;
+% if ~h.imageLoaded
+%     return
+% end;
+% if h.batchMode
+%     h=CloseFile(h);  % save the previous one.
+%     h.miChanged=0;
+%     h.fileIndex=h.fileIndex+offset;
+%     infoPath='';
+%     fileName=h.fileList{h.fileIndex};
+% else
+%     infoPath=h.sav.fullInfoPath;
+%     d=dir(infoPath);
+%     dirIndex = [d.isdir];  % Find the index for directories
+%     fileList = {d(~dirIndex).name}';  % Get a list of the files
+%     
+%     findcurrentfile = strfind(fileList,[h.sav.baseName 'mi.']);
+%     currentfile_id = find(~cellfun(@isempty,findcurrentfile));   % current working file id
+%     id=currentfile_id;
+%     fileFound=false;
+%     while ~fileFound
+%         id=id+offset;
+%         if id<1 || id>numel(fileList)
+%             beep;
+%             return;
+%         end
+%         fileName=fileList{id};
+%         disp(fileName);
+%         fileFound=strcmp(fileName(end-3:end),'.txt');
+%         h=CloseFile(h);  % save the previous one.
+%         h.miChanged=0;
+%     end; % while
+% end;
+% disp(['Reading ' fileName]);
+% [mi,nameRead]=ReadMiFile([infoPath fileName]);
+% 
+% [pa,nm,ex]=fileparts(nameRead);
+% fileName=[nm ex];
+% % set(h.FileNameText,'String',fileName);
+% 
+% h.sav.baseName=nm(1:numel(nm)-2);  % delete the 'mi'
+% mi.basePath=AddSlash(pwd);
+% 
+% nim=min(min(numel(mi.ctf),numel(mi.doses)),size(mi.frameSets,1));
+% for i=1:nim
+%     if ~isfield(mi.ctf(i),'defocus') % skip to next file, then return
+%         return
+%     end;
+%     disp([num2str(mi.ctf(i).defocus,3) 'um.  frames: ' num2str(mi.frameSets(i,:)) '  dose: ' num2str(mi.doses(i),3)]);
+% end;
+% 
+% [h ok]=GetImageFile(mi,h); % copies mi into h.mi
+% if ~ok
+%     return
+% end;
+% 
+% % Update the mask
+% 
+% % if ~isfield(mi,'mask') || ~isfield(mi.mask,'merge') || numel(mi.mask.merge)<1
+% %    Old merged data: compute the base mask and insert it.
+% % disp('Computing merge mask...');
+% t=h.mi.mergeMatrix;
+% msk=meMakeMergedImageMask(h.mi.imageSize/4,t,h.mi.imageSize/(4*h.borderFraction));
+% h.mi=meInsertMask(msk,h.mi,1);
+% % end;
+% %     Point to the end of the stack
+% h.maskIndex=numel(h.mi.mask);
+% 
+% 
+% h=InitDisplay(h);
+% 
+% end
+% 
 
 
+
+function [h,ok]=LoadAFile(h)  % load the mi file with name h.fileList{h.fileIndex}
+h=CloseFile(h);
+ok=false;
+h.imageLoaded=false;
+if h.fileIndex<1 || h.fileIndex>numel(h.fileList)
+    beep;
+    disp('No file loaded.');
+    return
+else
+    fileName=h.fileList{h.fileIndex};
+    if ~exist(fileName,'file');
+        disp(['File not found: ' fileName]);
+        return
+    end;
+end;
+disp(['Reading ' fileName]);
+mi=ReadMiFile(fileName);  % loads mi
+mi.infoPath=AddSlash(fileparts(fileName)); % extract the path for saving later.
+nim=max(1,min(min(numel(mi.ctf),numel(mi.doses)),size(mi.frameSets,1)));
+for i=1:nim
+    disp([num2str(mi.ctf(i).defocus,3) 'um.  dose: ' num2str(mi.doses(i),3)]);
+end;
+h.sav.baseName=mi.baseFilename;
+
+[h, ok]=GetImageFile(mi,h);
+if ok
+    h.imageLoaded=true;
+    h=InitDisplay(h);
+else
+    disp('Image couldn''t be loaded');
+end;
+end
+
+% function mis=ZeroOutParticles(mis)
+% mis.particle=struct;
+% mis.particle.picks=[];
+% mis.particle.autopickPars=[];
+% end
+% 
+% 
+% 
+% function mis=ZeroOutVesicles(mis,h)
+% % Initialize all the vesicle fields in the mi structure
+% % membrane model
+% vLipid=h.sav.membranePars(1);
+% thk=h.sav.membranePars(2);
+% rise=h.sav.membranePars(3);
+% pixA=mis.pixA;
+% % Create the model, which is sampled in units of the original pixel size.
+% nm0=ceil(thk/(2*pixA))*2+3;  % array for vesicle model; 60A nominal
+% mis.vesicleModel=fuzzymask(nm0,1,thk/pixA/2,rise/pixA)...
+%     *vLipid;  % units of V
+% % Zero out the previous picks
+% miTemp=meCreateMicrographInfoStruct14;
+% mis.vesicle=miTemp.vesicle;
+% % mis.vesicle.x=[];
+% % mis.vesicle.y=[];
+% % mis.vesicle.r=[];
+% % mis.vesicle.s=[];
+% % mis.vesicle.ok=[];
+% % mis.vesicle.shiftX=[];
+% % mis.vesicle.shiftY=[];
+% % mis.vesicle.shiftOk=[];
+% % mis.vesicle.af=[];
+% % mis.vesicle.refined=0;
+% % mis.vesicle.extraPeaks=[];
+% % mis.vesicle.extraSD=0;
+% % mis.vesicle.extraS=[];
+% end
 
 function [h,ok]=GetImageFile(mi,h)
 % Having loaded an mi file, load the image and initialize variables.
@@ -468,6 +700,7 @@ set(h.textFilename,'string','---');
 % set(h.togglebutton_Beam,'value',0);
 set(h.togglebutton_Automask,'value',0);
 set(h.togglebutton_PaintMask,'value',0);
+h.imageLoaded=false;
 
 % update the vesicle info to the canonical nv x 4 logical matrix
 nv=numel(mi.vesicle.x);
@@ -480,7 +713,7 @@ if size(mi.vesicle.ok,2)<4 && nv>0
 end;
 
 % Load the merged image
-imageBasename=[h.sav.basePath mi.procPath mi.baseFilename 'm.mrc'];
+imageBasename=[mi.procPath mi.baseFilename 'm.mrc'];
 % ok=0;
 %
 % for i=1:numel(h.imageFileTypes)
@@ -504,8 +737,13 @@ if ok
     h.origImage=ReadEMFile(fullImageName);
     
     %     Pick up the first exposure for use in masking
-    exp1name=mi.imageFilenames{1};  % get the low-defocus image
-    [exp1name2,ok1]=CheckForImageOrZTiff([mi.imagePath exp1name]);
+    ok1=numel(mi.imageFilenames)>0 && isa(mi.imageFilenames,'cell');
+    if ok1
+        exp1name=mi.imageFilenames{1};  % get the low-defocus image
+        [exp1name2,ok1]=CheckForImageOrZTiff([mi.imagePath exp1name]);
+    else
+        exp1name='';
+    end;
     if ok1 && h.useFirstExposure  % pick up the first exposure and make it the same size.
         if ~strcmp(exp1name2(end-4:end),'z.tif')
             disp('Reading the first exposure');
@@ -517,9 +755,10 @@ if ok
     else
         if h.useFirstExposure
             disp(['First exposure not found: ' exp1name]);
-            disp(' ...using merged image for an inferior global mask.');
+%             disp(' ...using merged image for an inferior global mask.');
         end;
         h.e1ImageOffset=5;
+%         here is the only computation done with the original image.
         e1Image=h.origImage+h.e1ImageOffset;  % offset it from zero.
     end;
     h.exp1Image=DownsampleGeneral(e1Image,h.displaySize/2);
@@ -552,15 +791,15 @@ if ok
     h.mi=mi;  % -------copy the mi structure here------
     h.ccVals=0;
     h.ccValsScaled=0;
-    h.ccRadii=0;
+    %     h.ccRadii=0;
     h.markedVesicleIndex=0;
     h.ifImageComp=zeros(256,'single');
     %     h.ifImageFlat=zeros(256,'single');
     %     if h.maskIndex<3 % no audomasking has been done
     %         set(h.togglebutton_Automask,'value',true);
     %     end;
-else
-    msgbox(['Can''t find the image ' imageBasename],'ok');
+% else
+%     warning(['Can''t find the image ' imageBasename]);
 end;
 end
 
@@ -570,11 +809,13 @@ if ~h.imageLoaded
     return
 end;
 % set(h.figure1,'pointer','watch');
-osize=size(h.origImage);
+osize=size(h.origImage); % loaded image
 %         Get the downsampling factor from the loaded image, and from the
 %         original micrograph.
+% downsampling factor of the displayed image relative to the loaded image
 h.dsImage=(max(osize./h.displaySize)); % Force image to fit
-h.ds0=h.dsImage*h.mi.imageSize(1)/osize(1);
+
+h.ds0=h.dsImage*h.mi.imageSize(1)/osize(1); % our displayed image relative to micrograph
 h.pixA=h.ds0*h.mi.pixA; % scale of displayed image.
 
 %         Create the displayed image
@@ -587,21 +828,23 @@ if h.maskIndex<3  % Turn off automask if it hasn't been done before.
 end;
 
 if h.makeModelVesicles
-disp('Making model vesicles')
-if ~isfield(h.mi.vesicle,'ok')
-    h.mi.vesicle.ok=false;  % make one entry.
-end;
-[nv, ne]=size(h.mi.vesicle.ok);
-if ne<4
-    h.mi.vesicle.ok(1,4)=false;  % extend it.
-end;
-
-goodVes=all(h.mi.vesicle.ok(:,1:2),2); % vesicles in range
-badVes=(h.mi.vesicle.ok(:,1) & ~h.mi.vesicle.ok(:,2)); % found, but not in range
-
-h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
-h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
-disp('...done');
+    if ~isfield(h.mi.vesicle,'ok') || size(h.mi.vesicle.ok,1)<1
+        h.mi.vesicle.ok=false;  % make one entry.
+    else % something these
+        nv=size(h.mi.vesicle.ok,1);
+        disp(['Making ' num2str(nv) ' model vesicle' ess(nv)]);
+    end;
+    ne=size(h.mi.vesicle.ok,2);
+    if ne<4
+        h.mi.vesicle.ok(1,4)=false;  % extend it.
+    end;
+    
+    goodVes=all(h.mi.vesicle.ok(:,1:2),2); % vesicles in range
+    badVes=(h.mi.vesicle.ok(:,1) & ~h.mi.vesicle.ok(:,2)); % found, but not in range
+    
+    h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
+    h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
+%     disp('...done');
 end;
 h.ctf=meGetEffectiveCTF(h.mi,size(h.rawImage),h.ds0);
 h=UpdateDisplayFiltering(h);
@@ -677,40 +920,40 @@ if h.imageLoaded
     % if numel(h.filtImage)>0  % an image has been loaded
     msk=rot90(meGetMask(h.mi,size(h.filtImage),1:h.maskIndex));
     imData=h.filtImage;
-    n=size(h.filtImage);
+%     n=size(h.filtImage);
     showMask=1;
-    showAmps=0;
-    showCircles=0;
+    showAmps=1;
+    showCircles=1;
     showGhosts=0;
     switch h.displayMode
-        case 0
+        case 0 % default
             imData=h.filtImage;
-            showCircles=1;
-            showAmps=1;
         case 1
             imData=h.filtImage-h.filtVesImage;
+            showAmps=0;
         case 2
             imData=h.filtImage-h.filtVesImage;
             showGhosts=h.makeModelVesicles;
-        case 3
-            imData=h.filtImage-h.filtVesImage;
-            showGhosts=h.makeModelVesicles;
+            showCircles=0;
             showAmps=1;
-        case 4
-            if numel(h.ccValsScaled)>1
-                imData=h.ccValsScaled(1:n(1),1:n(2));
-                showGhosts=h.makeModelVesicles;
-            else
-                return
-            end;
-        case 5
+%         case 3
+%             if numel(h.ccValsScaled)>1
+%                 imData=h.ccValsScaled(1:n(1),1:n(2));
+%                 showGhosts=h.makeModelVesicles;
+%             else
+%                 return
+%             end;
+        case 3
             imData=Downsample(h.ifImageComp,size(h.filtImage));
             showGhosts=h.makeModelVesicles;
+            showCircles=0;
     end;
     %     theImage =  repmat(rot90(imscale(imData,256,1e-3)),[1 1 3]);
-    midValue=(h.e1CtrValue-h.e1ImageOffset)/(h.mi.doses(1)*h.mi.cpe);
-    theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)+128),[1 1 3]);
-      nx=size(h.rawImage,1);
+%     midValue=(h.e1CtrValue-h.e1ImageOffset)/(h.mi.doses(1)*h.mi.cpe)
+    midValue=0;
+%%
+theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)+128),[1 1 3]);
+    nx=size(h.rawImage,1);
     ny=size(h.rawImage,2);
     
     if showGhosts
@@ -827,102 +1070,6 @@ end
 % Vesicle_finding_GUI('axes1_ButtonDownFcn',hObject,eventdata,guidata(hObject))
 
 
-% --- Executes on button press in pushbutton_formerName.
-function pushbutton_formerName_Callback(hObject, ~, h)
-[h ok]=LoadAnotherMiFile(h,-1);
-if ok
-    guidata(hObject, h);
-end;
-end
-
-
-% --- Executes on button press in pushbutton_nextName.
-function pushbutton_nextName_Callback(hObject, ~, h)
-[h ok]=LoadAnotherMiFile(h,1);
-if ok
-    guidata(hObject, h);
-end;
-end
-
-
-
-
-function [h, ok]=LoadAnotherMiFile(h,offset)
-ok=0;
-if ~h.imageLoaded
-    return
-end;
-if h.batchMode
-CloseFile(h);  % save the previous one.
-h.miChanged=0;
-    h.fileIndex=h.fileIndex+offset;
-    infoPath='';
-    fileName=h.fileList{h.fileIndex};
-else
-    infoPath=h.sav.fullInfoPath;
-    d=dir(infoPath);
-    dirIndex = [d.isdir];  % Find the index for directories
-    fileList = {d(~dirIndex).name}';  % Get a list of the files
-    
-    findcurrentfile = strfind(fileList,[h.sav.baseName 'mi.']);
-    currentfile_id = find(~cellfun(@isempty,findcurrentfile));   % current working file id
-    id=currentfile_id;
-    fileFound=false;
-    while ~fileFound
-        id=id+offset;
-        if id<1 || id>numel(fileList)
-            beep;
-            return;
-        end
-        fileName=fileList{id};
-        disp(fileName);
-        fileFound=strcmp(fileName(end-3:end),'.txt');
-        CloseFile(h);  % save the previous one.
-        h.miChanged=0;
-    end; % while
-end;
-disp(['Reading ' fileName]);
-[mi,nameRead]=ReadMiFile([infoPath fileName]);
-
-[pa,nm,ex]=fileparts(nameRead);
-fileName=[nm ex];
-% set(h.FileNameText,'String',fileName);
-
-h.sav.baseName=nm(1:numel(nm)-2);  % delete the 'mi'
-mi.basePath=h.sav.basePath;
-
-nim=min(min(numel(mi.ctf),numel(mi.doses)),size(mi.frameSets,1));
-for i=1:nim
-    if ~isfield(mi.ctf(i),'defocus') % skip to next file, then return
-        return
-    end;
-    disp([num2str(mi.ctf(i).defocus,3) 'um.  frames: ' num2str(mi.frameSets(i,:)) '  dose: ' num2str(mi.doses(i),3)]);
-end;
-
-[h ok]=GetImageFile(mi,h); % copies mi into h.mi
-if ~ok
-    return
-end;
-
-% Update the mask
-
-% if ~isfield(mi,'mask') || ~isfield(mi.mask,'merge') || numel(mi.mask.merge)<1
-%    Old merged data: compute the base mask and insert it.
-% disp('Computing merge mask...');
-t=h.mi.mergeMatrix;
-msk=meMakeMergedImageMask(h.mi.imageSize/4,t,h.mi.imageSize/(4*h.borderFraction));
-h.mi=meInsertMask(msk,h.mi,1);
-% end;
-%     Point to the end of the stack
-h.maskIndex=numel(h.mi.mask);
-
-% if h.
-
-h=InitDisplay(h);
-
-end
-
-
 function editWhite_Callback(hObject, eventdata, h)
 q=str2double(get(hObject,'String'));
 if ~isnan(q)
@@ -944,6 +1091,18 @@ if ~isnan(q)
 end;
 end
 
+
+% --- Executes on button press in AutoContrast.
+function pushbutton_AutoContrast_Callback(hObject, eventdata, h)
+% theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)+128),[1 1 3]);
+[~,mulr,addr]=imscale(h.filtImage,1,[4.5 5.5]);
+h.sav.black=(.5-addr)/mulr;
+h.sav.white=(1.5-addr)/mulr;
+set(h.editWhite,'String',sprintf('%3d',h.sav.white));
+set(h.editBlack,'String',sprintf('%3d',h.sav.black));
+h=ShowImage(h);
+guidata(hObject,h);
+end
 
 
 
@@ -1182,7 +1341,7 @@ end
 
 % Hint: get(hObject,'Value') returns toggle state of fixedCheckbox
 
-function h=CreateE1Map(h)  % Create the e1Map, based on the 1st exposure 
+function h=CreateE1Map(h)  % Create the e1Map, based on the 1st exposure
 %                           (if available) for automasking.
 %   Create the global "dense" mask
 if numel(h.exp1Image)>1 && ~any(isnan(h.exp1Image(:))) % Something there
@@ -1196,7 +1355,7 @@ if numel(h.exp1Image)>1 && ~any(isnan(h.exp1Image(:))) % Something there
     [e1Val,~]=max(e1Hist);
     e1Upper=find(e1Hist>e1Val/2,1,'last');
     %     sigma5=5*(e1Upper-e1Mode+.5);
-%     e1Ctr=bins(e1Mode);
+    %     e1Ctr=bins(e1Mode);
     e1Ctr=bins(e1Upper); %%%%%%%%
     if h.sav.automaskFixed
         e1Ctr=h.e1CtrValue;
@@ -1221,11 +1380,11 @@ workImage=DownsampleGeneral(h.rawImage,h.displaySize/2);
 varMap=GaussFiltDCT((SharpHP(SharpFilt(workImage,f1),f2)).^2,varFilt);
 
 mxVal=max(varMap(:));  % make sure it's positive, should be.
-    bins=0:mxVal/100:mxVal;
-    varHist=hist(varMap(:),bins);
-    [~,modeIndex]=max(varHist);
-    varMode=bins(modeIndex);
-    h.varMap=varMap/(10*varMode);
+bins=0:mxVal/100:mxVal;
+varHist=hist(varMap(:),bins);
+[~,modeIndex]=max(varHist);
+varMode=bins(modeIndex);
+h.varMap=varMap/(10*varMode);
 end
 
 function h=InitAutomask(h)
@@ -1429,20 +1588,34 @@ end;
 
 set(h.figure1,'pointer','watch');
 % membrane model
-vLipid=h.sav.membranePars(1);
-thk=h.sav.membranePars(2);
-rise=h.sav.membranePars(3);
-pixA=h.mi.pixA;
+% vLipid=h.sav.membranePars(1);
+% thk=h.sav.membranePars(2);
+% rise=h.sav.membranePars(3);
+% pixA=h.mi.pixA;
+% 
+% Load the generic model
+% nm0=ceil(thk/(2*pixA))*2+3;  % array for vesicle model; 60A nominal
+% if ~isfield(h.mi,'vesicleModel') || numel(h.mi.vesicleModel)<3
+%     h.mi.vesicleModel=fuzzymask(nm0,1,thk/pixA/2,rise/pixA)...
+%         *vLipid;  % units of V
+% end;
+% disp(' ');
 
-% Create the model, which is sampled in units of the original pixel size.
-nm0=ceil(thk/(2*pixA))*2+3;  % array for vesicle model; 60A nominal
-if ~isfield(h.mi,'vesicleModel') || numel(h.mi.vesicleModel)<3
-    h.mi.vesicleModel=fuzzymask(nm0,1,thk/pixA/2,rise/pixA)...
-        *vLipid;  % units of V
-end;
+% Instead, always load our standard membrane model.
+pa=AddSlash(fileparts(which('Vesicle_finding_GUI'))); % stored with our code.
+    vm=load([pa 'VFDefaultVM.mat']);
+    h.mi.vesicleModel=meDownsampleVesicleModel(vm.vm1,h.mi.pixA);
+
 rPars=h.sav.vesicleRadii;
-% Zero out the previous picks
+
+% Zero out the previous particles if requested
 mi1=h.mi;
+if h.sav.eraseOldPicks
+    mi1.particle=struct;
+    mi1.particle.picks=[];
+    mi1.particle.autopickPars=[];
+end
+
 mi1.vesicle.x=[];
 mi1.vesicle.y=[];
 mi1.vesicle.r=[];
@@ -1450,6 +1623,9 @@ mi1.vesicle.s=[];
 mi1.vesicle.ok=[];
 if isfield(mi1,'mask')
     mi1.mask=mi1.mask(1:h.maskIndex); % collapse the mask array
+end;
+if ~isfield(mi1,'mergeMode')
+    mi1.mergeMode=3;
 end;
 mi1=rsFindVesicles3(h.rawImage, mi1, rPars, h.findInMask);
 %%
@@ -1489,14 +1665,14 @@ while mins>minAmp
     end;
     title(nves);
     %     Exit the loop when we can't find any more vesicles
-    if nves<=nVesOld
+    if nves<=nVesOld || nves > h.maxNVes
         break
     end;
     nVesOld=nves;
 end;
-h.ccVals=t.ccmx;
-h.ccValsScaled=t.ccmxScaled;
-h.ccRadii=(t.fitmin+(t.ccmi-1)*t.rstep)*t.ds;  % radius in orig pixels
+h.ccVals=t.ccsmx;
+h.ccValsScaled=t.ccsmxScaled;
+h.ccRadii=(t.fitmin+(t.ccsmi-1)*t.rstep)*t.ds;  % radius in orig pixels
 
 mi1.vesicle.shiftX=[];
 mi1.vesicle.shiftY=[];
@@ -1509,11 +1685,11 @@ mi1.vesicle.extraS=[];
 h.mi=mi1;
 h.miChanged=1;
 if h.makeModelVesicles
-h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
-h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
-h.rawVesImage=h.goodVesImage+h.badVesImage;
-% h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
-h=UpdateDisplayFiltering(h);
+    h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
+    h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
+    h.rawVesImage=h.goodVesImage+h.badVesImage;
+    % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
+    h=UpdateDisplayFiltering(h);
 end;
 % h.displayMode=0;  % mark the vesicles
 h.markedVesicleIndex=0;
@@ -1529,14 +1705,14 @@ if h.doTrackMembranes
     
     % display everything again
     if h.makeModelVesicles
-    disp('Computing vesicle models');
-    goodVes=all(h.mi.vesicle.ok(:,1:2),2); % vesicles in range
-    badVes=(h.mi.vesicle.ok(:,1) & ~h.mi.vesicle.ok(:,2)); % found, but not in range
-    h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
-    h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
-    h.rawVesImage=h.goodVesImage+h.badVesImage;
-    % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
-    h=UpdateDisplayFiltering(h);
+        disp('Computing vesicle models');
+        goodVes=all(h.mi.vesicle.ok(:,1:2),2); % vesicles in range
+        badVes=(h.mi.vesicle.ok(:,1) & ~h.mi.vesicle.ok(:,2)); % found, but not in range
+        h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
+        h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
+        h.rawVesImage=h.goodVesImage+h.badVesImage;
+        % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
+        h=UpdateDisplayFiltering(h);
     end;
     ShowImage(h);
     drawnow;
@@ -1546,7 +1722,7 @@ end;
 guidata(hObject,h);
 set(hObject,'string','Find');
 set(h.figure1,'pointer','arrow');
-disp('Done.');
+disp('Done finding.');
 end
 
 
@@ -1613,9 +1789,9 @@ while mins>minAmp
     end;
     nVesOld=nves;
 end;
-h.ccVals=t.ccmx+h.ccVals;
-h.ccValsScaled=t.ccmxScaled+h.ccValsScaled;
-h.ccRadii=(t.fitmin+(t.ccmi-1)*t.rstep)*t.ds;  % radius in orig pixels
+h.ccVals=t.ccsmx+h.ccVals;
+h.ccValsScaled=t.ccsmxScaled+h.ccValsScaled;
+h.ccRadii=(t.fitmin+(t.ccsmi-1)*t.rstep)*t.ds;  % radius in orig pixels
 
 mi1.vesicle.shiftX=[];
 mi1.vesicle.shiftY=[];
@@ -1636,11 +1812,11 @@ end;
 h.mi=mi1;
 h.miChanged=1;
 if h.makeModelVesicles
-h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
-h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
-h.rawVesImage=h.goodVesImage+h.badVesImage;
-% h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
-h=UpdateDisplayFiltering(h);
+    h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
+    h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
+    h.rawVesImage=h.goodVesImage+h.badVesImage;
+    % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
+    h=UpdateDisplayFiltering(h);
 end;
 % h.displayMode=0;  % subtract and mark the vesicles
 h.markedVesicleIndex=0;
@@ -1648,7 +1824,7 @@ ShowImage(h);
 guidata(hObject,h);
 set(hObject,'string','Find');
 set(h.figure1,'pointer','arrow');
-disp('Done.');
+% disp('Done.');
 end
 
 
@@ -1807,10 +1983,11 @@ if val > 0 && val < 1000
 end;
 end
 
+% We now use iceAmp as the 
 function edit_IceAmp_Callback(hObject, eventdata, h)
 val=str2double(get(hObject,'String')); % returns contents of edit_IceAmp as a double
-if val > -1000 && val < 1000
-    h.sav.vesicleAmps(3)=val*1e-3;
+if val >= 0 && val <= 1
+    h.sav.vesicleAmps(3)=val;
     guidata(hObject,h);
 end;
 end

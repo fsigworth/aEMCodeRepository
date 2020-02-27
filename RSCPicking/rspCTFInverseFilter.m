@@ -4,7 +4,7 @@ function m1=rspCTFInverseFilter(m,mi,comp,effWeights)
 % peak of the first exposure's CTF.  If comp=1, the boost is the inverse of
 % the ctf, up to a value of 10.
 %%%%%% include fake double-exposure code.
-if nargin<5
+if nargin<5 || sum(effWeights)==0
     effWeights=ones(size(mi.weights));
 end;
 doDoubleExposure = ~all(effWeights(:)==mi.weights(:)); % emulate double exposure

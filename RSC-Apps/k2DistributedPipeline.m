@@ -8,7 +8,7 @@ f2Mode        =0;  % 0 means k2 data
 serialMode    =1;   % go through all the steps before moving to next micrograph
 %checkLogs     =0;  % not yet in use.
 
-maxAge=1;         % Runs the operation is the previous one is older than this number of days.
+maxAge=1;         % Runs the operation if the previous one is older than this number of days.
 
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
@@ -26,11 +26,12 @@ doMultiFindVesicles   = 0;
 %***
 doPrelimInverseFilter =0;
 doRefineVesicles      =1;
+forceRefineVesicles   =0;
 refineVesicleAmpsOnly=0;
-%%% minRefineVesiclesSequence=0;  % 0 if don't consider.
-minRefineVesiclesSequence=inf;    % inf forces refinement
-doInverseFilter       =1;
-forceInverseFilter=0;
+% minRefineVesiclesSequence=0;  % 0 if don't consider.
+minRefineVesiclesSequence=1 ;    % inf forces refinement
+doInverseFilter       =0;
+forceInverseFilter=1;
 minAge=1;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
@@ -38,9 +39,15 @@ minAge=1;  % if the corresponding log entry has a date stamp < minAge
 
 doPickingPreprocessor =1;
 
+
+workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/191115/'
+%workingDir='/gpfs/ysm/project/nm537/20180315_2/';
+%workingDir='/gpfs/ysm/scratch60/fjs2/20180315_3/';
+%workingDir='/gpfs/ysm/scratch60/fjs2/170926';
+%workingDir='/gpfs/ysm/scratch60/fjs2/171031';
 % workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq09_2';
 %workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq07_3';
-workingDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq08_1';
+%workingDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq08_1';
 %workingDir='/gpfs/ysm/project/fjs2/180226/Kv_1/';
 %workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
 %workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
@@ -83,25 +90,27 @@ pars.testSegments=[2 20; 25 inf]; % 161101 data
 pars.writeStack=1;  % Dirft tracker
 
 % for merging
-%pars.defaultPixA=1.05;
+pars.defaultPixA=1.05;
 %pars.defaultPixA=1.781;
-pars.defaultPixA=0;
+%pars.defaultPixA=0;
 pars.searchDefoci=[1 8 ; 8 15]; % for MergeImages [1stmin 2ndMin ; 1stMax 2ndMax]
-pars.doAlignment=1;  % MergeImages
+pars.doAlignment=0;  % MergeImages
 pars.doFitting=0;
 pars.doWriteInfos=1;
 %pars.weights=[1 0];  %%% single exposure
-pars.weights=1
+%pars.weights=[1 1];
+pars.weights=1;
 pars.mcDS=1;
-%pars.mergeMode=3;  %%% no phase flip!
-pars.mergeMode=1;   %%% normal
+pars.mergeMode=3;  %%% no phase flip!
+%pars.mergeMode=1;   %%% normal
 pars.mapMode='Kv'; 
 
 pars.UsePWFilter=doPrelimInverseFilter;
 
 pars.doPreSubtraction=1;  % rsRefineVesicleFits: pre-subtract old vesicle fit.
-pars.rTerms=[80 100 120 150 200 300 inf];
+pars.rTerms=[100 150 200 300  inf];
 
+pars.dsSmall=8; % downsampling of 'small' merged image
 
 pars.loadFilenames=1; % pick up allNames.mat in base directory
 pars.cpe=0;  % 0 means no change.
@@ -278,8 +287,9 @@ while iName(end)<=numJobNames
         end;
     end;
     % refine vesicles (sequence 5)
-    if doRefineVesicles && (logSequence(5)<logSequence(4) ...
-            || logSequence (5)< minRefineVesiclesSequence || now-dates(5)>maxAge)
+    if forceRefineVesicles ...
+            || (doRefineVesicles && (logSequence(5)<logSequence(4) ...
+            || logSequence (5)< minRefineVesiclesSequence || now-dates(5)>maxAge))
         rpars=pars;
             if refineVesicleAmpsOnly
             rpars.fitModes={'LinOnly'};
@@ -309,7 +319,8 @@ while iName(end)<=numJobNames
         disp('  Inverse Filter skipped.');
     end;
     % picking preprocessor (sequence 8)
-    if doPickingPreprocessor && (logSequence(8) <= logSequence(6))
+    if doPickingPreprocessor && (logSequence(8) <= logSequence(6) || ...
+            now-dates(8)>maxAge)
         % no picking after latest vesicle refinement? Then run it.
        rsPickingPreprocessor4(ourNames,pars);
     end;

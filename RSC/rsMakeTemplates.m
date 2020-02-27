@@ -1,8 +1,7 @@
 function templates=rsMakeTemplates(templateAngles,map)
-
 n=size(map,1);
 if mod(n,8)
-    error('map size must be a multiple of 8');
+%     error('Map size must be a multiple of 8');
 end;
 
 nangs=size(templateAngles,1);
@@ -15,6 +14,6 @@ F3=gridMakePaddedFT(map,'grid',comp);  % get the 3D fft in a form for slicing.
 
 for i=1:nangs
     angs=rsDegToEuler(templateAngles(i,:));
-    P2=gridExtractPlaneE(F3,angs,ks);  % angs is a 3x1 vector of Euler angles (radians)
+    P2=gridExtractPlane(F3,angs,ks);  % angs is a 3x1 vector of Euler angles (radians)
     templates(:,:,i)=gridRecoverRealImage(P2);     % get the un-padded projection image
 end;

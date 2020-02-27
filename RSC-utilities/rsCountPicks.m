@@ -3,7 +3,7 @@
 % Count all the picks in a directory full of info files. Compare these with
 % particles in a star file from a selection operation.
 
-useAllMis=1;
+useAllMis=0;
 infoDir='Info/';
 maxEntries=inf;
 stride=1000;

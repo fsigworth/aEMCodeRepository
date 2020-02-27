@@ -4,6 +4,9 @@ function [imgs,mulr,addr]=rspFilterAndScaleImages(mi,dis,rscc)
 doVesImage=isfield(rscc,'mVes') && sum(rscc.mVes(:))~=0;
 % ndis=dis.ndis;
 effWeights=mi.weights;
+if sum(effWeights)==0
+    effWeights=1;
+end;
 if dis.filter(4)
     effWeights(2)=dis.filter(4);
 end;

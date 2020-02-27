@@ -37,6 +37,7 @@ dpars.throw=0;
 dpars.trunc=0;
 dpars.patches=[3 3];
 dpars.writeAlignedStack=0;
+dpars.defaultFrameDose=0;
 if nargin<2
     pars=struct;
 end;
@@ -60,7 +61,7 @@ countingImageSize=3840;
         return
     end;
     n0=size(m);
-    ds=round(n0(1)/countingImageSize);  % get the downsampling factor
+    ds=max(1,round(n0(1)/countingImageSize));  % get the downsampling factor
     if ds>1
         disp(['Downsampling by ' num2str(ds)]);
     end;
@@ -93,6 +94,10 @@ countingImageSize=3840;
     end;
     mi.frameSets=[fr1 frn];
     frameDose=mean(m(:))*ds^2/(mi.cpe*mi.pixA^2); % dose in e/A^2
+    if pars.defaultFrameDose % if it's nonzero, use it.
+        mi.cpe=mi.cpe*frameDose/pars.defaultFrameDose;
+        frameDose=pars.defaultFrameDose;
+    end;
     % we have to scale up because MC2 doesn't.
     mi.frameDose=frameDose*ones(nFrames,1);
     mi.doses=frameDose*nFramesUsed;
@@ -136,32 +141,53 @@ countingImageSize=3840;
 %     MC2Exec='MotionCor2_1.1.0-Cuda80';
 
 MC2Exec='$RELION_MOTIONCOR2_EXECUTABLE';
-    if strcmp(ex,'.tif')
+%MC2Exec='MotionCor2.exe';
+% MC2Exec='/ysm-gpfs/apps/software/MotionCor2/1.2.2-fosscuda-2018b/MotionCor2_1.2.2-Cuda92'
+% MC2Exec='MotionCor2';
+% MC2Exec='MotionCor2_1.2.2-Cuda92';
+if strcmp(ex,'.tif')
         movieType='InTiff';
     else
         movieType='InMrc';
     end;
     
-    % Create the execution script
-    string=[MC2Exec ' -' movieType ' ' [mi.moviePath mi.movieFilename{1}]...
-        ' -OutMRC ' tempImageName ...
-        ' -LogFile ' [mi.tempPath mvBaseName] '-' ...
-          gainString stackString ...
-        ' -Patch ' num2str(pars.patches) ' -Gpu ' sgpus ' -Kv ' num2str(mi.kV) ...
-        ' -FtBin ' sftBin ' -PixSize ' num2str(mi.pixA/ds) doseString ...
-        ' -Throw ' num2str(pars.throw) ' -Trunc ' num2str(pars.trunc) ...
-        ' >> ' [mi.tempPath 'MC2Out.txt'] ' 2>> ' [mi.tempPath 'MC2Out.err'] ];
-    disp(string);
+%     % Create the execution script
+%     string=[MC2Exec ' -' movieType ' ' [mi.moviePath mi.movieFilename{1}]...
+%         ' -OutMRC ' tempImageName ...
+%         ' -LogFile ' [mi.tempPath mvBaseName] '-' ...
+%           gainString stackString ...
+%         ' -Patch ' num2str(pars.patches) ' -Gpu ' sgpus ' -Kv ' num2str(mi.kV) ...
+%         ' -FtBin ' sftBin ' -PixSize ' num2str(mi.pixA/ds) doseString ...
+%         ' -Throw ' num2str(pars.throw) ' -Trunc ' num2str(pars.trunc) ...
+%         ' >> ' [mi.tempPath 'MC2Out.txt'] ' 2>> ' [mi.tempPath 'MC2Out.err'] ];
+%     disp(string);
+%    
+%     system(string);
 
-%     exf=fopen('temp/ExecMC2.sh','w');
-%     fprintf(exf,'%s\n',string);
-% fclose(exf);
-% system('chmod a+x temp/ExecMC2.sh');
-% system('temp/ExecMC2.sh');
-% 
-%     
+    % Construct the execution script and run it.
+    strings=cell(7,1);
+    strings{1}=[MC2Exec ' -' movieType ' ' [mi.moviePath mi.movieFilename{1}] ' \'];
+    strings{2}=['-OutMRC ' tempImageName ' \'];
+    strings{3}=['-LogFile ' [mi.tempPath mvBaseName] '-' gainString stackString ' \'];
+    strings{4}=['-Patch ' num2str(pars.patches) ' -Gpu ' sgpus ' -Kv ' num2str(mi.kV) ' \'];
+    strings{5}=['-FtBin ' sftBin ' -PixSize ' num2str(mi.pixA/ds) doseString ' \'];
+    strings{6}=['-Throw ' num2str(pars.throw) ' -Trunc ' num2str(pars.trunc) ' \'];
+    strings{7}=['>> ' [mi.tempPath 'MC2Out.txt'] ' 2>> ' [mi.tempPath 'MC2Out.err'] ' \'];
     
-    system(string);
+    tempFile=[pars.tempDir 'MC2.sh'];
+    exf=fopen(tempFile,'w');
+    if exf<1
+        error(['File could not be opened: ' tempFile]);
+    end;
+    for i=1:numel(strings)
+        disp(strings{i});
+        fprintf(exf,'%s\n',strings{i});
+    end;
+    disp(' ');
+    fclose(exf);
+    system(['chmod a+x ' tempFile]);
+    system(tempFile);
+   
     
     if ~exist(tempImageName,'file')
         disp('MC2: no output file.');
