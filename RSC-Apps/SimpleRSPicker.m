@@ -2,6 +2,7 @@
 % F. Sigworth, Jan '13
 %  See rspLoadPicksFromMi.m to see assignment of ptrs
 %  See rspNewBox to see assignment of flag values
+si=struct;
 
 version=101;
 

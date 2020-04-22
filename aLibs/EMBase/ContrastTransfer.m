@@ -22,14 +22,21 @@ function [c, chi]=ContrastTransfer(s, lambda, defocus, Cs, B, alpha)
 % CPars.phi  (phase angle of phase plate, in radians.  We then use max(alpha,phi)
 % as the (negative) constant term in chi.
 % 
+% In the alternate form if the doComplex flag ==1, the complex result will
+% be calculated, c=i*e^{i*pi*chi}
+% 
 % The frequency s can be of any dimension.
 % Note that astigmatism makes sense only for 2D frequency values.
-% For 1D frequency arrays, the values along the x-axis (ang=0) are taken.
+% For 1D or 3D frequency arrays, no astigmatism is applied, and the defocus
+% is the value along the x-axis (ang=0) are taken.
 
 deltadef=0;
 cuton=0;
 doComplex=0;
 if isstruct(lambda)
+    if nargin>2
+        doComplex=defocus; % pick up third argument.
+    end;
     P=lambda;
     lambda=P.lambda;
     defocus=P.defocus;
@@ -46,7 +53,6 @@ if isstruct(lambda)
         deltadef=P.deltadef;
         theta=P.theta;
     end;
-    doComplex=defocus; % 3rd argument
 end;
 
 if deltadef~=0 && ndims(s)<3  % handle astigmatism

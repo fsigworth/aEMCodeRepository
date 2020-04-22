@@ -23,7 +23,7 @@ ampRefitScale=0.75;  % Re-fitted amplitudes are high by about 30%
 startInd=1;     % Which vesicle index to start with (for debugging)
 minRDecay=.2;
 
-ds1=1;  % no further downsampling
+% ds1=1;  % no further downsampling
 mi=h.mi;
 mi2=mi;  % output mi structure
 
@@ -31,29 +31,34 @@ m=h.filtImage;
 n=size(m);
 msk=meGetMask(mi,n,1:h.maskIndex);
 m=m.*msk;
-m=Downsample(m,size(m)/ds1);
+% m=Downsample(m,size(m)/ds1);
 n=size(m);
-effCT=meGetEffectiveCTF(mi,n);
+
+effCT=meGetEffectiveCTF(mi,n,h.ds0);
 filtFreqs=h.oldFilterFreqs;
 
 if displayOn
     oldFig=gcf;
     figure(2);
 end;
-    ds=mi.imageSize(1)/n(1);  % Net downsampling of our working image of size n
+    ds=h.ds0;  % Net downsampling of our working image of size n
     imctr=ceil((mi.imageSize+1)/2); % center of original micrograph
     pixA=mi.pixA*ds;
 % compute the effective CTF along with filter functions
     effCTF=effCT.*GaussHPKernel(n,filtFreqs(1)*pixA)...
         .*Gaussian(n,2,sqrt(1/(2*log(2)))*filtFreqs(2)*n);
 
+    scl.n=n;
+    scl.ds=ds;
+    scl.dsShift=h.ds0Shift;
+
 nv=numel(mi.vesicle.x);
 numRefined=0;
 
 for ind=startInd:nv;
 %   Pick up the vesicle x,y and radius in our image
-    cx=mi.vesicle.x(ind)/ds+1;
-    cy=mi.vesicle.y(ind)/ds+1;
+    cx=(mi.vesicle.x(ind)+h.ds0Shift(1))/ds+1;
+    cy=(mi.vesicle.y(ind)+h.ds0Shift(2))/ds+1;
     cr=mi.vesicle.r(ind,1)/ds;
     if ~mi.vesicle.ok(ind,1) || cr<minRadiusA/pixA % skip nonexistent or small vesicles
         continue
@@ -64,7 +69,7 @@ for ind=startInd:nv;
     mi1.vesicle.x=imctr(1);
     mi1.vesicle.y=imctr(2);
     mi1.vesicle.r=mi.vesicle.r(ind,1);
-    vModel=meMakeModelVesicles(mi1,n,1,0,0);
+    vModel=meMakeModelVesicles(mi1,scl,1,0,0);
     vModel=real(ifftn(fftn(vModel).*ifftshift(effCTF))); % apply ctf
     
     % Extract the vesicle from the image, and the model
@@ -202,8 +207,8 @@ for ind=startInd:nv;
     mi1.vesicle.s(1,nTerms)=0; % pad with zeros
     % mi1.vesicle.extraS=mi1.vesicle.s;
     mi1.vesicle.ok=true(1,4);
-    v1=meMakeModelVesicles(mi1,n,1,0,0);
-    v1ctr=round([mi1.vesicle.x(1)/ds+1 mi1.vesicle.y(1)/ds+1]);
+    v1=meMakeModelVesicles(mi1,scl,1,0,0);
+    v1ctr=round([(mi1.vesicle.x(1)+h.ds0Shift(1))/ds+1 (mi1.vesicle.y(1)+h.ds0Shift(2))/ds+1]);
     v1Model=real(ifftn(fftn(v1).*ifftshift(effCTF))); % apply ctf
     
     if displayOn

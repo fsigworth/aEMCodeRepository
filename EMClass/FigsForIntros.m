@@ -52,12 +52,48 @@ clf;
 imags(xProjC);
 
 %% Make a video of the defocus series
+showTrp=0;
 lineY=ndis/2+10;
 lw=0.5;
 plotScale=1/800;
 dirString={'over'; '' ; 'under'};
 makeVideo=0;
 
+% Create a double grating: GratingDefocusMovie does this better!
+nd=1024;
+per=5; % Å
+per2=2;
+edge=10;
+vEdge=20;
+a2=1;
+nCycles=5;
+boxHalf=round(0.1*nd/2);
+vBoxHalf=round(0.15*nd/2);
+vBoxShift=round(0.7*vBoxHalf);
+boxSize=2*boxHalf+1;
+pixA=(per*nCycles)/(boxHalf*2);
+xs=(-nd/2:nd/2-1)'*pixA;
+rawGrating1=cos(xs*2*pi/per);
+rawGrating2=a2*cos(xs*2*pi/per2);
+msk=fuzzymask(nd,1,boxHalf+per/8,edge);
+mskv1=fuzzymask(nd,1,vBoxHalf,vEdge,nd/2+1-vBoxShift);
+mskv2=fuzzymask(nd,1,vBoxHalf,vEdge,nd/2+1+vBoxShift);
+grating1=rawGrating1.*msk;
+grating2=rawGrating2.*msk;
+squareGrating=grating1*mskv1'+grating2*mskv2'; % outer product
+
+
+if showTrp
+    object=-xProjc;
+    pixA=s.pixA;
+    plotScale=.0013;
+    ndis=192;
+else
+    object=squareGrating;
+    lineY=ndis/2+1;
+    plotScale=1/(1+a2);
+    ndis=nd;
+end;
 
 vName='Defocus';
 if makeVideo
@@ -71,20 +107,18 @@ figure(2);
 clf;
 
 n=size(rotMap,1);
-mysubplot(2,2,1);
-[xProjScaled,mulr,addr]=imscale(-xProjC,256,0);
-% addr=128;
-% mulr=0.6*mulr;
-% line=zeros(ndis);
-% line(:,lineY)=50;
 
-imaga(-xProjC*mulr+addr);
+% draw the static left side of the figure
+mysubplot(2,2,1);
+[objScaled,mulr,addr]=imscale(object,256,0);
+
+imaga(object*mulr+addr);
 axis off equal
 hold on;
 plot([1 ndis],[lineY lineY],'-','color',[0.2 0.2 0.9],'linewidth',lw);
 hold off;
 mysubplot(4,2,5);
-plot(-xProjC(:,lineY)*plotScale);
+plot(object(:,lineY)*plotScale);
 axis([0 inf -.15 .85]);
 
 if makeVideo
@@ -92,25 +126,22 @@ if makeVideo
     writeVideo(v,f);
     imwrite(f.cdata,[vName '1.jpg']);
 end;
-
- % 
-    
     
 addr=180;
 % CTF(n,Pars)
 % a struct Pars containing each of these fields is passed:
 % pixA (optional); lambda, defocus, Cs, B, alpha, deltadef, theta.
-ctPars.pixA=s.pixA;
+ctPars.pixA=pixA;
 ctPars.lambda=EWavelength(300);
 ctPars.B=0;
 ctPars.alpha=.02;
 ctPars.deltadef=0;
 ctPars.theta=0;
 ctPars.Cs=2.7;
-fProj=fftn(-xProjC);
+fProj=fftn(ifftshift(object));
 freqs=RadiusNorm(n)/s.pixA;
 
-for d=.5:-.05:0
+for d=0:.05:.5
     ind=2+sign(-d);
     defString=dirString{ind};
     if abs(d+.1)<.001
@@ -120,17 +151,20 @@ for d=.5:-.05:0
         ctPars.defocus=-d+eps;
     end;
     c=CTF(ndis,ctPars);
-    img=real(ifftn(fProj.*fftshift(c)));
+    img=fftshift(real(ifftn(fProj.*fftshift(c))));
+
 %     plot(sectr(c));
     mysubplot(2,2,2);
-    imaga(mulr*img+addr-20);
-    axis off equal
+    imaga(xs,xs,mulr*img+addr-20);
 hold on;
-plot([1 ndis],[lineY lineY],'-','color',[.5 .5 .9],'linewidth',lw);
+    plot(xs,0*xs,'-','color',[.5 .5 .9],'linewidth',lw);
 hold off;
+
 str=['focus ' sprintf('%04.3f',ctPars.defocus) '\mum ' defString];
 %     title();
     text(10,20,str,'fontsize',18);
+    axis off equal
+    
     mysubplot(4,2,6)
     plot(img(:,lineY)*plotScale);
     axis([0 inf -.5 .5]);

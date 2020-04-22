@@ -1,4 +1,4 @@
-function sclOut=imacx2(m,power,pars)
+function [sclOut,rgb]=imacx2(m,power,pars)
 % function scl=imacx2(m,power,pars)
 % Display a complex-valued image, using Lab color.
 % Special case: in pixels where the imaginary part is inf, a grayscale
@@ -89,11 +89,14 @@ rLimit=70;
 aLimit=40*pars.sat;
 bLimit=40*pars.sat;
 rgb=lab2rgb([rLimit*ar1(:) aLimit*re1(:) bLimit*ri1(:)]);
+rgb=reshape(rgb,[sz 3]);
+
+%     'ColorSpace','linear-rgb');
     rgb(monoMask(:),:)=repmat(real(m(monoMask(:))),1,3);
 if numel(pars.x)>0 && numel(pars.y)>0
-    image(pars.x,pars.y,reshape(rgb,[sz 3]));
+    image(pars.x,pars.y,rgb);
 else
-    image(reshape(rgb,[sz 3]));
+    image(rgb);
 end;
 axis xy;
 

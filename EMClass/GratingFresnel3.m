@@ -1,6 +1,7 @@
 % GratingFresnel3.m
 % Use the Fresnel propagator to model electron waves below the sample
 backPropagationOn=1;
+secondGrating=1;
     trueLambda=.02;
     lambda=.25; % simulated wavelength
 %     lambda=.02; % simulated wavelength
@@ -14,10 +15,11 @@ backPropagationOn=1;
 %     zBlock=.2;
     nx=512; % x dimension. Assumed to be even.
     d=5; % grating period, in A
-    dx=d/12; % A per x unit
+%     d=[5 3]; % superposed gratings
+    dx=d(1)/12; % A per x unit
     halfCycles=3.75; % cycles per half-block
     halfCycles=5.75; % cycles per half-block
-    nBlock=min(nx/2,halfCycles*d/dx); % half-width of block
+    nBlock=min(nx/2,halfCycles*d(1)/dx); % half-width of block
 %     nxx=nz;  % big square display
 %     ctrx=floor((nxx+1)/2);
     
@@ -57,10 +59,16 @@ psi=psi0;
 
 psi1=env;
 block=(origX-nBlock:origX+nBlock)';
+grating=zeros(numel(block),1);
+
 if complexGrating
-    grating=exp(1i*2*pi*(block-origX)*dx/d);
+    for i=1:numel(d)
+        grating=grating+exp(1i*2*pi*(block-origX)*dx/d(i));
+    end;
 else
-    grating=cos(2*pi*(block-origX)*dx/d);
+    for i=1:numel(d)
+        grating=grating+cos(2*pi*(block-origX)*dx/d(i));
+    end;
 end;
 fullGrating=zeros(nx,1);
 fullGrating(block)=grating;

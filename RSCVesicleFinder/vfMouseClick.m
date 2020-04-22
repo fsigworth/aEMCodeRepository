@@ -13,9 +13,15 @@ function [h, doUpdateDisplay]=vfMouseClick(h)
 
 nrgn=15;  % size of box, in display pixels, allowed for clicking on
 % existing vesicle
+shiftVec=h.ds0Shift;
+% shiftVec=h.dsMicrograph*h.dsImageShift+h.dsMicrographShift; % shift due to cropping
+% in original pixels
 p=get(h.axes1,'CurrentPoint');
-n=size(h.rawImage);
-p1=([p(1,1) n(2)-p(1,2)]-1)*h.ds0;
+n=size(h.origImage);
+p1=([p(1,1) n(2)-p(1,2)]-1)*h.ds0-shiftVec; % Selected point in global coords
+if h.debug
+    disp(['Image coords ' num2str(p1)]);
+end;
 b=get(gcf,'SelectionType'); % normal, alt, extend are the 3 buttons.
 h.changedVesicleIndex=0;   % default
 doUpdateDisplay=false;     % default
@@ -46,7 +52,6 @@ v=0;
 
 if numel(dists)>0
     [mnv, tempInd]=min(dists);
-    disp(' ');
     disp(['Nearest vesicle ' num2str(mnv*h.mi.pixA,3) 'Å, index=' num2str(tempInd)]);
     if mnv<nrgn*h.ds0/2  % we found something within the nrgn box.
         vind=tempInd;
@@ -63,21 +68,29 @@ if oldVesFlag==0  % No existing vesicle, search the cc map
     end;
     %     find the nearby CC maximum and create a new vesicle entry at vind
     rctr=ceil((nrgn+1)/2);
-    rgn=ExtractImage(h.ccValsScaled,round(p1/h.ds0)+1,nrgn);
+    p1Local=round((p1+shiftVec)/h.ds0)+1;
+    rgn=ExtractImage(h.ccVals,p1Local,nrgn);
+    rgnAmps=ExtractImage(h.ccValsScaled,p1Local,nrgn);
+    rgnRs=ExtractImage(h.ccRadii,p1Local,nrgn);
+    
+%     rgn=ExtractImage(h.ccValsScaled,round(p1/h.ds0)+1,nrgn);
     [mxv, i, j]=max2di(rgn);
+    [~,ii,ji]=max2d(rgn);
     disp(['Amp, local coords  ' num2str([mxv i j])]);
     if (all([i j]>1) && all([i j]<nrgn) && mxv>0)  % we have a valid maximum
-        newcoords=h.ds0*([i j]-rctr)+h.ds0*round(p1/h.ds0);  % replace the position
+            amp=rgnAmps(ii,ji);
+            radius=rgnRs(ii,ji);
+            newcoords=h.ds0*([i j]-rctr)+p1;  % replace the position
 %         Is this really a new vesicle?
         dists=sqrt((h.mi.vesicle.x-newcoords(1)).^2 + (ys-newcoords(2)).^2);
         if all(dists>h.ds0) % more than 1 pixel away
             vind=numel(h.mi.vesicle.x)+1;  % default: add a new vesicle
             h.mi.vesicle.x(vind,1)=newcoords(1);
             h.mi.vesicle.y(vind,1)=newcoords(2);
-            h.mi.vesicle.s(vind,1)=mxv;
-            p2=round([i j]+p1/h.ds0-rctr+1);
-            p2=max(1,min(p2,n));
-            radius=h.ccRadii(p2(1),p2(2));
+            h.mi.vesicle.s(vind,1)=amp;
+%             p2=round([i j]+p1/h.ds0-rctr+1);
+%             p2=max(1,min(p2,n));
+%             radius=h.ccRadii(p2(1),p2(2));
             disp(['New vesicle radius ' num2str(radius)]);
             h.mi.vesicle.r(vind,1)=radius;
             h.mi.vesicle.ok(vind,1)=true;  % extend the array
@@ -120,6 +133,7 @@ if vind>0  % a vesicle is found or created
             h.mi.vesicle.ok(vind,1:2)=[true false];
     end;
 end;
+disp(' ');
 
 h.markedVesicleIndex=vind;
 doUpdateDisplay=true;

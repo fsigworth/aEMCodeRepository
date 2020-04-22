@@ -5,8 +5,8 @@ writeImgs=1;
 figNameExt='GaussFT.jpg';
 index=2;
     
-    cd('/Users/fred/Documents/teaching/CMP710bCryoEM/710b-Videos/Video_lectures/2.3FT1D/IFT_figs/')
-    load origColorOrder % We'll modify the colors a little.
+%     cd('/Users/fred/Documents/teaching/CMP710bCryoEM/710b-Videos/Video_lectures/2.3FT1D/IFT_figs/')
+%     load origColorOrder % We'll modify the colors a little.
     
     bkd=[0 .14 .2]; % = 0 36 52 in Keynote.
     termColor=[.8 .8 .8];

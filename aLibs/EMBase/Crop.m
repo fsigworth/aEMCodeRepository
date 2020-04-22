@@ -12,6 +12,9 @@ function mc=Crop(m,n,isstack,fillval)
 % For 2D images, the input image doesn't have to be square.
 % The result is double if fillval is double; by default the result is
 % single.
+% Now handles simultaneous cropping/padding for 2D input. fs Apr-20.
+% 3D-4D inputs are still
+% assumed to be stacks of square, or cubic in dimension.
 
 if nargin<3
     isstack=0;
@@ -31,14 +34,23 @@ end;
 switch ndi
     case 1
         n1=numel(m);
-        m=reshape(m,n1,1); % force a column vector
-        ns=floor(n1/2)-floor(n/2);  % Shift term for scaling down.
-        if ns>=0 % cropping down
-            mc=m(ns+1:ns+n);
-        else
+        n=max(n); % force a column vector of output.
+        m=reshape(m,n1,1); % force a column vector of input
+        ns=floor(n1/2)-floor(n/2);  % positive for cropping, neg for padding.
+        nsi=max(-ns,0);
+        nso=max(ns,0);
+        no=min(n1,n); % Number of points to copy. no=n for cropping.
+        if ns<0
             mc=fillval*ones(n(1),1);
-            mc(1-ns:n1-ns)=m;
         end;
+            mc(1+nsi:no+nsi)=m(1+nso:no+nso);
+        
+%         if ns>=0 % cropping down
+%             mc=m(ns+1:ns+n);
+%         else
+%             mc=fillval*ones(n(1),1);
+%             mc(1-ns:n1-ns)=m;
+%         end;
         
     case 2
         if numel(n)<2
@@ -46,17 +58,28 @@ switch ndi
         end;
         nx=size(m,1);
         ny=size(m,2);
-        nsx=floor(nx/2)-floor(n(1)/2);  % Shift term for scaling down.
+        nsx=floor(nx/2)-floor(n(1)/2);  % Positive for scaling down.
         nsy=floor(ny/2)-floor(n(2)/2);
-        if (any([nx ny]>n)) && ~any([nx ny]<n) % cropping down
-            %         if nsx>=0 && nsy>=0 % cropping down
-            mc=m(nsx+1:nsx+n(1),nsy+1:nsy+n(2));
-        elseif nsx<=0 && nsy<=0  % padding
+        nox=min(nx,n(1));
+        noy=min(ny,n(2));
+        if any([nsx nsy]<0)
             mc=fillval*ones(n,'single');
-            mc(1-nsx:nx-nsx,1-nsy:ny-nsy)=m;
-        else  % pad in one dimension, crop in the other
-            error('Can''t yet crop and pad simultaneously');
         end;
+        nsxi=max(-nsx,0);
+        nsyi=max(-nsy,0);
+        nsxo=max(nsx,0);
+        nsyo=max(nsy,0);
+        mc(1+nsxi:nox+nsxi,1+nsyi:noy+nsyi)=m(1+nsxo:nox+nsxo,1+nsyo:noy+nsyo);
+%         
+%         if (any([nx ny]>n)) && ~any([nx ny]<n) % cropping down
+%             %         if nsx>=0 && nsy>=0 % cropping down
+%             mc=m(nsx+1:nsx+n(1),nsy+1:nsy+n(2));
+%         elseif nsx<=0 && nsy<=0  % padding
+%             mc=fillval*ones(n,'single');
+%             mc(1-nsx:nx-nsx,1-nsy:ny-nsy)=m;
+%         else  % pad in one dimension, crop in the other
+%             error('Can''t yet crop and pad simultaneously');
+%         end;
         
     case 3 % m is 3D
         if isstack % a stack of 2D images

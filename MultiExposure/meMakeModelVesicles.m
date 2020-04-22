@@ -1,6 +1,7 @@
 function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % function v=meMakeModelVesicles(mi,img,vindex,doCTF,doPW,doCrossSection)
+% function v=meMakeModelVesicles(mi,scl,vindex,doCTF,doPW,doCrossSection)
 % Given the info structure mi, make a CTF-filtered, scaled vesicle model
 % for each vindex value in the mi.vesicle arrays; default is every one for
 % which mi.vesicle.ok(index,1)==true.
@@ -12,25 +13,34 @@ function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % mi.vesicle.ok that are all 1s.
 % If the second argument is an image, then n is taken as size(img) and the
 % final v is scaled to match img by least-squares.
+% If the second argument is a struct, we use the fields
+%   scl.n size of the output image
+%   scl.ds downsampling factor
+%   scl.dsShift shift of input image due to padding before downscaling, 1x2
 
-
-if numel(n)>2 % we supplied an image
-    m0=n;
-    n=size(n);
-    doFitImage=1;  % We'll do least-squares to the image.
-else
+if isa(n,'struct')
+    ds=n.ds;
+    dsShift=n.dsShift;
+    n=n.n;
     doFitImage=0;
+else
+    if numel(n)>2 % we supplied an image
+        m0=n;
+        n=size(n);
+        doFitImage=1;  % We'll do least-squares to the image.
+    else
+        doFitImage=0;
+    end;
+    ds=mi.imageSize(1)/n(1);   % downsample factor
+    dsShift=[0 0]; % by default no shift.
 end;
 
-v=single(zeros(n));  % default is a zero image.
-ds=mi.imageSize(1)/n(1);   % downsample factor
+v=zeros(n,'single');  % default is a zero image.
 if numel(mi.vesicle.s)<1
     return
 end;
 badS=isnan(mi.vesicle.s(1));
 mi.vesicle.s(badS,:)=0;
-
-v=single(zeros(n));  % default, return zeros.
 
 % Get the membrane cross-section density.
 % If no model is present, return a zero image.
@@ -81,8 +91,8 @@ sumv=single(zeros(n));
 for k=1:nim
     ind=vindex(k);
     % Get the coordinates and radius, scaled down by ds
-    vx=(mi.vesicle.x(ind))/ds+1;  % zero-based coordinate
-    vy=(mi.vesicle.y(ind))/ds+1;
+    vx=(mi.vesicle.x(ind)+dsShift(1))/ds+1;  % zero-based coordinate
+    vy=(mi.vesicle.y(ind)+dsShift(2))/ds+1;
     vr=mi.vesicle.r(ind,:)/ds;
     
     % Accumulate the vesicle density

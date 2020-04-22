@@ -16,6 +16,7 @@ folders={['aLibs' filesep 'EMBase']
          ['aLibs' filesep 'MEX'   ]   
          ['aLibs' filesep 'Others']
          ['aLibs' filesep 'Others' filesep 'bfmatlab']
+         'EMClass'
          'FourierReconstruction'
          'K2Camera'
          'MultiExposure'

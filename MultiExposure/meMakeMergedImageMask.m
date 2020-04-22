@@ -1,6 +1,7 @@
 function msk=meMakeMergedImageMask(n,Tmats, edgeWidth, weights)
+% function msk=meMakeMergedImageMask(n,Tmats, edgeWidth, weights)
 % Create a mask of size n corresponding to images merged according to the
-% affine matrices Tmats.
+% affine matrices Tmats. Masked region of msk is zeros.
 
 [t1 t2 nim]=size(Tmats);
 if nargin<3 || all(edgeWidth==0)

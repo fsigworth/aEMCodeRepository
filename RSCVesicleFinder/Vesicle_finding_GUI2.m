@@ -146,8 +146,10 @@ h.doPrinting=false; %%%%%%%%
 h.imageLoaded=false;
 h.readOnly=false;
 h.pixA=1;
-h.origImage=single(0);  % Original merged image, scaled to display size
+h.origImage=single(0);  % Original merged image
+h.rawImage=single(0);   % merged image rescaled to display size
 h.filtImage=single(0);  % rawImage after low and high pass filtering
+% h.rawVesImage=single(0);
 h.goodVesImage=single(0);
 h.badVesImage=single(0);
 h.ctf=single(0);
@@ -156,7 +158,7 @@ h.ccVals=0;     % values of cc maxima
 h.ccValsScaled=0;
 % h.ccRadii=0;    % est. radius corresponding to cc maximum.
 h.displayMode=0;  % show the raw data
-h.maxDisplayMode=2;
+h.maxDisplayMode=3;
 h.oldFilterFreqs=[0 0];
 h.maskIndex=3;       % default uses existing masks.
 h.vesModels=single(0);
@@ -730,45 +732,65 @@ else % try for reading the raw micrograph. We then subtract the median and
     end;
 end;
 if ok
-    %     Determine what downsampling might already have occurred
-    szm=size(m);
-    % estimate the downsampling factor and origin shift from the micrograph to
-    % our image.
-    dsMicrograph=round(max(mi.imageSize./szm)); % we assume that any cropping
-    %                                               or padding is small.
-    dsMicrographShift=floor(szm*dsMicrograph/2)-floor(mi.imageSize/2);
-    
-    % set h.displaySize to the nearest nice numbers to the target display size
+%     Determine what downsampling might already have occurred
+szm=size(m);
+% estimate the downsampling factor and origin shift from the micrograph to
+% our image.
+h.dsMicrograph=round(max(mi.imageSize./szm)); % we assume that any cropping
+%                                               or padding is small.
+h.dsMicrographShift=floor(szm*h.dsMicrograph/2)-floor(mi.imageSize/2);
+
+% set h.displaySize to the nearest nice numbers to the target display size
     sz=zeros(2,2);
     sz(1,:)=NextNiceNumber(h.targetDisplaySize,5,4)-h.targetDisplaySize;
     sz(2,:)=NextNiceNumber(h.targetDisplaySize,5,-4)-h.targetDisplaySize;
     [~,best]=min(sum(sz.^2,2));
     h.displaySize=sz(best,:)+h.targetDisplaySize;
+    %         Get the downsampling factor and origin shift from our image.
+    h.dsImage=ceil(max(size(m)./h.displaySize)); % downsampling from our image
+    mCropN=h.displaySize*h.dsImage;
+    h.dsImageShift=floor(mCropN/2)-floor(size(m)/2);
     
-    %         Get the downsampling factor and origin shift from our image
-    %               to our displayed image
-    dsImage=ceil(max(size(m)./h.displaySize)); % downsampling from our image
-    mCropN=h.displaySize*dsImage;
-    dsImageShift=floor(mCropN/2)-floor(size(m)/2);
     h.origImage=Downsample(Crop(m,mCropN),h.displaySize);
-    %     Store the downsampling factor and shift relative to the micrograph
-    h.ds0=dsImage*dsMicrograph;
-    h.ds0Shift=dsMicrographShift+dsMicrograph*dsImageShift;
+    h.ds0=h.dsImage*h.dsMicrograph;
     h.pixA=h.ds0*mi.pixA; % scale of displayed image.
     ok=true;
-    
-    %     Code for converting our local display coords (2-element vector) to global (zero-based
-    %       micrograph) coords
-    %           global=(local-1)*h.ds0-h.ds0Shift;
-    %     Code for converting global to local
-    %           local=(global+h.ds0Shift)/h.ds0+1;
-    
-    
-    h.oldFilterFreqs=[0 0];
+
+h.oldFilterFreqs=[0 0];
+% h.baseName=imageBasename;
+
+
     set(h.textFilename,'string',mi.baseFilename);
+%     %     h.origImage=ReadEMFile(fullImageName)/mi.doses(1);  % normalize by dose.
+%     if strcmp(fullImageName(end-4:end),'z.tif')
+%         disp('Reading the compressed merged image');
+%     end;
+%     
+%     %     Pick up the first exposure for use in masking
+%     ok1=numel(mi.imageFilenames)>0 && isa(mi.imageFilenames,'cell');
+%     if ok1
+%         exp1name=mi.imageFilenames{1};  % get the low-defocus image
+%         [exp1name2,ok1]=CheckForImageOrZTiff([mi.imagePath exp1name]);
+%     else
+%         exp1name='';
+%     end;
+%     if ok1 && h.useFirstExposure  % pick up the first exposure and make it the same size.
+%         if ~strcmp(exp1name2(end-4:end),'z.tif')
+%             disp('Reading the first exposure');
+%         else
+%             disp('Reading the compressed first exposure');
+%         end;
+%         e1Image=ReadEMFile(exp1name2);
+%         h.e1ImageOffset=0;
+%     else
+%         if h.useFirstExposure
+%             disp(['First exposure not found: ' exp1name]);
+% %             disp(' ...using merged image for an inferior global mask.');
+%         end;
          h.e1ImageOffset=5; % way beyond the expected pixel range.
 %         here is the only computation done with the original image.
         e1Image=h.origImage+h.e1ImageOffset;  % offset it from zero.
+%     end;
     h.exp1Image=Downsample(e1Image,h.displaySize/2); % displaySize is a multiple of 4.
     
     h.imageLoaded=true;
@@ -821,11 +843,11 @@ if ~h.imageLoaded
     return
 end;
 % set(h.figure1,'pointer','watch');
-% osize=size(h.origImage); % loaded image
+osize=size(h.origImage); % loaded image
 
 
 %         Create the displayed image
-% h.rawImage=DownsampleGeneral(h.origImage,h.displaySize);
+h.rawImage=DownsampleGeneral(h.origImage,h.displaySize);
 
 h=CreateE1Map(h);
 
@@ -848,14 +870,11 @@ if h.makeModelVesicles
     goodVes=all(h.mi.vesicle.ok(:,1:2),2); % vesicles in range
     badVes=(h.mi.vesicle.ok(:,1) & ~h.mi.vesicle.ok(:,2)); % found, but not in range
     
-    scl.n=h.displaySize;
-    scl.ds=h.ds0;
-    scl.dsShift=h.ds0Shift;
-    h.goodVesImage=meMakeModelVesicles(h.mi,scl,find(goodVes));
-    h.badVesImage=meMakeModelVesicles(h.mi,scl,find(badVes));
+    h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
+    h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
 %     disp('...done');
 end;
-h.ctf=meGetEffectiveCTF(h.mi,h.displaySize,h.ds0);
+h.ctf=meGetEffectiveCTF(h.mi,size(h.rawImage),h.ds0);
 h=UpdateDisplayFiltering(h);
 h=UpdateAutomaskBeam(h);  % Also calls ShowImage.
 
@@ -878,7 +897,7 @@ function h=UpdateDisplayFiltering(h,doRawImage)
 if nargin<2
     doRawImage=1;
 end;
-h.filtImage=h.origImage;
+h.filtImage=h.rawImage;
 h.filtVesImage=h.goodVesImage+h.badVesImage;
 
 fcs=h.sav.filterFreqs*h.pixA;
@@ -935,15 +954,16 @@ if h.imageLoaded
     showCircles=1;
     showGhosts=0;
     switch h.displayMode
-        case 0 % default: image and circles.
+        case 0 % default
             imData=h.filtImage;
-        case 1 % subtracted with circles
+        case 1
             imData=h.filtImage-h.filtVesImage;
-        case 2 % subtracted only
-            imData=h.filtImage-h.filtVesImage;
-%             showGhosts=h.makeModelVesicles;
-            showCircles=0;
             showAmps=0;
+        case 2
+            imData=h.filtImage-h.filtVesImage;
+            showGhosts=h.makeModelVesicles;
+            showCircles=0;
+            showAmps=1;
 %         case 3
 %             if numel(h.ccValsScaled)>1
 %                 imData=h.ccValsScaled(1:n(1),1:n(2));
@@ -952,9 +972,8 @@ if h.imageLoaded
 %                 return
 %             end;
         case 3
-%             Show CTF-corrected image.
             imData=Downsample(h.ifImageComp,size(h.filtImage));
-%             showGhosts=h.makeModelVesicles;
+            showGhosts=h.makeModelVesicles;
             showCircles=0;
     end;
     %     theImage =  repmat(rot90(imscale(imData,256,1e-3)),[1 1 3]);
@@ -962,46 +981,46 @@ if h.imageLoaded
     midValue=0;
 %%
 theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)+128),[1 1 3]);
-    nx=size(h.origImage,1);
-    ny=size(h.origImage,2);
+    nx=size(h.rawImage,1);
+    ny=size(h.rawImage,2);
     
-%     if showGhosts
-%         ghostColor=[.7 .7 1];
-%         ghostColorBad=[1 .5 .35];
-%         dotW=2;
-%         
-%         xCtrs=max(dotW+1,min(nx-dotW,round(h.mi.vesicle.x/h.ds0+1)));
-%         yCtrs=max(dotW+1,min(ny-dotW,round(h.mi.vesicle.y/h.ds0+1)));
-%         if any(goodVes)
-%             gves=imscale(max(-h.goodVesImage,-1e-9),1);
-%             for i=find(goodVes)'
-%                 gves(xCtrs(i)-dotW:xCtrs(i)+dotW,yCtrs(i)-dotW:yCtrs(i)+dotW)=1.5;
-%             end;
-%         else
-%             gves=0;
-%         end;
-%         if any(badVes)
-%             bves=imscale(max(-h.badVesImage,-1e-9),1);
-%             for i=find(badVes)'
-%                 bves(xCtrs(i)-dotW:xCtrs(i)+dotW,yCtrs(i)-dotW:yCtrs(i)+dotW)=1.5;
-%             end;
-%             
-%             %             hp1=plot(h.mi.vesicle.x(goodVes)/h.ds0+1,...
-%             %             ny-(h.mi.vesicle.y(goodVes)/h.ds0),'b.','markersize',10);
-%             
-%         else
-%             bves=0;
-%         end;
-%         
-%         color=(1-ghostColor); % color to subtract for membrane
-%         for i=1:3
-%             theImage(:,:,i)=theImage(:,:,i).*(1-rot90(gves)*color(i));
-%         end;
-%         color=(1-ghostColorBad); % color for bad vesicle
-%         for i=1:3
-%             theImage(:,:,i)=theImage(:,:,i).*(1-rot90(bves)*color(i));
-%         end;
-%     end;
+    if showGhosts
+        ghostColor=[.7 .7 1];
+        ghostColorBad=[1 .5 .35];
+        dotW=2;
+        
+        xCtrs=max(dotW+1,min(nx-dotW,round(h.mi.vesicle.x/h.ds0+1)));
+        yCtrs=max(dotW+1,min(ny-dotW,round(h.mi.vesicle.y/h.ds0+1)));
+        if any(goodVes)
+            gves=imscale(max(-h.goodVesImage,-1e-9),1);
+            for i=find(goodVes)'
+                gves(xCtrs(i)-dotW:xCtrs(i)+dotW,yCtrs(i)-dotW:yCtrs(i)+dotW)=1.5;
+            end;
+        else
+            gves=0;
+        end;
+        if any(badVes)
+            bves=imscale(max(-h.badVesImage,-1e-9),1);
+            for i=find(badVes)'
+                bves(xCtrs(i)-dotW:xCtrs(i)+dotW,yCtrs(i)-dotW:yCtrs(i)+dotW)=1.5;
+            end;
+            
+            %             hp1=plot(h.mi.vesicle.x(goodVes)/h.ds0+1,...
+            %             ny-(h.mi.vesicle.y(goodVes)/h.ds0),'b.','markersize',10);
+            
+        else
+            bves=0;
+        end;
+        
+        color=(1-ghostColor); % color to subtract for membrane
+        for i=1:3
+            theImage(:,:,i)=theImage(:,:,i).*(1-rot90(gves)*color(i));
+        end;
+        color=(1-ghostColorBad); % color for bad vesicle
+        for i=1:3
+            theImage(:,:,i)=theImage(:,:,i).*(1-rot90(bves)*color(i));
+        end;
+    end;
     if showMask
         maskColor=[1 .8 .85];
         
@@ -1028,7 +1047,7 @@ theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.bl
     %             goodVes=true(numel(h.mi.vesicle.x),1);
     %         end;
     %         hold on;
-    %         ny=size(h.origImage,2);
+    %         ny=size(h.rawImage,2);
     %         hp1=plot(h.mi.vesicle.x(goodVes)/h.ds0+1,...
     %             ny-(h.mi.vesicle.y(goodVes)/h.ds0),'b.','markersize',10);
     %         hp2=plot(h.mi.vesicle.x(badVes)/h.ds0+1,...
@@ -1039,8 +1058,8 @@ theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.bl
     %     end;
     if showAmps
         for i=1:nv
-            x=double((h.mi.vesicle.x(i)+h.ds0Shift(1))/h.ds0+1);
-            y=double(ny-(h.mi.vesicle.y(i)+h.ds0Shift(2))/h.ds0+1);
+            x=double(h.mi.vesicle.x(i)/h.ds0+1);
+            y=double(ny-h.mi.vesicle.y(i)/h.ds0+1);
             amp=h.mi.vesicle.s(i,1)*1000;
             text(x,y,num2str(amp,2),'color',[.8 .8 0],'fontsize',12,'PickableParts','none');
         end;
@@ -1054,8 +1073,8 @@ theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.bl
                 continue
             end;
             [x,y]=CircleLineSegments(r1,min(10,100/r1(1)));
-            x=double(x+(h.mi.vesicle.x(i)+h.ds0Shift(1))/h.ds0+1);
-            y=double(y+ny-(h.mi.vesicle.y(i)+h.ds0Shift(2))/h.ds0+1);
+            x=double(x+h.mi.vesicle.x(i)/h.ds0+1);
+            y=double(y+ny-h.mi.vesicle.y(i)/h.ds0+1);
             if goodVes(i)
                 plot(x,y,'b-','HitTest','off');
             elseif badVes(i)
@@ -1213,7 +1232,7 @@ end;
 % We're done painting a mask.  First turn off the button
 set(h.togglebutton_PaintMask,'value',0);
 h.manualMaskActive=0;
-n=round(size(h.origImage)/2);  % make a half-sized mask
+n=round(size(h.rawImage)/2);  % make a half-sized mask
 msk=false(n);
 r=h.manualMaskDiameter/4;
 coords=round((h.manualMaskCoords+1)/2);
@@ -1385,7 +1404,7 @@ end;
 f1=(h.pixA*2)/20;  % lowpass cutoff of bp filter for variance
 f2=(h.pixA*2)/60;  % highpass cutoff
 varFilt=(h.pixA*2)/400; % filtering of the variance
-workImage=DownsampleGeneral(h.origImage,h.displaySize/2);
+workImage=DownsampleGeneral(h.rawImage,h.displaySize/2);
 varMap=GaussFiltDCT((SharpHP(SharpFilt(workImage,f1),f2)).^2,varFilt);
 
 mxVal=max(varMap(:));  % make sure it's positive, should be.
@@ -1398,7 +1417,7 @@ end
 
 function h=InitAutomask(h)
 h.maskIndex=max(h.maskIndex,3);  % Show this mask
-m=h.origImage-h.goodVesImage-h.badVesImage;
+m=h.rawImage-h.goodVesImage-h.badVesImage;
 m=Downsample(m,size(m)/2);
 h.ifImage=meCTFInverseFilter(m,h.mi,1,0,0);  % totally inverse filtered
 % h.ifImageFlat=GaussFilt(meCTFInverseFilter(m,h.mi,1,0,.0005),.05);
@@ -1438,7 +1457,7 @@ if nargin<2
     active=true;
 end;
 if ~active
-    h.mi=meInsertMask(true(round(size(h.origImage)/2)),h.mi,3,'AND');
+    h.mi=meInsertMask(true(round(size(h.rawImage)/2)),h.mi,3,'AND');
     h.miChanged=1;
     h=ShowImage(h);
     return
@@ -1636,10 +1655,7 @@ end;
 if ~isfield(mi1,'mergeMode')
     mi1.mergeMode=3;
 end;
-pars.rPars=rPars;
-pars.ds0=h.ds0;
-pars.ds0Shift=h.ds0Shift;
-mi1=rsFindVesicles3(h.origImage, mi1, pars, h.findInMask);
+mi1=rsFindVesicles3(h.rawImage, mi1, rPars, h.findInMask);
 %%
 minAmp=h.sav.vesicleAmps(1);
 maxAmp=h.sav.vesicleAmps(2);
@@ -1651,7 +1667,7 @@ while mins>minAmp
     [mi1, t]=rsFindVesicles3('next',50,h.sav.vesicleAmps);
     axes(h.axes1);
     ih = imshow(rot90(uint8(imscale(t.ms-t.umodel,256,1e-3))),...
-        'InitialMagnification',100*size(t.ms,1)/size(h.origImage,1) );
+        'InitialMagnification',100*size(t.ms,1)/size(h.rawImage,1) );
     %     drawnow;
     mins=t.globalmax;
     nves=size(mi1.vesicle.s,1);
@@ -1698,14 +1714,11 @@ mi1.vesicle.extraSD=0;
 mi1.vesicle.extraS=[];
 h.mi=mi1;
 h.miChanged=1;
-    scl.n=h.displaySize;
-    scl.ds=h.ds0;
-    scl.dsShift=h.ds0Shift;
 if h.makeModelVesicles
-    h.goodVesImage=meMakeModelVesicles(h.mi,scl,find(goodVes));
-    h.badVesImage=meMakeModelVesicles(h.mi,scl,find(badVes));
+    h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
+    h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
     h.rawVesImage=h.goodVesImage+h.badVesImage;
-    % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.origImage));
+    % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
     h=UpdateDisplayFiltering(h);
 end;
 % h.displayMode=0;  % mark the vesicles
@@ -1725,10 +1738,10 @@ if h.doTrackMembranes
         disp('Computing vesicle models');
         goodVes=all(h.mi.vesicle.ok(:,1:2),2); % vesicles in range
         badVes=(h.mi.vesicle.ok(:,1) & ~h.mi.vesicle.ok(:,2)); % found, but not in range
-        h.goodVesImage=meMakeModelVesicles(h.mi,scl,find(goodVes));
-        h.badVesImage=meMakeModelVesicles(h.mi,scl,find(badVes));
+        h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
+        h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
         h.rawVesImage=h.goodVesImage+h.badVesImage;
-        % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.origImage));
+        % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
         h=UpdateDisplayFiltering(h);
     end;
     ShowImage(h);
@@ -1763,10 +1776,7 @@ if ~isfield(h.mi,'vesicleModel') || numel(h.mi.vesicleModel)<3
         *vLipid;  % units of V
 end;
 rPars=h.sav.vesicleRadii;
-pars.rPars=rPars;
-pars.ds0=h.ds0;
-pars.ds0Shift=h.ds0Shift;
-mi1=rsFindVesicles3(h.origImage-h.rawVesImage, h.mi, pars, h.findInMask);
+mi1=rsFindVesicles3(h.rawImage-h.rawVesImage, h.mi, rPars, h.findInMask);
 prevNFound=numel(mi1.vesicle.x);
 %%
 minAmp=h.sav.vesicleAmps(1);
@@ -1778,7 +1788,7 @@ while mins>minAmp
     [mi1, t]=rsFindVesicles3('next',50,h.sav.vesicleAmps);
     axes(h.axes1);
     ih = imshow(rot90(uint8(imscale(t.ms-t.umodel,256,1e-3))),...
-        'InitialMagnification',100*size(t.ms,1)/size(h.origImage,1) );
+        'InitialMagnification',100*size(t.ms,1)/size(h.rawImage,1) );
     %     drawnow;
     mins=t.globalmax;
     nves=size(mi1.vesicle.s,1);
@@ -1809,10 +1819,9 @@ while mins>minAmp
     end;
     nVesOld=nves;
 end;
-% Store NCCs for manual finding
-h.ccVals=Crop(t.ccsmx,h.displaySize)+h.ccVals;
-h.ccValsScaled=Crop(t.ccsmxScaled,h.displaySize)+h.ccValsScaled;
-h.ccRadii=(t.fitmin+(Crop(t.ccsmi,h.displaySize)-1)*t.rstep)*t.ds;  % radius in orig pixels
+h.ccVals=t.ccsmx+h.ccVals;
+h.ccValsScaled=t.ccsmxScaled+h.ccValsScaled;
+h.ccRadii=(t.fitmin+(t.ccsmi-1)*t.rstep)*t.ds;  % radius in orig pixels
 
 mi1.vesicle.shiftX=[];
 mi1.vesicle.shiftY=[];
@@ -1833,13 +1842,10 @@ end;
 h.mi=mi1;
 h.miChanged=1;
 if h.makeModelVesicles
-    scl.n=h.displaySize;
-    scl.ds=h.ds0;
-    scl.dsShift=h.ds0Shift;
-    h.goodVesImage=meMakeModelVesicles(h.mi,scl,find(goodVes));
-    h.badVesImage=meMakeModelVesicles(h.mi,scl,find(badVes));
+    h.goodVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(goodVes));
+    h.badVesImage=meMakeModelVesicles(h.mi,size(h.rawImage),find(badVes));
     h.rawVesImage=h.goodVesImage+h.badVesImage;
-    % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.origImage));
+    % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.rawImage));
     h=UpdateDisplayFiltering(h);
 end;
 % h.displayMode=0;  % subtract and mark the vesicles

@@ -1,10 +1,15 @@
-function [mi, state]=rsFindVesicles3(m,mi,rPars,findInMask)
+function [mi, state]=rsFindVesicles3(m,mi,pars,findInMask)
 % Auto vesicle finder for Vesicle_finding_GUI
 % Calls:
-% [mi t]=meFindVesicles3(m, mi, rPars, findInMask)          --initialize vesicle finder
+% [mi t]=meFindVesicles3(m, mi, pars, findInMask)          --initialize vesicle finder
+% meFindVesicles('end');      --deallocates the persistent variables.
 % mi = meFindVesicles3('next',maxN,minmaxThresh);  --find up to maxN vesicles.
 % mi = meFindVesicles3(m, mi) -- new image, old parameters
-% meFindVesicles('end');      --deallocates the persistent variables.
+% 
+% pars is a struct with fields
+%   ds0 : scale up to global coords
+%   ds0Shift : shift to subtract from global coords
+%   rPars : min, max, step for radii
 % t is a persistent structure that contains information for the
 % The returned mi.vesicle.ok field for each found vesicle
 % has the value [1 f 0 0] where f=1 for a
@@ -35,20 +40,21 @@ if isnumeric(m)  % we are initializing the finder.
     
     % Get image and pixel sizes
     ns=size(m); % use the original image size
-    ds0=mi.imageSize(1)/ns(1);  % downsampling factor of m
+%     ds0=mi.imageSize(1)/ns(1);  % downsampling factor of m
     nsx=NextNiceNumber(borderFactor*ns);  % expanded number of pixels
     t.borderShift=(nsx-ns)/2;  % displacement of the center of padded image from unpadded center
     t.msx=Crop(m,nsx);  % pad the image
     t.ms=m;
     t.ns=ns;
-    t.ds=ds0;
+    t.ds=pars.ds0;
+    t.dsShift=pars.ds0Shift;
     pixA=t.ds*mi.pixA;  %pixA in the image ms
     t.pixA=pixA;
     
     sHP=.002*pixA;  % highpass frequency 500 A
     varLP=.004*pixA;  % lowpass for image 250 A
 
-    vm=meDownsampleVesicleModel(mi.vesicleModel,ds0)*pixA;
+    vm=meDownsampleVesicleModel(mi.vesicleModel,t.ds)*pixA;
     %   note that the density is scaled up to match the scattering per voxel.
     t.mbnThickness=(sum(vm>max(vm)/4));  % approx. membrane thickness in pixels.
     
@@ -71,7 +77,7 @@ if isnumeric(m)  % we are initializing the finder.
     t.findInMask=findInMask;
     
     %%
-    
+    rPars=pars.rPars;
     if ~(isfield(t,'rPars') && all(t.rPars==rPars) ...
             && nsx(1) == size(t.frefs,1))  % need to compute references
         disp('Constructing references');
@@ -166,10 +172,17 @@ if isnumeric(m)  % we are initializing the finder.
         t.spccs(:,:,i)=real(ifftn(t.fms.*conj(t.fsph(:,:,i))))/t.spowers(i); % sphere CC
     end;
     [t.ccsmx, t.ccsmi]=max(t.ccs,[],3);
-    t.ccsmxScaled=t.ccsmx.*(t.rads(t.ccsmi)/t.rMin).^-rExponent;  % undo scaling of references
-% %     [t.nccmx, t.nccmi]=max(t.nccs,[],3);
-% %     t.nccmx=t.nccmx*medSD;
+    t.radScalings=((t.rads/t.rMin).^-rExponent);  % undo scaling of references
+    t.ccsmxScaled=t.ccsmx.*t.radScalings(t.ccsmi); % true scaling
+%     We'll determine the amplitude and final radius assignments made from
+%     rescaled ncc functions.
+    ccsScaled=zeros([nsx t.nrsteps],'single');
+    for k=1:t.nrsteps
+        ccsScaled(:,:,k)=t.ccs(:,:,k)*t.radScalings(k);
+    end;
+    [t.ccsmxScaled,t.ccsmiScaled]=max(ccsScaled,[],3); % we'll use these for manual picking.
     t.sphMxCC=max(t.spccs,[],3);
+    
     %%
     disp('Finding vesicles');
     
@@ -189,20 +202,20 @@ if isnumeric(m)  % we are initializing the finder.
     end;
     t.umodel=zeros(ns);
     
-    %%    % Check to see how many entries are already there.
+    %    % Check to see how many entries are already there.
     t.nfound=numel(t.mi.vesicle.x);
     
+%%-----------------------------------Finding loop--------------------------------    
 else % m is a string, 'next' or 'end'
     switch lower(m)
         case 'next'
             maxN=mi;        % pick up the alternate arguments.
-            thresh=rPars;
-            minRDecay=rPars(3); % allowed decay for large vesicles
+            thresh=pars;
+            minRDecay=pars(3); % allowed decay for large vesicles
             thresh(3)=0; % ice amp is constrained to this.
  thresh(4)=thresh(1) * 0.5;  % arbitrary factor!!!
             nsx=size(t.ccsmx2);
             ctrx=floor(nsx/2+1); % distance to origin
-            radScalings=((t.rads/t.rMin).^-rExponent);  % undo scaling of references
 % %             medSD=median(t.localSD(:));
 
             nf0=t.nfound;
@@ -212,7 +225,7 @@ else % m is a string, 'next' or 'end'
                     break
                 end;
                 % Get the corrected peak value and interpolated radius index
-                [ampi, refii]=max1di(squeeze(t.ccs(jx,jy,:)).*radScalings);
+                [ampi, refii]=max1di(squeeze(t.ccs(jx,jy,:)).*t.radScalings);
                 jz=max(1,min(round(refii),t.nrsteps)); % nearest index for correct radius vesicle
                 refri=t.fitmin+(refii-1)*t.rstep;  % interpolated radius in pixels
                 rDecay=minRDecay+(1-minRDecay)/(1+(refri*t.pixA/200)^2); % help for big vesicles.
@@ -222,6 +235,7 @@ else % m is a string, 'next' or 'end'
                 support=single(circshift(t.orefs(:,:,jz),round([jx jy])-ctrx) ...
                                                 /sum(t.mi.vesicleModel) > .001);
                 t.ccsmx2=t.ccsmx2.*(~support); % blank the running cc map
+%  imags(t.ccsmx2); drawnow;
                 fracMasked=support(:)'*single((~t.mask(:)))/sum(support(:));
                 if max(ampi,t.globalmax)>thresh(1)*(1-maxFracMasked)*minRDecay % quick check for any possible find
                     spcc=t.spccs(jx,jy,jz); % Check the sphere correlation too.
@@ -246,8 +260,8 @@ else % m is a string, 'next' or 'end'
                         t.nfound=t.nfound+1; %%%%% increment nfound
                         t.mi.vesicle.r(t.nfound,1)=refri*t.ds;
 %                         We allow vesicle x and y to be out of bounds.
-                        t.mi.vesicle.x(t.nfound,1)=(jx-1-t.borderShift(1))*t.ds+1;
-                        t.mi.vesicle.y(t.nfound,1)=(jy-1-t.borderShift(2))*t.ds+1;
+                        t.mi.vesicle.x(t.nfound,1)=(jx-1-t.borderShift(1))*t.ds+1-t.dsShift(1);
+                        t.mi.vesicle.y(t.nfound,1)=(jy-1-t.borderShift(2))*t.ds+1-t.dsShift(2);
                         t.mi.vesicle.s(t.nfound,1)=ampi/(1-fracMasked);
                         t.mi.vesicle.ok(t.nfound,1:4)=[1 flag 0 0];  % flag indicates a vesicle in bounds.
                         vref=ampi*circshift(t.rrefs(:,:,jz),round([jx jy]-nsx/2-1));
