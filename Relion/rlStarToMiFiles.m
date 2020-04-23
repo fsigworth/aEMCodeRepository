@@ -22,22 +22,20 @@ dpars.cameraIndex=5; % K2
 dpars.cpe=0.2;  % counts per electron, 0.8 for K2 counting mode, but
 %  0.2 for superres image that is binned by MotionCor2.
 % ! For Falcon3: cameraIndex=6, I think cpe=64.
-
-
 dpars.dose=60; % Approx total movie dose in e/A^2. We have to guess this
 % because of an error in MotionCor2 scaling.
 dpars.BFactor=60; % Used by my CTF functions. Not critical.
 dpars.changeImagePath=1;
 dpars.imagePath='';
-dpars.readMicrographForScale=0; % Gets micrograph statistics directly from
-% images, but greatly slows down execution.
-dpars.skipIfNoImage=0; % if yes, we don't care if the image file is missing,
+dpars.readMicrographForScale=0; % If yes, uses micrograph statistics from
+% images to set the scaling, but greatly slows down execution.
+dpars.skipIfNoImage=1; % if yes, we don't care if the image file is missing,
 % we create the mi structure anyway.
 dpars.writeMiFile=1; % Write it out.
 
-dpars.writeFullSize=0; % write out full-size *.m image
-dpars.writeDownsampled=0;
-dpars.ds=8;  % downsampling factor for 'small' image
+% dpars.writeFullSize=0; % write out full-size *.m image
+% dpars.writeDownsampled=0;
+% dpars.ds=8;  % downsampling factor for 'small' image
 
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
@@ -66,10 +64,12 @@ end;
 first=true;
 for i=1:nLines
     [ok,mi,m]=rlStarLineToMi(names,dat,i,pars);
-    if ok && pars.writeMiFile
+    if ok
         if first
             CheckAndMakeDir(mi.infoPath);
-            disp('Written:');
+            if pars.writeMiFile
+                disp('Written:');
+            end;
             first=false;
         end;
         miName=WriteMiFile(mi);
