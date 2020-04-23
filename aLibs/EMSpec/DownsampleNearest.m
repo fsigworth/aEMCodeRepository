@@ -4,6 +4,7 @@ function out=DownsampleNearest(in,nout,mag,stack)
 % nout and mag can be scalars, or vectors of size ndim(in).
 % If stack is true, 3- or 4-dimensional input is interpreted as a stack of
 % images or volumes.  Stacks of 1d vectors is not supported.
+% out is returned as the name class (whether numeric or logical) as in.
 
 % Changed 25 May 15 to maintain centers of images (FFT convention)
 

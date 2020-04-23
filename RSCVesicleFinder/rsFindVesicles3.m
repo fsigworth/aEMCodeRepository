@@ -26,7 +26,7 @@ maxGoodFracMasked=.5;
 extendedFitRadius=1.6;
 reducedFitRadius=0.8;
 radiusThresh=.95;  % only accept vesicles larger than this fraction of rmin.
- minRDecay=.2; % asymptotic rDecay value, now given by "ice amp", amps(3).
+%  bigRThresh=.5; % asymptotic rDecay value, now given by "ice amp", amps(3).
 
 % targetPixA=10;
 displayOn=0;
@@ -34,12 +34,14 @@ rExponent=.5;  % radius-weighting
 
 if isnumeric(m)  % we are initializing the finder.
     t.mi=mi;
-    msk=meGetMask(mi,size(m));
-    m=m-median(m(msk(:)));  % subtract the median of all unmasked points
+    ns=size(m); % use the display image size
+    n0=round(mi.imageSize/pars.ds0); % expected size of the stored mask
+    msk=Crop(meGetMask(mi,n0),ns); % convert msk to logical
+
+    m=m-median(m(logical(msk(:))));  % subtract the median of all unmasked points
     m=m.*msk;
     
     % Get image and pixel sizes
-    ns=size(m); % use the original image size
 %     ds0=mi.imageSize(1)/ns(1);  % downsampling factor of m
     nsx=NextNiceNumber(borderFactor*ns);  % expanded number of pixels
     t.borderShift=(nsx-ns)/2;  % displacement of the center of padded image from unpadded center
@@ -73,7 +75,8 @@ if isnumeric(m)  % we are initializing the finder.
     H=ifftshift(highPass.*meGetEffectiveCTF(mi,nsx,t.ds));
     
     % Get the mask, pad it to the search size
-    t.mask=Crop(meGetMask(mi,ns),nsx);
+    t.mask=Crop(msk,nsx);
+%     t.mask=Crop(meGetMask(mi,ns),nsx);
     t.findInMask=findInMask;
     
     %%
@@ -211,9 +214,9 @@ else % m is a string, 'next' or 'end'
         case 'next'
             maxN=mi;        % pick up the alternate arguments.
             thresh=pars;
-            minRDecay=pars(3); % allowed decay for large vesicles
+            bigRThresh=pars(3); % allowed decay for large vesicles
             thresh(3)=0; % ice amp is constrained to this.
- thresh(4)=thresh(1) * 0.5;  % arbitrary factor!!!
+            thresh(4)=thresh(1) * 0.5;  % arbitrary factor!!!
             nsx=size(t.ccsmx2);
             ctrx=floor(nsx/2+1); % distance to origin
 % %             medSD=median(t.localSD(:));
@@ -228,7 +231,7 @@ else % m is a string, 'next' or 'end'
                 [ampi, refii]=max1di(squeeze(t.ccs(jx,jy,:)).*t.radScalings);
                 jz=max(1,min(round(refii),t.nrsteps)); % nearest index for correct radius vesicle
                 refri=t.fitmin+(refii-1)*t.rstep;  % interpolated radius in pixels
-                rDecay=minRDecay+(1-minRDecay)/(1+(refri*t.pixA/200)^2); % help for big vesicles.
+                rDecay=bigRThresh+(1-bigRThresh)/(1+(refri*t.pixA/200)^2); % help for big vesicles.
 
 %                     Blank the cc peak and check the fraction masked
 %                 refi=max(1,min(round(refii),t.nrsteps)); % closest model radius
@@ -237,7 +240,7 @@ else % m is a string, 'next' or 'end'
                 t.ccsmx2=t.ccsmx2.*(~support); % blank the running cc map
 %  imags(t.ccsmx2); drawnow;
                 fracMasked=support(:)'*single((~t.mask(:)))/sum(support(:));
-                if max(ampi,t.globalmax)>thresh(1)*(1-maxFracMasked)*minRDecay % quick check for any possible find
+                if max(ampi,t.globalmax)>thresh(1)*(1-maxFracMasked)*bigRThresh % quick check for any possible find
                     spcc=t.spccs(jx,jy,jz); % Check the sphere correlation too.
 % %                 nccv=t.nccs(jx,jy,jz)*medSD;
 % %                 blank=fuzzymask(nsx,2,blankRadiusFactor*refri+t.mbnThickness/2,t.mbnThickness,[jx jy]);

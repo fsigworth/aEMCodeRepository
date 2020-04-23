@@ -5,7 +5,9 @@ function msk=meGetMask(mi,n,indices)
 % mask stack.
 % The masked points have the value logical false.
 % If no masks are present, return the default msk = true(n).
-% If n=0 then we return only one mask at its native size.
+% If n=0 then we return the mask of index indices(1) at its native size.
+% (we can return only one cuz we can't guarantee the various masks are
+% defined at the same sizes).
 % 
 % mi.mask has the fields
 %   merge  - a text string AND, OR, OVER, OFF
@@ -20,7 +22,11 @@ function msk=meGetMask(mi,n,indices)
 maxExpandedImage=3*1024;  % maximum temporary array dimension;
 %                       if larger than this, we use Fourier interpolation
 if n==0
-    indices=indices(1);
+    if nargin<3 || numel(indices)>0
+        indices=indices(1);
+    else
+        error('No index value given for single mask');
+    end;
     msk=true;
 else
     msk=true(n);  % default
@@ -28,7 +34,7 @@ end;
 
 if isfield(mi,'mask')
     nim=numel(mi.mask);
-    if nargin<3
+    if nargin<3 || numel(indices)<1
         indices=1:nim;
     else
         if ~any(indices<=nim)
@@ -63,6 +69,10 @@ if isfield(mi,'mask')
                 else
                     m1=DownsampleGeneral(m1,n,n(1)/n1(1))>0.5;
                 end;
+            end;
+            if any(size(m1)~=n)
+                disp('Mismatched mask dimensions; cropping.');
+                m1=Crop(m1,n);
             end;
             switch mi.mask(i).merge
                 case 'AND'

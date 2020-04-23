@@ -94,14 +94,14 @@ amPars.dense=.5;
 sav.automaskPars=amPars;  % saved variables, stored in "VFContext.mat"
 sav.fullInfoPath='';
 sav.baseName='';
-sav.vesicleAmps=[2e-3 5e-3 0];
+sav.vesicleAmps=[2e-3 5e-3 .5];
 sav.vesicleRadii=[100 300 10];
 sav.filterFreqs=[0 .1];   % HP and LP, in A^-1
 sav.contrastPars=zeros(2,1);
 sav.membranePars=[1.6 60 6];
 sav.beamPars=[0 0 100];  % X, Y and R
-sav.black=.6;
-sav.white=1.2;
+sav.black=0;
+sav.white=.1;
 sav.automaskFixed=0;
 % sav.initTheVesicles=0;
 sav.eraseOldPicks=0; % i.e don't load the old vesicles, but delete them.
@@ -156,7 +156,7 @@ h.ccVals=0;     % values of cc maxima
 h.ccValsScaled=0;
 % h.ccRadii=0;    % est. radius corresponding to cc maximum.
 h.displayMode=0;  % show the raw data
-h.maxDisplayMode=2;
+h.maxDisplayMode=3;
 h.oldFilterFreqs=[0 0];
 h.maskIndex=3;       % default uses existing masks.
 h.vesModels=single(0);
@@ -239,12 +239,12 @@ set(h.edit_MinRadius,'String',sprintf('%d',h.sav.vesicleRadii(1)));
 set(h.edit_MaxRadius,'String',sprintf('%d',h.sav.vesicleRadii(2)));
 set(h.edit_MinAmp,'String',num2str(1000*h.sav.vesicleAmps(1)));
 set(h.edit_MaxAmp,'String',num2str(1000*h.sav.vesicleAmps(2)));
-set(h.edit_IceAmp,'String',num2str(1000*h.sav.vesicleAmps(3)));
+set(h.edit_IceAmp,'String',num2str(h.sav.vesicleAmps(3)));
 
 set(h.edit_RadiusStep,'String',sprintf('%d',h.sav.vesicleRadii(3)));
 
-set(h.editWhite,'String',sprintf('%d',h.sav.white));
-set(h.editBlack,'String',sprintf('%d',h.sav.black));
+set(h.editWhite,'String',sprintf('%4.2g',10*h.sav.white));
+set(h.editBlack,'String',sprintf('%4.2g',10*h.sav.black));
 
 set(h.edit_Highpass,'string',num2str(h.sav.filterFreqs(1)));
 set(h.edit_Lowpass,'string',num2str(h.sav.filterFreqs(2)));
@@ -493,7 +493,7 @@ h.mi.log{end+1,1}=['Vesicle_finding_GUI ' TimeStamp];
 outName=[h.mi.infoPath h.mi.baseFilename 'mi.txt'];
 nameWritten=WriteMiFile(h.mi,outName);
 
-disp(['Saved: ' h.mi.infoPath nameWritten]);
+disp(['Saved: ' AddSlash(pwd) nameWritten]);
 disp(' ');
 h.miChanged=false;
 h.imageLoaded=false;
@@ -711,12 +711,12 @@ end;
 % Load the merged image
 imageBasename=[mi.procPath mi.baseFilename 'm.mrc'];
 sufExts={'s.mrc' 'z.tif' '.mrc'};
-[fullImageName,ok]=CheckForAltImage(imageBasename,sufExts);  % valid filename?  Load it
-
+[fullMergedImageName,ok]=CheckForAltImage(imageBasename,sufExts);  % valid filename?  Load it
 
 if ok % Try for reading the raw micrograph
-    m=single(ReadEMFile(fullImageName));
-else % try for reading the raw micrograph. We then subtract the median and
+    m=single(ReadEMFile(fullMergedImageName));
+else
+    % try for reading the raw micrograph. We then subtract the median and
 %     scale it to reflect fractional image intensity
     fullImageName=[mi.imagePath mi.imageFilenames{1}];
     if exist(fullImageName,'file') ...
@@ -787,7 +787,8 @@ if ok
     msk0=meMakeMergedImageMask(round(mi.imageSize/2),t,mi.imageSize/h.borderFraction);
     msk=DownsampleGeneral(msk0,round(h.displaySize/2),1/h.ds0)>0.5;
 %     msk=meMakeMergedImageMask(h.displaySize/2,t,h.displaySize/h.borderFraction);
-    mi=meInsertMask(msk,mi,1);
+%     mi=meInsertMask(msk,mi,1);
+    mi=InsertOurMask(msk,mi,h.ds0*2,1,'AND');
     %     if h.automaskBeamOn  % we've left this on from last time; update values
     %         mi.mask(2).merge='AND';
     %         mi.mask(2).encoding='RIM';
@@ -810,8 +811,8 @@ if ok
     %         set(h.togglebutton_Automask,'value',true);
     %     end;
 else
-     warning(['Can''t find the image ' imageBasename]);
-
+    disp(['Can''t find either ' fullMergedImageName]);
+    disp(['  or ' fullImageName]);
 end
 end
 
@@ -927,16 +928,17 @@ if h.imageLoaded
     nv=numel(h.mi.vesicle.x);
     
     % if numel(h.filtImage)>0  % an image has been loaded
-    msk=rot90(meGetMask(h.mi,size(h.filtImage),1:h.maskIndex));
+%     msk=rot90(meGetMask(h.mi,size(h.filtImage),1:h.maskIndex));
+    msk=rot90(GetOurMask(h.mi,size(h.filtImage),h.ds0,1:h.maskIndex));
     imData=h.filtImage;
 %     n=size(h.filtImage);
     showMask=1;
     showAmps=1;
     showCircles=1;
-    showGhosts=0;
+%     showGhosts=0;
+    imData=h.filtImage;
     switch h.displayMode
         case 0 % default: image and circles.
-            imData=h.filtImage;
         case 1 % subtracted with circles
             imData=h.filtImage-h.filtVesImage;
         case 2 % subtracted only
@@ -944,18 +946,19 @@ if h.imageLoaded
 %             showGhosts=h.makeModelVesicles;
             showCircles=0;
             showAmps=0;
-%         case 3
-%             if numel(h.ccValsScaled)>1
-%                 imData=h.ccValsScaled(1:n(1),1:n(2));
+         case 3 % Unsubtracted
+            showCircles=0;
+            showAmps=0; 
+             %                 imData=h.ccValsScaled(1:n(1),1:n(2));
 %                 showGhosts=h.makeModelVesicles;
 %             else
 %                 return
 %             end;
-        case 3
-%             Show CTF-corrected image.
-            imData=Downsample(h.ifImageComp,size(h.filtImage));
-%             showGhosts=h.makeModelVesicles;
-            showCircles=0;
+%         case 3
+% %             Show CTF-corrected image.
+%             imData=Downsample(h.ifImageComp,size(h.filtImage));
+% %             showGhosts=h.makeModelVesicles;
+%             showCircles=0;
     end;
     %     theImage =  repmat(rot90(imscale(imData,256,1e-3)),[1 1 3]);
 %     midValue=(h.e1CtrValue-h.e1ImageOffset)/(h.mi.doses(1)*h.mi.cpe)
@@ -1082,8 +1085,8 @@ end
 function editWhite_Callback(hObject, eventdata, h)
 q=str2double(get(hObject,'String'));
 if ~isnan(q)
-    h.sav.white=q;
-    set(hObject,'string',num2str(q));
+    h.sav.white=q/10;
+    set(hObject,'string',sprintf('%4.2g',q));
     h=ShowImage(h);
     guidata(hObject, h);
 end;
@@ -1093,8 +1096,8 @@ end
 function editBlack_Callback(hObject, eventdata, h)
 q=str2double(get(hObject,'String'));
 if ~isnan(q)
-    h.sav.black=q;
-    set(hObject,'string',num2str(q));
+    h.sav.black=q/10;
+    set(hObject,'string',sprintf('%4.2g',q));
     h=ShowImage(h);
     guidata(hObject, h);
 end;
@@ -1107,8 +1110,8 @@ function pushbutton_AutoContrast_Callback(hObject, eventdata, h)
 [~,mulr,addr]=imscale(h.filtImage,1,[4.5 5.5]);
 h.sav.black=(.5-addr)/mulr;
 h.sav.white=(1.5-addr)/mulr;
-set(h.editWhite,'String',sprintf('%4.2g',h.sav.white));
-set(h.editBlack,'String',sprintf('%4.2g',h.sav.black));
+set(h.editWhite,'String',sprintf('%4.2g',10*h.sav.white));
+set(h.editBlack,'String',sprintf('%4.2g',10*h.sav.black));
 h=ShowImage(h);
 guidata(hObject,h);
 end
@@ -1157,6 +1160,19 @@ end
 
 
 %%%%%%%%%%%%% MANUAL MASK %%%%%%%%%%%%%
+% Local functions to handle padded, downsampled display images.
+
+function mi=InsertOurMask(msk,mi,ds0,index,mode)
+n=round(mi.imageSize/ds0); % actual size that will be inserted
+newMask=Crop(msk,n); % we assume this part is centered in msk
+mi=meInsertMask(newMask,mi,index,mode);
+end
+
+function msk=GetOurMask(mi,n,ds0,indices)
+n0=round(mi.imageSize/ds0); % expected size of the stored mask
+localMask=meGetMask(mi,n0,indices);
+msk=Crop(localMask,n);
+end
 
 % --- Executes on button press in pushbutton_OutlineMask.
 function pushbutton_OutlineMask_Callback(hObject, eventdata, h)
@@ -1181,7 +1197,8 @@ if h.imageLoaded && q % We're doing manual masking
     delete(hFH);  % needed for bug in v2015a prerelease
     binaryImage =~rot90(binaryImage,3);
     h.maskIndex=max(3,h.maskIndex)+1;
-    h.mi=meInsertMask(binaryImage,h.mi,h.maskIndex,'AND');
+%     h.mi=meInsertMask(binaryImage,h.mi,h.maskIndex,'AND');
+    h.mi=InsertOurMask(binaryImage,h.mi,h.ds0,h.maskIndex,'AND');
     h.miChanged=1;
     h=ShowImage(h);
     %         catch   % Error occurred, exit manual mask mode.
@@ -1229,7 +1246,8 @@ for i=1:npts
 end;
 msk=fliplr(msk);
 h.maskIndex=max(3,h.maskIndex)+1;
-h.mi=meInsertMask(~msk,h.mi,h.maskIndex,'AND');
+% h.mi=meInsertMask(~msk,h.mi,h.maskIndex,'AND');
+h.mi=InsertOurMask(~msk,h.mi,h.ds0*2,h.maskIndex,'AND');
 h.miChanged=1;
 h=ShowImage(h);
 end
@@ -1438,7 +1456,8 @@ if nargin<2
     active=true;
 end;
 if ~active
-    h.mi=meInsertMask(true(round(size(h.origImage)/2)),h.mi,3,'AND');
+%     h.mi=meInsertMask(true(round(size(h.origImage)/2)),h.mi,3,'AND');
+    h.mi=InsertOurMask(true(round(size(h.origImage)/2)),h.mi,h.ds0*2,3,'AND');
     h.miChanged=1;
     h=ShowImage(h);
     return
@@ -1459,7 +1478,8 @@ if h.automaskOn
     mskGlobal=(GaussFiltDCT(mskGlobal,fc1)>.99);
     
     % The automask always goes into position 3.
-    h.mi=meInsertMask(mskLocal & mskGlobal,h.mi,3,'AND');
+%     h.mi=meInsertMask(mskLocal & mskGlobal,h.mi,3,'AND');
+    h.mi=InsertOurMask(mskLocal & mskGlobal,h.mi,h.ds0*2,3,'AND');
     h.miChanged=1;
     h=ShowImage(h);
 end;
@@ -1869,6 +1889,8 @@ end
 function axes1_ButtonDownFcn(hObject, eventdata, h)
 axesHandle=get(hObject,'parent');
 h=guidata(axesHandle);
+    q=get(h.pushbutton_OutlineMask,'value');
+    
 if h.manualMaskActive      % draw on the screen
     if h.manualMaskDiameter>0
         set(h.axes1,'nextplot','add');
@@ -1878,7 +1900,7 @@ if h.manualMaskActive      % draw on the screen
         set(h.axes1,'nextplot','add');
         h.axes1ButtonDown=1;
     end;
-else
+elseif ~q
     [h, doUpdateDisplay]=vfMouseClick(h);
     if doUpdateDisplay
         h=UpdateDisplayFiltering(h,false);

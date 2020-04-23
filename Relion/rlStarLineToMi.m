@@ -3,6 +3,7 @@ function [ok,mi,img,nLines]=rlStarLineToMi(sNames,sDats,iLine,pars)
 % Given [smes,sDats]=ReadStarFile(name), create an mi struct from the
 % line index iLine. Optionally returns the scaled micrograph img and the
 % total number of lines in the star structures.
+% Handles optics groups too.
 
 if nargin<4
     pars=struct; % use all defaults.
@@ -12,25 +13,23 @@ ok=0;
 mi=[];
 img=[];
 
-dpars=struct;
-
-dpars.basePath=pwd; % assume we're in the relion project directory
-dpars.cameraIndex=5; % K2
-dpars.cpe=0.8;  % counts per electron, for K2 counting mode.
-% cameraIndex=6; % 'Falcon2' as we don't have info for Falcon 3 yet.
-% cpe=64;
-% processed by MotionCor2, this should be 0.2 I think.
-dpars.dose=60; % Approx total movie dose in e/A^2
-dpars.writeFullSize=0; % write out full-size *.m image
-dpars.writeDownsampled=0;
-dpars.ds=8;  % downsampling factor for 'small' image
-dpars.writeMiFile=0;
-dpars.BFactor=60;
-dpars.changeImagePath=1; % Where to find micrographs
-dpars.imagePath='';
-dpars.readMicrographForScale=1;
-
-pars=SetDefaultValues(dpars,pars,1); % 1 means check the fieldnames.
+% Here are example parameters.
+% dpars.basePath=pwd; % assume we're in the relion project directory
+% dpars.cameraIndex=5; % K2
+% dpars.cpe=0.8;  % counts per electron, for K2 counting mode.
+% % cameraIndex=6; % 'Falcon2' as we don't have info for Falcon 3 yet.
+% % cpe=64;
+% % processed by MotionCor2, this should be 0.2 I think.
+% dpars.dose=60; % Approx total movie dose in e/A^2
+% dpars.writeFullSize=0; % write out full-size *.m image
+% dpars.writeDownsampled=0;
+% dpars.ds=8;  % downsampling factor for 'small' image
+% dpars.writeMiFile=0;
+% dpars.BFactor=60;
+% dpars.changeImagePath=1; % Where to find micrographs
+% dpars.imagePath='';
+% dpars.readMicrographForScale=1;
+% pars=SetDefaultValues(dpars,pars,1); % 1 means check the fieldnames.
 
 % Pick up the parameters that might be special to an optics group
 iOptics=0; % pointer to Optics block in star file
@@ -93,6 +92,13 @@ mi=mi0; % copy the default parameters
     mi.camera=pars.cameraIndex;
     mi.cpe=pars.cpe;
     mi.weights=1;
+
+    if pars.readMicrographForScale || pars.skipIfNoImage
+        micName=[mi.imagePath mi.imageFilenames{1}];
+        if ~exist(micName,'file')
+            return
+        end;
+    end;    
     
 %   Set up to use the original micrograph as the "processed" or "merged"
 %   image.
@@ -109,10 +115,6 @@ mi=mi0; % copy the default parameters
 %     In the end we'll get the scaled micrograph as
 %     scaledImg = (m-mi.imageMedian)*mi.imageNormScale;
     if pars.readMicrographForScale
-        micName=[mi.imagePath mi.imageFilenames{1}];
-        if ~exist(micName,'file')
-            return
-        end;
         m=ReadMRC(micName);
         mi.imageSize=size(m);
         sds=floor(min(mi.imageSize)/256); % Downsampling factor for spectrum
@@ -125,9 +127,9 @@ mi=mi0; % copy the default parameters
         mi.imageMedian=median(m(:)); % best estimate we have of the main image mean.
         img=(single(m)-mi.imageMedian)*mi.imageNormScale;
 
-    else % we assume a true counting camera, binned from superres, and just estimate it.
-        mi.imageNormScale=2/(mi.pixA*sqrt(mi.doses(1))); % factor of 2 for 
-%            2-binned superres images.
+    else % we assume a true counting camera, binned from superres, and 
+%         just wing it for scale, don't compute median.
+            mi.imageNormScale=1/(mi.cpe*mi.pixA^2*mi.doses(1));
     end;
     %     CTF parameters
     mi.ctf=struct;

@@ -1,7 +1,9 @@
 % startup.m
-host='Katz';
+% Put this script somewhere where Matlab will look on startup, e.g. in home
+% folder or in ~/Documents/MATLAB
+host='MyHost';
 homePath='~/';
-basePath='~/aEMCodeRepository/';
+basePath='~/aEMCodeRepository/'; % We asssume that the code is here.
 
 disp([which('startup') ' on ' host]);
 
@@ -38,8 +40,4 @@ folders={['aLibs' filesep 'EMBase']
 for i=1:numel(folders)
     addpath([basePath folders{i}]);
 end;
-% disp('Using desktop RSCReconstruct');
-% addpath('/Users/fred/Desktop/RSCReconstruct');
-% addpath('/Users/fred/Dropbox/OHSU_images/matlabprogram');
-% disp('Using Liguo''s code');
 

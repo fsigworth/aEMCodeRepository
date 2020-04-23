@@ -17,7 +17,6 @@ function [name,ok]=CheckForAltImage(name,sufExts)
         ok=exist(name,'file');
     end;
     if ~ok
-        name='';
         if nargout<2
             error(['No file or alternate found with the name ' name]);
         end;

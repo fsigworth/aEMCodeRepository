@@ -9,6 +9,7 @@ if nargin>2 && checkFieldnames  % we want warnings about unrecognized fields in 
     sNames=fieldnames(s);
     nfs=numel(sNames);
     for i=1:nfs
+        name=sNames{i};
         if ~isfield(defaults,name)
             disp(['Unrecognized field: ' name]);
         end;
