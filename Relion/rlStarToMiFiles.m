@@ -5,8 +5,6 @@ function rlStarToMiFiles(starName,pars)
 % and create a set of mi files. We create the
 % Info/ directory to contain the mi files.
 % If the first argument is missing or is '' a file selector is put up.
-% if pars. writeImage is true, Merged/ is created and contains padded and scaled
-% micrograph files.
 % If the first argument starCells is a cell array, it contains the outputs from
 % ReadStarFile() so the file doesn't have to be read again.
 if nargin<1
