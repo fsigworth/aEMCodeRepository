@@ -3,7 +3,7 @@ function msk=meMakeMergedImageMask(n,Tmats, edgeWidth, weights)
 % Create a mask of size n corresponding to images merged according to the
 % affine matrices Tmats. Masked region of msk is zeros.
 
-[t1 t2 nim]=size(Tmats);
+nim=size(Tmats,3);
 if nargin<3 || all(edgeWidth==0)
     edgeWidth=n/512;  % same criterion as in meCombineImages.
 end;

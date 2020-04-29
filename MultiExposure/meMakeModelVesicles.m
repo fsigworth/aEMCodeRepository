@@ -13,26 +13,27 @@ function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % mi.vesicle.ok that are all 1s.
 % If the second argument is an image, then n is taken as size(img) and the
 % final v is scaled to match img by least-squares.
-% If the second argument is a struct, we use the fields
+% If the second argument is a struct we assum it's
 %   scl.n size of the output image
-%   scl.ds downsampling factor
-%   scl.dsShift shift of input image due to padding before downscaling, 1x2
+%   scl.M image scale matrix from meGetImageScale()
 
-if isa(n,'struct')
-    ds=n.ds;
-    dsShift=n.dsShift;
+if isa(n,'struct')% has n and an affine matrix
+%     dsShift=-n.M(1:2,3)';
+    M=n.M;
+    ds=M(1,1);
     n=n.n;
     doFitImage=0;
 else
     if numel(n)>2 % we supplied an image
         m0=n;
-        n=size(n);
+        n=size(m0);
         doFitImage=1;  % We'll do least-squares to the image.
     else
         doFitImage=0;
     end;
     ds=mi.imageSize(1)/n(1);   % downsample factor
-    dsShift=[0 0]; % by default no shift.
+%     dsShift=[0 0]; % by default no shift.
+    M=[ds 0 0; 0 ds 0; 0 0 1]; 
 end;
 
 v=zeros(n,'single');  % default is a zero image.
@@ -88,12 +89,18 @@ vd=meDownsampleVesicleModel(mi.vesicleModel,ds)*ds*mi.pixA;
 
 nim=numel(vindex);
 sumv=single(zeros(n));
+nv=numel(mi.vesicle.x);
+globalXY=[mi.vesicle.x mi.vesicle.y ones(nv,1)]';
+vesXY=1+M\globalXY;
 for k=1:nim
     ind=vindex(k);
     % Get the coordinates and radius, scaled down by ds
-    vx=(mi.vesicle.x(ind)+dsShift(1))/ds+1;  % zero-based coordinate
-    vy=(mi.vesicle.y(ind)+dsShift(2))/ds+1;
-    vr=mi.vesicle.r(ind,:)/ds;
+    
+%     vx=(mi.vesicle.x(ind)+dsShift(1))/ds+1;  % zero-based coordinate
+%     vy=(mi.vesicle.y(ind)+dsShift(2))/ds+1;
+        vx=vesXY(1,ind);
+        vy=vesXY(2,ind);
+vr=mi.vesicle.r(ind,:)/ds;
     
     % Accumulate the vesicle density
 %     sumv=sumv-mi.vesicle.s(ind)*VesicleFromModel(n,vr,vd,[vx vy]);
@@ -125,7 +132,7 @@ if doCTF % operate with the CTF
     H=meGetEffectiveCTF(mi,n,ds);
 end;
 if doPW  % Pre-whitening filter
-    H=H.*meGetNoiseWhiteningFilter(mi,n);
+    H=H.*meGetNoiseWhiteningFilter(mi,n,ds);
 end;
 if doCTF || doPW  % do the filtering
     v=single(real(ifftn(fftn(double(sumv)).*ifftshift(double(H)))));  % Filter with the ctf.

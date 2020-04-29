@@ -94,7 +94,7 @@ amPars.dense=.5;
 sav.automaskPars=amPars;  % saved variables, stored in "VFContext.mat"
 sav.fullInfoPath='';
 sav.baseName='';
-sav.vesicleAmps=[2e-3 5e-3 .5];
+sav.vesicleAmps=[2e-3 5e-3 200];
 sav.vesicleRadii=[100 300 10];
 sav.filterFreqs=[0 .1];   % HP and LP, in A^-1
 sav.contrastPars=zeros(2,1);
@@ -120,21 +120,21 @@ disp(['The current path is ' pwd]);
 pa=fileparts(which('Vesicle_finding_GUI'));
 ourContextName=[pa '/VFContext.mat'];
 
-    if numel(varargin)>1 % attempt to use our given context file
-        if exist(varargin{2},'file')
-            ourContextName=varargin{2};
-        else
-            disp([varargin{2} '  (context file) not found.']);
-        end;
+if numel(varargin)>1 % attempt to use our given context file
+    if exist(varargin{2},'file')
+        ourContextName=varargin{2};
+    else
+        disp([varargin{2} '  (context file) not found.']);
     end;
+end;
 
 if exist(ourContextName,'file')
     disp(['Loading ' ourContextName]);
     sav1=load(ourContextName);
-%     Any field that sav1 lacks is loaded from h.sav (defaults)
+    %     Any field that sav1 lacks is loaded from h.sav (defaults)
     h.sav=SetDefaultValues(h.sav,sav1.sav);
     %%%%%%
-%     h.sav.initTheVesicles=0;
+    %     h.sav.initTheVesicles=0;
 else
     disp(['Context file doesn''t exist:  ' ourContextName]);
 end;
@@ -270,7 +270,7 @@ set(h.MaskRadiobuttons,'SelectedObject',[]);
 
 h.batchMode=numel(varargin)>0 && isa(varargin(1),'cell');
 if h.batchMode
-disp('Batch mode.');
+    disp('Batch mode.');
     h.jpegDir='Jpeg/';
     CheckAndMakeDir(h.jpegDir,1);
     h.sav.fileList=varargin{1};
@@ -295,15 +295,15 @@ end % Vesicle_finding_GUI_OpeningFcn
 function varargout = Vesicle_finding_GUI_OutputFcn(~, ~, h)
 %     varargout{1} = h.output;
 varargout={};
-end        
-       
+end
+
 function h=GetFileList(h);
 % Check to see if we have a valid file to start with:
 % In that case h.sav.startPath exists,
 % [startPath h.sav.fileList{1}] is a valid filename
 % and we assume that h.sav.fileIndex points to a valid file.
 % Otherwise:
-% We put up a file selector and pick one mi file. 
+% We put up a file selector and pick one mi file.
 % Change directory to the one above where the mi file sits,
 % Also create a list of all mi
 % files, which will allow moving forward and backward.
@@ -381,20 +381,20 @@ while h.imageLoaded && get(h.togglebutton_RoboFit,'value')
     %         delete the old automask
     h=NewAutomask(h,false);
     set(h.togglebutton_Automask,'value',0);
-            h.doTrackMembranes=0;
-            %         guidata(hObject,h);
-            %         Find vesicles
-%             guidata(hObject,h);
-            DoFind(h.pushbutton_Find, 0, h);
-            h=guidata(hObject);
-            pause(0.1);
-            pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
-            h=guidata(hObject);
-            pause(0.1);
-            %         Make a new automask
-            disp('Automask on.');
-            set(h.togglebutton_Automask,'value',1);
-%     guidata(hObject,h);
+    h.doTrackMembranes=0;
+    %         guidata(hObject,h);
+    %         Find vesicles
+    %             guidata(hObject,h);
+    DoFind(h.pushbutton_Find, 0, h);
+    h=guidata(hObject);
+    pause(0.1);
+    pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
+    h=guidata(hObject);
+    pause(0.1);
+    %         Make a new automask
+    disp('Automask on.');
+    set(h.togglebutton_Automask,'value',1);
+    %     guidata(hObject,h);
     togglebutton_Automask_Callback(h.togglebutton_Automask, 0, h)
     %         %
     %         %         set(h.togglebutton_Automask,'value',0);
@@ -406,21 +406,21 @@ while h.imageLoaded && get(h.togglebutton_RoboFit,'value')
     pause(0.1);
     %     pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
     
-%     %         Make a new automask
-%     set(h.togglebutton_Automask,'value',1);
-%     h=guidata(hObject);
-%     togglebutton_Automask_Callback(h.togglebutton_Automask, 0, h)
-%     pause(0.1);
-%     h=guidata(hObject);
+    %     %         Make a new automask
+    %     set(h.togglebutton_Automask,'value',1);
+    %     h=guidata(hObject);
+    %     togglebutton_Automask_Callback(h.togglebutton_Automask, 0, h)
+    %     pause(0.1);
+    %     h=guidata(hObject);
     if h.batchMode && h.doPrinting
         print('-djpeg',[h.jpegDir h.mi.baseFilename 'vf.jpg']);
     end;
-%     guidata(hObject,h);
+    %     guidata(hObject,h);
     pushbutton_nextName_Callback(h.pushbutton_nextName,0,h);
     h=guidata(hObject);
-%     h=LoadAFile(h);
+    %     h=LoadAFile(h);
 end;
-        disp(['RoboFit ended. ' datestr(now)]);
+disp(['RoboFit ended. ' datestr(now)]);
 guidata(hObject,h);
 end
 
@@ -468,7 +468,7 @@ end
 
 function h=CloseFile(h) % store the results of operations
 if ~h.imageLoaded || ~h.miChanged
-%     disp('No changes to mi file.  Not written.');
+    %     disp('No changes to mi file.  Not written.');
     return
 end;
 
@@ -487,7 +487,7 @@ else
     h.mi=rsMergeVesicleList2(h.mi,h.miOriginal);
 end;
 if numel(h.oldVesicleModel)>0  % Restore the old vesicle model
-%     h.mi.vesicleModel=h.oldVesicleModel;
+    %     h.mi.vesicleModel=h.oldVesicleModel;
 end;
 h.mi.log{end+1,1}=['Vesicle_finding_GUI ' TimeStamp];
 outName=[h.mi.infoPath h.mi.baseFilename 'mi.txt'];
@@ -530,16 +530,16 @@ end
 
 % --- Executes on button press in pushbutton_formerName.
 function pushbutton_formerName_Callback(hObject, ~, h)
-    h.sav.fileIndex=h.sav.fileIndex-1;
-    h=LoadAFile(h);
-    guidata(hObject,h);
+h.sav.fileIndex=h.sav.fileIndex-1;
+h=LoadAFile(h);
+guidata(hObject,h);
 end
 
 % --- Executes on button press in pushbutton_nextName.
 function pushbutton_nextName_Callback(hObject, ~, h)
-    h.sav.fileIndex=h.sav.fileIndex+1;
-    h=LoadAFile(h);
-    guidata(hObject,h);
+h.sav.fileIndex=h.sav.fileIndex+1;
+h=LoadAFile(h);
+guidata(hObject,h);
 end
 
 % function [h, ok]=LoadAnotherMiFile(h,offset)
@@ -558,7 +558,7 @@ end
 %     d=dir(infoPath);
 %     dirIndex = [d.isdir];  % Find the index for directories
 %     fileList = {d(~dirIndex).name}';  % Get a list of the files
-%     
+%
 %     findcurrentfile = strfind(fileList,[h.sav.baseName 'mi.']);
 %     currentfile_id = find(~cellfun(@isempty,findcurrentfile));   % current working file id
 %     id=currentfile_id;
@@ -578,14 +578,14 @@ end
 % end;
 % disp(['Reading ' fileName]);
 % [mi,nameRead]=ReadMiFile([infoPath fileName]);
-% 
+%
 % [pa,nm,ex]=fileparts(nameRead);
 % fileName=[nm ex];
 % % set(h.sav.fileNameText,'String',fileName);
-% 
+%
 % h.sav.baseName=nm(1:numel(nm)-2);  % delete the 'mi'
 % mi.basePath=AddSlash(pwd);
-% 
+%
 % nim=min(min(numel(mi.ctf),numel(mi.doses)),size(mi.frameSets,1));
 % for i=1:nim
 %     if ~isfield(mi.ctf(i),'defocus') % skip to next file, then return
@@ -593,14 +593,14 @@ end
 %     end;
 %     disp([num2str(mi.ctf(i).defocus,3) 'um.  frames: ' num2str(mi.frameSets(i,:)) '  dose: ' num2str(mi.doses(i),3)]);
 % end;
-% 
+%
 % [h ok]=GetImageFile(mi,h); % copies mi into h.mi
 % if ~ok
 %     return
 % end;
-% 
+%
 % % Update the mask
-% 
+%
 % % if ~isfield(mi,'mask') || ~isfield(mi.mask,'merge') || numel(mi.mask.merge)<1
 % %    Old merged data: compute the base mask and insert it.
 % % disp('Computing merge mask...');
@@ -610,12 +610,12 @@ end
 % % end;
 % %     Point to the end of the stack
 % h.maskIndex=numel(h.mi.mask);
-% 
-% 
+%
+%
 % h=InitDisplay(h);
-% 
+%
 % end
-% 
+%
 
 
 
@@ -657,9 +657,9 @@ end
 % mis.particle.picks=[];
 % mis.particle.autopickPars=[];
 % end
-% 
-% 
-% 
+%
+%
+%
 % function mis=ZeroOutVesicles(mis,h)
 % % Initialize all the vesicle fields in the mi structure
 % % membrane model
@@ -708,6 +708,7 @@ if size(mi.vesicle.ok,2)<4 && nv>0
     mi.vesicle.ok(nv,4)=false;  % extend the array
 end;
 
+
 % Load the merged image
 imageBasename=[mi.procPath mi.baseFilename 'm.mrc'];
 sufExts={'s.mrc' 'z.tif' '.mrc'};
@@ -717,7 +718,7 @@ if ok % Try for reading the raw micrograph
     m=single(ReadEMFile(fullMergedImageName));
 else
     % try for reading the raw micrograph. We then subtract the median and
-%     scale it to reflect fractional image intensity
+    %     scale it to reflect fractional image intensity
     fullImageName=[mi.imagePath mi.imageFilenames{1}];
     if exist(fullImageName,'file') ...
             && isfield(mi,'imageNormScale') && mi.imageNormScale~=0;
@@ -736,41 +737,34 @@ if ok
     % our image.
     dsMicrograph=round(max(mi.imageSize./szm)); % we assume that any cropping
     %                                               or padding is small.
-    dsMicrographShift=floor(szm*dsMicrograph/2)-floor(mi.imageSize/2);
-    
-    % set h.displaySize to the nearest nice numbers to the target display size
+    h.M0=meGetImageScaling(mi.imageSize,szm,dsMicrograph);
+    %
+    % Now set h.displaySize to the nearest nice numbers to the target display size
     sz=zeros(2,2);
     sz(1,:)=NextNiceNumber(h.targetDisplaySize,5,4)-h.targetDisplaySize;
     sz(2,:)=NextNiceNumber(h.targetDisplaySize,5,-4)-h.targetDisplaySize;
     [~,best]=min(sum(sz.^2,2));
     h.displaySize=sz(best,:)+h.targetDisplaySize;
     
-    %         Get the downsampling factor and origin shift from our image
-    %               to our displayed image
-    dsImage=ceil(max(size(m)./h.displaySize)); % downsampling from our image
-    mCropN=h.displaySize*dsImage;
-    dsImageShift=floor(mCropN/2)-floor(size(m)/2);
-    h.origImage=Downsample(Crop(m,mCropN),h.displaySize);
-    %     Store the downsampling factor and shift relative to the micrograph
-    h.ds0=dsImage*dsMicrograph;
-    h.ds0Shift=dsMicrographShift+dsMicrograph*dsImageShift;
+    %         Get our working "origImage" of size h.displaySize, and the
+    %         affine matrix from its coordinates to the micrograph
+    %         coordinates.
+    [M1,h.origImage]=meGetImageScaling(m,h.displaySize);
+    h.M2=h.M0*M1; % Overall image scaling matrix
+    h.ds0=h.M2(1,1); % Overall downsampling factor
+    %     h.ds0Shift=-h.M2(1:2,3)'; % Shift in micrograph coordinates
+    %     micrographXY = M2*localXY (assuming zero-origin arrays) or
+    %     micrographXY = ds0*localXY-ds0Shift;
     h.pixA=h.ds0*mi.pixA; % scale of displayed image.
     ok=true;
     
-    %     Code for converting our local display coords (2-element vector) to global (zero-based
-    %       micrograph) coords
-    %           global=(local-1)*h.ds0-h.ds0Shift;
-    %     Code for converting global to local
-    %           local=(global+h.ds0Shift)/h.ds0+1;
-    
-    
     h.oldFilterFreqs=[0 0];
     set(h.textFilename,'string',mi.baseFilename);
-         h.e1ImageOffset=5; % way beyond the expected pixel range.
-%         here is the only computation done with the original image.
-        e1Image=h.origImage+h.e1ImageOffset;  % offset it from zero.
+    h.e1ImageOffset=5; % way beyond the expected pixel range.
+    e1Image=h.origImage+h.e1ImageOffset;  % offset it from zero so we
+    %         can analyze its distribution.
     h.exp1Image=Downsample(e1Image,h.displaySize/2); % displaySize is a multiple of 4.
-    
+    %     We'll also make masks of h.displaySize/2.
     h.imageLoaded=true;
     h.rawImage=single(0);
     h.automaskOn=false;
@@ -783,12 +777,12 @@ if ok
     
     % initialize the mask
     t=mi.mergeMatrix;
-    
-    msk0=meMakeMergedImageMask(round(mi.imageSize/2),t,mi.imageSize/h.borderFraction);
-    msk=DownsampleGeneral(msk0,round(h.displaySize/2),1/h.ds0)>0.5;
-%     msk=meMakeMergedImageMask(h.displaySize/2,t,h.displaySize/h.borderFraction);
-%     mi=meInsertMask(msk,mi,1);
+    baseMaskN=round(mi.imageSize/(2*h.ds0));
+    msk=meMakeMergedImageMask(baseMaskN,t,baseMaskN/h.borderFraction);
     mi=InsertOurMask(msk,mi,h.ds0*2,1,'AND');
+    %     Remember, when we retrieve our mask we must pad it to h.displaySize
+    %     This is done by GetOurMask().
+    
     %     if h.automaskBeamOn  % we've left this on from last time; update values
     %         mi.mask(2).merge='AND';
     %         mi.mask(2).encoding='RIM';
@@ -828,13 +822,14 @@ end;
 %         Create the displayed image
 % h.rawImage=DownsampleGeneral(h.origImage,h.displaySize);
 
-h=CreateE1Map(h);
+h=CreateE1Map(h); %Create the automask image.
 
 if h.maskIndex<3  % Turn off automask if it hasn't been done before.
     set(h.togglebutton_Automask,'value',false);
 end;
 
 if h.makeModelVesicles
+    %     Handle old mi versions :(
     if ~isfield(h.mi.vesicle,'ok') || size(h.mi.vesicle.ok,1)<1
         h.mi.vesicle.ok=false;  % make one entry.
     else % something these
@@ -848,13 +843,11 @@ if h.makeModelVesicles
     
     goodVes=all(h.mi.vesicle.ok(:,1:2),2); % vesicles in range
     badVes=(h.mi.vesicle.ok(:,1) & ~h.mi.vesicle.ok(:,2)); % found, but not in range
-    
     scl.n=h.displaySize;
-    scl.ds=h.ds0;
-    scl.dsShift=h.ds0Shift;
+    scl.M=h.M2;
     h.goodVesImage=meMakeModelVesicles(h.mi,scl,find(goodVes));
     h.badVesImage=meMakeModelVesicles(h.mi,scl,find(badVes));
-%     disp('...done');
+    %     disp('...done');
 end;
 h.ctf=meGetEffectiveCTF(h.mi,h.displaySize,h.ds0);
 h=UpdateDisplayFiltering(h);
@@ -872,7 +865,6 @@ end;
 fhndl=@(hObject,eventdata) Vesicle_finding_GUI('KeyPressFcn',hObject,eventdata,guidata(hObject));
 set(fh,'keypressfcn',fhndl);
 end
-
 
 % UpdateDisplayFiltering
 function h=UpdateDisplayFiltering(h,doRawImage)
@@ -902,7 +894,8 @@ end
 function h=ShowImage(h)
 if h.imageLoaded
     
-    % Draw the scatterplot of existing vesicles
+    % Draw the scatterplot of existing vesicles **redundant with code in
+    % doFind()
     if isfield(h.mi.vesicle,'ok')
         [nv, ne]=size(h.mi.vesicle.ok);
         if nv>0 && ne>3 && numel(h.mi.vesicle.r)>0
@@ -928,14 +921,15 @@ if h.imageLoaded
     nv=numel(h.mi.vesicle.x);
     
     % if numel(h.filtImage)>0  % an image has been loaded
-%     msk=rot90(meGetMask(h.mi,size(h.filtImage),1:h.maskIndex));
+    %     msk=rot90(meGetMask(h.mi,size(h.filtImage),1:h.maskIndex));
+    
+    % Get a mask at full display size.
     msk=rot90(GetOurMask(h.mi,size(h.filtImage),h.ds0,1:h.maskIndex));
-    imData=h.filtImage;
-%     n=size(h.filtImage);
+    % Set the display mode
     showMask=1;
     showAmps=1;
     showCircles=1;
-%     showGhosts=0;
+    %     showGhosts=0;
     imData=h.filtImage;
     switch h.displayMode
         case 0 % default: image and circles.
@@ -943,68 +937,68 @@ if h.imageLoaded
             imData=h.filtImage-h.filtVesImage;
         case 2 % subtracted only
             imData=h.filtImage-h.filtVesImage;
-%             showGhosts=h.makeModelVesicles;
+            %             showGhosts=h.makeModelVesicles;
             showCircles=0;
             showAmps=0;
-         case 3 % Unsubtracted
+        case 3 % Unsubtracted
             showCircles=0;
-            showAmps=0; 
-             %                 imData=h.ccValsScaled(1:n(1),1:n(2));
-%                 showGhosts=h.makeModelVesicles;
-%             else
-%                 return
-%             end;
-%         case 3
-% %             Show CTF-corrected image.
-%             imData=Downsample(h.ifImageComp,size(h.filtImage));
-% %             showGhosts=h.makeModelVesicles;
-%             showCircles=0;
+            showAmps=0;
+            %                 imData=h.ccValsScaled(1:n(1),1:n(2));
+            %                 showGhosts=h.makeModelVesicles;
+            %             else
+            %                 return
+            %             end;
+            %         case 3
+            % %             Show CTF-corrected image.
+            %             imData=Downsample(h.ifImageComp,size(h.filtImage));
+            % %             showGhosts=h.makeModelVesicles;
+            %             showCircles=0;
     end;
     %     theImage =  repmat(rot90(imscale(imData,256,1e-3)),[1 1 3]);
-%     midValue=(h.e1CtrValue-h.e1ImageOffset)/(h.mi.doses(1)*h.mi.cpe)
+    %     midValue=(h.e1CtrValue-h.e1ImageOffset)/(h.mi.doses(1)*h.mi.cpe)
     midValue=0;
-%%
-theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)+128),[1 1 3]);
+    %%
+    theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.black)+128),[1 1 3]);
     nx=size(h.origImage,1);
     ny=size(h.origImage,2);
     
-%     if showGhosts
-%         ghostColor=[.7 .7 1];
-%         ghostColorBad=[1 .5 .35];
-%         dotW=2;
-%         
-%         xCtrs=max(dotW+1,min(nx-dotW,round(h.mi.vesicle.x/h.ds0+1)));
-%         yCtrs=max(dotW+1,min(ny-dotW,round(h.mi.vesicle.y/h.ds0+1)));
-%         if any(goodVes)
-%             gves=imscale(max(-h.goodVesImage,-1e-9),1);
-%             for i=find(goodVes)'
-%                 gves(xCtrs(i)-dotW:xCtrs(i)+dotW,yCtrs(i)-dotW:yCtrs(i)+dotW)=1.5;
-%             end;
-%         else
-%             gves=0;
-%         end;
-%         if any(badVes)
-%             bves=imscale(max(-h.badVesImage,-1e-9),1);
-%             for i=find(badVes)'
-%                 bves(xCtrs(i)-dotW:xCtrs(i)+dotW,yCtrs(i)-dotW:yCtrs(i)+dotW)=1.5;
-%             end;
-%             
-%             %             hp1=plot(h.mi.vesicle.x(goodVes)/h.ds0+1,...
-%             %             ny-(h.mi.vesicle.y(goodVes)/h.ds0),'b.','markersize',10);
-%             
-%         else
-%             bves=0;
-%         end;
-%         
-%         color=(1-ghostColor); % color to subtract for membrane
-%         for i=1:3
-%             theImage(:,:,i)=theImage(:,:,i).*(1-rot90(gves)*color(i));
-%         end;
-%         color=(1-ghostColorBad); % color for bad vesicle
-%         for i=1:3
-%             theImage(:,:,i)=theImage(:,:,i).*(1-rot90(bves)*color(i));
-%         end;
-%     end;
+    %     if showGhosts
+    %         ghostColor=[.7 .7 1];
+    %         ghostColorBad=[1 .5 .35];
+    %         dotW=2;
+    %
+    %         xCtrs=max(dotW+1,min(nx-dotW,round(h.mi.vesicle.x/h.ds0+1)));
+    %         yCtrs=max(dotW+1,min(ny-dotW,round(h.mi.vesicle.y/h.ds0+1)));
+    %         if any(goodVes)
+    %             gves=imscale(max(-h.goodVesImage,-1e-9),1);
+    %             for i=find(goodVes)'
+    %                 gves(xCtrs(i)-dotW:xCtrs(i)+dotW,yCtrs(i)-dotW:yCtrs(i)+dotW)=1.5;
+    %             end;
+    %         else
+    %             gves=0;
+    %         end;
+    %         if any(badVes)
+    %             bves=imscale(max(-h.badVesImage,-1e-9),1);
+    %             for i=find(badVes)'
+    %                 bves(xCtrs(i)-dotW:xCtrs(i)+dotW,yCtrs(i)-dotW:yCtrs(i)+dotW)=1.5;
+    %             end;
+    %
+    %             %             hp1=plot(h.mi.vesicle.x(goodVes)/h.ds0+1,...
+    %             %             ny-(h.mi.vesicle.y(goodVes)/h.ds0),'b.','markersize',10);
+    %
+    %         else
+    %             bves=0;
+    %         end;
+    %
+    %         color=(1-ghostColor); % color to subtract for membrane
+    %         for i=1:3
+    %             theImage(:,:,i)=theImage(:,:,i).*(1-rot90(gves)*color(i));
+    %         end;
+    %         color=(1-ghostColorBad); % color for bad vesicle
+    %         for i=1:3
+    %             theImage(:,:,i)=theImage(:,:,i).*(1-rot90(bves)*color(i));
+    %         end;
+    %     end;
     if showMask
         maskColor=[1 .8 .85];
         
@@ -1040,35 +1034,41 @@ theImage =  repmat(rot90(256*(imData-midValue-h.sav.black)/(h.sav.white-h.sav.bl
     %         set(hp1,'HitTest','off');
     %         set(hp2,'HitTest','off');
     %     end;
-    if showAmps
-        for i=1:nv
-            x=double((h.mi.vesicle.x(i)+h.ds0Shift(1))/h.ds0+1);
-            y=double(ny-(h.mi.vesicle.y(i)+h.ds0Shift(2))/h.ds0+1);
-            amp=h.mi.vesicle.s(i,1)*1000;
-            text(x,y,num2str(amp,2),'color',[.8 .8 0],'fontsize',12,'PickableParts','none');
-        end;
-    end;
-    
-    if showCircles
-        hold on
-        for i=1:nv
-            r1=h.mi.vesicle.r(i,:)/h.ds0;
-            if r1(1)<1
-                continue
-            end;
-            [x,y]=CircleLineSegments(r1,min(10,100/r1(1)));
-            x=double(x+(h.mi.vesicle.x(i)+h.ds0Shift(1))/h.ds0+1);
-            y=double(y+ny-(h.mi.vesicle.y(i)+h.ds0Shift(2))/h.ds0+1);
-            if goodVes(i)
-                plot(x,y,'b-','HitTest','off');
-            elseif badVes(i)
-                plot(x,y,'r-','HitTest','off');
+    nv=numel(h.mi.vesicle.x);
+    if nv>0 % something to show
+        globalXY=[h.mi.vesicle.x h.mi.vesicle.y ones(1,nv,'single')];
+        vesXY=double(1+h.M2\globalXY);
+        if showAmps
+            for i=1:nv
+                x=vesXY(1,i);
+                y=ny-vesXY(2,i);
+                %             double((h.mi.vesicle.x(i)-h.M2(1,3))/h.ds0+1);
+                %             y=double(ny-(h.mi.vesicle.y(i)-h.M2(2,3))/h.ds0+1);
+                amp=h.mi.vesicle.s(i,1)*1000;
+                text(x,y,num2str(amp,2),'color',[.8 .8 0],'fontsize',12,'PickableParts','none');
             end;
         end;
-        hold off
+        
+        if showCircles
+            hold on
+            for i=1:nv
+                r1=h.mi.vesicle.r(i,:)/h.ds0;
+                if r1(1)<1
+                    continue
+                end;
+                [x,y]=CircleLineSegments(r1,min(10,100/r1(1)));
+                x=x+vesXY(1,i);
+                y=y+ny-vesXY(2,i);
+                if goodVes(i)
+                    plot(x,y,'b-','HitTest','off');
+                elseif badVes(i)
+                    plot(x,y,'r-','HitTest','off');
+                end;
+            end;
+            hold off
+        end;
+        
     end;
-    
-    
     
     fhndl=@(hObject,eventdata) Vesicle_finding_GUI('axes1_ButtonDownFcn',hObject,eventdata,guidata(hObject));
     set(ih,'buttondownfcn',fhndl);
@@ -1169,6 +1169,7 @@ mi=meInsertMask(newMask,mi,index,mode);
 end
 
 function msk=GetOurMask(mi,n,ds0,indices)
+% Get a mask at downsample ratio ds0 (from mi.imageSize) and padded to n.
 n0=round(mi.imageSize/ds0); % expected size of the stored mask
 localMask=meGetMask(mi,n0,indices);
 msk=Crop(localMask,n);
@@ -1197,8 +1198,9 @@ if h.imageLoaded && q % We're doing manual masking
     delete(hFH);  % needed for bug in v2015a prerelease
     binaryImage =~rot90(binaryImage,3);
     h.maskIndex=max(3,h.maskIndex)+1;
-%     h.mi=meInsertMask(binaryImage,h.mi,h.maskIndex,'AND');
+    %     h.mi=meInsertMask(binaryImage,h.mi,h.maskIndex,'AND');
     h.mi=InsertOurMask(binaryImage,h.mi,h.ds0,h.maskIndex,'AND');
+    
     h.miChanged=1;
     h=ShowImage(h);
     %         catch   % Error occurred, exit manual mask mode.
@@ -1456,8 +1458,8 @@ if nargin<2
     active=true;
 end;
 if ~active
-%     h.mi=meInsertMask(true(round(size(h.origImage)/2)),h.mi,3,'AND');
-    h.mi=InsertOurMask(true(round(size(h.origImage)/2)),h.mi,h.ds0*2,3,'AND');
+    %     h.mi=meInsertMask(true(round(size(h.origImage)/2)),h.mi,3,'AND');
+    h.mi=InsertOurMask(true(size(h.origImage)/2),h.mi,h.ds0*2,3,'AND');
     h.miChanged=1;
     h=ShowImage(h);
     return
@@ -1478,7 +1480,7 @@ if h.automaskOn
     mskGlobal=(GaussFiltDCT(mskGlobal,fc1)>.99);
     
     % The automask always goes into position 3.
-%     h.mi=meInsertMask(mskLocal & mskGlobal,h.mi,3,'AND');
+    %     h.mi=meInsertMask(mskLocal & mskGlobal,h.mi,3,'AND');
     h.mi=InsertOurMask(mskLocal & mskGlobal,h.mi,h.ds0*2,3,'AND');
     h.miChanged=1;
     h=ShowImage(h);
@@ -1599,29 +1601,39 @@ end
 
 % --- Executes on button press in pushbutton_Find.-----------------
 function pushbutton_Find_Callback(hObject, eventdata, h)
+
 h.doTrackMembranes=0;
-DoFind(hObject,eventdata,h);
+DoFind(hObject,eventdata,h,false);
 end
 
 % --- Executes on button press in pushbutton_FindAndTrack.
 function pushbutton_FindAndTrack_Callback(hObject, eventdata, h)
 h.doTrackMembranes=1;
-DoFind(hObject,eventdata,h);
+DoFind(hObject,eventdata,h,false);
 end
 
-function DoFind(hObject, eventdata, h)
 
+% --- Executes on button press in pushbutton_FindMore.-----------------
+% Searches the subtracted micrograph for more vesicles
+function pushbutton_FindMore_Callback(hObject, eventdata, h)
+h.doTrackMembranes=0;
+DoFind(hObject,eventdata,h,true);
+end
+
+function DoFind(hObject, eventdata, h, findMore)
+% Automatic finder. If findMore=true, it attempts to find vesicles in the
+% image after vesicle models have been subtracted. The additional found
+% vesicles are added to the mi.vesicle structure.
 if ~h.imageLoaded
     return
 end;
-
 set(h.figure1,'pointer','watch');
 % membrane model
 % vLipid=h.sav.membranePars(1);
 % thk=h.sav.membranePars(2);
 % rise=h.sav.membranePars(3);
 % pixA=h.mi.pixA;
-% 
+%
 % Load the generic model
 % nm0=ceil(thk/(2*pixA))*2+3;  % array for vesicle model; 60A nominal
 % if ~isfield(h.mi,'vesicleModel') || numel(h.mi.vesicleModel)<3
@@ -1632,34 +1644,40 @@ set(h.figure1,'pointer','watch');
 
 % Instead, always load our standard membrane model.
 pa=AddSlash(fileparts(which('Vesicle_finding_GUI'))); % stored with our code.
-    vm=load([pa 'VFDefaultVM.mat']);
-    h.mi.vesicleModel=meDownsampleVesicleModel(vm.vm1,h.mi.pixA);
+vm=load([pa 'VFDefaultVM.mat']);
+h.mi.vesicleModel=meDownsampleVesicleModel(vm.vm1,h.mi.pixA);
 
 rPars=h.sav.vesicleRadii;
 
-% Zero out the previous particles if requested
-mi1=h.mi;
-if h.sav.eraseOldPicks
-    mi1.particle=struct;
-    mi1.particle.picks=[];
-    mi1.particle.autopickPars=[];
-end
-
-mi1.vesicle.x=[];
-mi1.vesicle.y=[];
-mi1.vesicle.r=[];
-mi1.vesicle.s=[];
-mi1.vesicle.ok=[];
-if isfield(mi1,'mask')
-    mi1.mask=mi1.mask(1:h.maskIndex); % collapse the mask array
-end;
-if ~isfield(mi1,'mergeMode')
-    mi1.mergeMode=3;
+if ~findMore
+    % Zero out the previous particles if requested
+    mi1=h.mi;
+    if h.sav.eraseOldPicks
+        mi1.particle=struct;
+        mi1.particle.picks=[];
+        mi1.particle.autopickPars=[];
+    end
+    
+    mi1.vesicle.x=[];
+    mi1.vesicle.y=[];
+    mi1.vesicle.r=[];
+    mi1.vesicle.s=[];
+    mi1.vesicle.ok=[];
+    if isfield(mi1,'mask')
+        mi1.mask=mi1.mask(1:h.maskIndex); % collapse the mask array
+    end;
+    if ~isfield(mi1,'mergeMode')
+        mi1.mergeMode=3;
+    end;
 end;
 pars.rPars=rPars;
 pars.ds0=h.ds0;
-pars.ds0Shift=h.ds0Shift;
-mi1=rsFindVesicles3(h.origImage, mi1, pars, h.findInMask);
+pars.ds0Shift=-h.M2(1:2,3)';
+if findMore
+    mi1=rsFindVesicles3(h.origImage-h.rawVesImage, h.mi, pars, h.findInMask);
+else
+    mi1=rsFindVesicles3(h.origImage, mi1, pars, h.findInMask);
+end;
 %%
 minAmp=h.sav.vesicleAmps(1);
 maxAmp=h.sav.vesicleAmps(2);
@@ -1676,7 +1694,9 @@ while mins>minAmp
     mins=t.globalmax;
     nves=size(mi1.vesicle.s,1);
     set(hObject,'string',num2str(nves));
-    %     Make the scatterplot of vesicle radii and amplitudes
+    %     Make the scatterplot of vesicle radii and amplitudes.
+    
+    %%     This should be its own function...
     xs1=rPars(1);
     xs2=rPars(2);
     xs=[xs1    xs1    xs2    xs2    xs1];
@@ -1696,6 +1716,8 @@ while mins>minAmp
         cla(h.axes3);
     end;
     title(nves);
+    %%
+    
     %     Exit the loop when we can't find any more vesicles
     if nves<=nVesOld || nves > h.maxNVes
         break
@@ -1704,8 +1726,12 @@ while mins>minAmp
 end;
 
 % Store NCCs for manual finding
-h.ccVals=Crop(t.ccsmx,h.displaySize); % used for finding maxima
-h.ccValsScaled=Crop(t.ccsmxScaled,h.displaySize); % used for finding amplitude
+if ~findMore
+    h.ccVals=0;
+    h.ccValsScaled=0;
+end;
+h.ccVals=Crop(t.ccsmx,h.displaySize)+h.ccVals; % used for finding maxima
+h.ccValsScaled=Crop(t.ccsmxScaled,h.displaySize)+h.ccValsScaled; % used for finding amplitude
 h.ccRadii=(t.fitmin+(Crop(t.ccsmi,h.displaySize)-1)*t.rstep)*h.ds0;  % identify radius in orig pixels
 
 mi1.vesicle.shiftX=[];
@@ -1716,12 +1742,21 @@ mi1.vesicle.refined=0;
 mi1.vesicle.extraPeaks=[];
 mi1.vesicle.extraSD=0;
 mi1.vesicle.extraS=[];
+
+if findMore
+    % Additional vesicles are marked 'false' in the 4th column.
+    totalNFound=numel(mi1.vesicle.x);
+    if totalNFound>prevNFound
+        disp([num2str(totalNFound-prevNFound) ' additional vesicles found...']);
+        mi1.vesicle.ok(prevNFound+1:totalNFound,4)=false;
+    end;
+end;
+
 h.mi=mi1;
 h.miChanged=1;
-    scl.n=h.displaySize;
-    scl.ds=h.ds0;
-    scl.dsShift=h.ds0Shift;
 if h.makeModelVesicles
+    scl.n=h.displaySize;
+    scl.M=h.M2;
     h.goodVesImage=meMakeModelVesicles(h.mi,scl,find(goodVes));
     h.badVesImage=meMakeModelVesicles(h.mi,scl,find(badVes));
     h.rawVesImage=h.goodVesImage+h.badVesImage;
@@ -1733,7 +1768,7 @@ h.markedVesicleIndex=0;
 ShowImage(h);
 drawnow;
 
-if h.doTrackMembranes
+if h.doTrackMembranes && ~findMore
     
     % Tune up the vesicle fits
     disp('Tracking vesicle membranes');
@@ -1763,115 +1798,6 @@ disp('Done finding.');
 end
 
 
-% --- Executes on button press in pushbutton_FindMore.-----------------
-% Searches the subtracted micrograph for more vesicles
-function pushbutton_FindMore_Callback(hObject, eventdata, h)
-if ~h.imageLoaded
-    return
-end;
-
-set(h.figure1,'pointer','watch');
-% membrane model
-vLipid=h.sav.membranePars(1);
-thk=h.sav.membranePars(2);
-rise=h.sav.membranePars(3);
-pixA=h.mi.pixA;
-% Create the model, which is sampled in units of the original pixel size.
-nm0=ceil(thk/(2*pixA))*2+3;  % array for vesicle model; 60A nominal
-if ~isfield(h.mi,'vesicleModel') || numel(h.mi.vesicleModel)<3
-    h.mi.vesicleModel=fuzzymask(nm0,1,thk/pixA/2,rise/pixA)...
-        *vLipid;  % units of V
-end;
-rPars=h.sav.vesicleRadii;
-pars.rPars=rPars;
-pars.ds0=h.ds0;
-pars.ds0Shift=h.ds0Shift;
-mi1=rsFindVesicles3(h.origImage-h.rawVesImage, h.mi, pars, h.findInMask);
-prevNFound=numel(mi1.vesicle.x);
-%%
-minAmp=h.sav.vesicleAmps(1);
-maxAmp=h.sav.vesicleAmps(2);
-mins=1;
-nVesOld=0;
-% Loop through finding groups of 50 vesicles.
-while mins>minAmp
-    [mi1, t]=rsFindVesicles3('next',50,h.sav.vesicleAmps);
-    axes(h.axes1);
-    ih = imshow(rot90(uint8(imscale(t.ms-t.umodel,256,1e-3))),...
-        'InitialMagnification',100*size(t.ms,1)/size(h.origImage,1) );
-    %     drawnow;
-    mins=t.globalmax;
-    nves=size(mi1.vesicle.s,1);
-    set(hObject,'string',num2str(nves));
-    %     Make the scatterplot of vesicle radii and amplitudes
-    xs1=rPars(1);
-    xs2=rPars(2);
-    xs=[xs1    xs1    xs2    xs2    xs1];
-    ys=[minAmp maxAmp maxAmp minAmp minAmp];
-    if numel(mi1.vesicle.ok)<4  % not even one row present
-        mi1.vesicle.ok=false(1,4); % make sure there are enough elements
-    end;
-    goodVes=all(mi1.vesicle.ok(1:nves,1:2),2);
-    badVes=mi1.vesicle.ok(1:nves,1) & ~mi1.vesicle.ok(1:nves,2);
-    %     plot(h.axes3,mi1.vesicle.r(1:nves)*mi1.pixA,mi1.vesicle.s(1:nves),...
-    %         'b.', xs,ys,'r-','markersize',10);
-    if numel(mi1.vesicle.r)>0  % something to draw
-        plot(h.axes3,mi1.vesicle.r(goodVes,1)*mi1.pixA,mi1.vesicle.s(goodVes,1),'b.',...
-            mi1.vesicle.r(badVes,1)*mi1.pixA,mi1.vesicle.s(badVes,1),'m.',...
-            xs,ys,'k-','markersize',15);
-    else
-        cla(h.axes3);
-    end;
-    title(nves);
-    %     Exit the loop when we can't find any more vesicles
-    if nves<=nVesOld
-        break
-    end;
-    nVesOld=nves;
-end;
-% Store NCCs for manual finding
-h.ccVals=Crop(t.ccsmx,h.displaySize)+h.ccVals;
-h.ccValsScaled=Crop(t.ccsmxScaled,h.displaySize)+h.ccValsScaled;
-h.ccRadii=(t.fitmin+(Crop(t.ccsmi,h.displaySize)-1)*t.rstep)*t.ds;  % radius in orig pixels
-
-mi1.vesicle.shiftX=[];
-mi1.vesicle.shiftY=[];
-mi1.vesicle.shiftOk=[];
-mi1.vesicle.af=[];
-mi1.vesicle.refined=0;
-mi1.vesicle.extraPeaks=[];
-mi1.vesicle.extraSD=0;
-mi1.vesicle.extraS=[];
-
-% Additional vesicles are marked 'false' in the 4th column.
-totalNFound=numel(mi1.vesicle.x);
-if totalNFound>prevNFound
-    disp([num2str(totalNFound-prevNFound) ' additional vesicles found...']);
-    mi1.vesicle.ok(prevNFound+1:totalNFound,4)=false;
-end;
-
-h.mi=mi1;
-h.miChanged=1;
-if h.makeModelVesicles
-    scl.n=h.displaySize;
-    scl.ds=h.ds0;
-    scl.dsShift=h.ds0Shift;
-    h.goodVesImage=meMakeModelVesicles(h.mi,scl,find(goodVes));
-    h.badVesImage=meMakeModelVesicles(h.mi,scl,find(badVes));
-    h.rawVesImage=h.goodVesImage+h.badVesImage;
-    % h.rawVesImage=meMakeModelVesicles(h.mi,size(h.origImage));
-    h=UpdateDisplayFiltering(h);
-end;
-% h.displayMode=0;  % subtract and mark the vesicles
-h.markedVesicleIndex=0;
-ShowImage(h);
-guidata(hObject,h);
-set(hObject,'string','Find');
-set(h.figure1,'pointer','arrow');
-% disp('Done.');
-end
-
-
 % function image_ButtonDownFcn(hObjec,~,handles);
 % % hObject    handle to figure1 (see GCBO)
 % % eventdata  reserved - to be defined in a future version of MATLAB
@@ -1889,8 +1815,8 @@ end
 function axes1_ButtonDownFcn(hObject, eventdata, h)
 axesHandle=get(hObject,'parent');
 h=guidata(axesHandle);
-    q=get(h.pushbutton_OutlineMask,'value');
-    
+q=get(h.pushbutton_OutlineMask,'value');
+
 if h.manualMaskActive      % draw on the screen
     if h.manualMaskDiameter>0
         set(h.axes1,'nextplot','add');
@@ -1911,8 +1837,8 @@ guidata(axesHandle,h);
 end
 
 
-function WindowButtonMotionFcn(hObject, eventdata)
-h=guidata(hObject);
+function WindowButtonMotionFcn(hObject, eventdata, h)
+% h=guidata(hObject);
 if h.axes1ButtonDown && h.manualMaskActive && h.manualMaskDiameter>0
     pt=get(h.axes1,'currentpoint');
     h.manualMaskCoords(end+1,:)=pt(1,1:2);
@@ -2029,7 +1955,7 @@ if val > 0 && val < 1000
 end;
 end
 
-% We now use iceAmp as the 
+% We now use iceAmp as the vesicle boost radius. We don't scale the value.
 function edit_IceAmp_Callback(hObject, eventdata, h)
 val=str2double(get(hObject,'String')); % returns contents of edit_IceAmp as a double
 if val >= 0 && val <= 1

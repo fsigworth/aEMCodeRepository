@@ -13,7 +13,7 @@ function [h, doUpdateDisplay]=vfMouseClick(h)
 
 nrgn=15;  % size of box, in display pixels, allowed for clicking on
 % existing vesicle
-shiftVec=h.ds0Shift;
+shiftVec=h.M2(1:2,3)';
 % shiftVec=h.dsMicrograph*h.dsImageShift+h.dsMicrographShift; % shift due to cropping
 % in original pixels
 p=get(h.axes1,'CurrentPoint');

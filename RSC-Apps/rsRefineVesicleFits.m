@@ -8,7 +8,7 @@ function rsRefineVesicleFits(miNames,mpars)
 % and return the updated mi containing the vesicle coordinates, radius
 % expansion and amplitude angular expansion.
 % If desired, a vesicle model file is stored in Temp/ as <basename>v.mrc.
-% If desired, a subtracted file is stored in Merged/ as <basename>mv.tif.
+% If desired, a subtracted file is stored in Merged/ as <basename>mv.mrc.
 
 % if nargin<1
 %     miNames=[];
@@ -25,17 +25,19 @@ dpars.modelMiName=[pa 'ModelMi.txt'];
 
 dpars.overwrite=1;
 dpars.writeMiFile=1;
-dpars.doPreSubtraction=1;
+dpars.doPreSubtraction=1; % subtract all vesicles except the one being fitted
 dpars.listFits=1;  % print out each fit's parameters
 dpars.scaleOriginalAmplitudes=1; % multiply amplitudes by this value
 
-dpars.writeSubZTiff=0;    % Write subtracted images into Merged/
+dpars.writeSubZTiff=0;    % Write compressed, subtracted image
 suffix='';  % extra character ? for XXmv?z.tif output file
-dpars.writeSubMRC=1;
-dpars.writeSmallSubMRC=1;
+dpars.writeSubMRC=1; % Write out subtracted image <basename>mv.mrc
+dpars.writeSmallSubMRC=1; % Write out a downsampled subtracted image
+dpars.dsSmall=4; % downsampling factor
 dpars.writeVesFiles=0;   % Write vesicle models into Temp/
 
-% dpars.scaleOriginalAmplitudes=0.5; %%%%%%
+dpars.resetBasePath=1;   % update the basePath field of the mi file to the current directory.
+
 % Number of terms (for both radius and amplitude fitting) is set thusly:
 %    nTerms=find(vesicle.r(ind,1) < pars.rTerms/mi.pixA,1);
 % i.e. nTerms is the index of last entry of rTerms smaller than our radius.
@@ -45,28 +47,30 @@ dpars.rTerms=[100 150 200 300 inf];  % quick
 
 % Define the fitting mode for each round
 % dpars.fitModes={'RadiusOnly' 'RadiusAndLin'};
-    dpars.fitModes={'RadiusOnly' 'LinOnly'};
+dpars.fitModes={'RadiusOnly' 'LinOnly'}; % First fit shape, then amplitudes
+% dpars.fitModes={'LinOnly'};
 %    dpars.fitModes={'RadiusAndLin'};
-dpars.fractionStartingTerms=[.5 1]; % total terms to use in each round
-dpars.fractionAmpTerms=[0 1];
+dpars.fractionStartingTerms=[.5 1]; % in radius-fitting modes, 
+%    thefraction of terms to use in each round
+dpars.fractionAmpTerms=[0 1]; % fraction of amp terms to use
+%  To avoid crazy fits, we repeat the whole radius-only fitting with the base
+%  radius perturbed by these steps (in angstroms) and pick the best.
 dpars.radiusStepsA=[-100 -50 0 50]; % repeat radius-only fitting with perturbed r(1)
-% Extra peaks in the scattering profile
-dpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
-dpars.targetPixA=10;  % downsampled image resolution for radius fitting
+dpars.maxPixA=10;  % downsampled image resolution for radius fitting
 dpars.disA=1200;  % size of the fit window, in angstroms
 % dpars.disA=1600;  % for Mengqiu
-dpars.dsSmall=4;
+
+%  We add extra peaks in the scattering profile when fitting amplitudes
+dpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
 dpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
 
-% Merge the defaults with the given mpars
+% -----------Merge the defaults with the given mpars-----------
 pars=SetOptionValues(dpars,mpars,1);
 
-% pars
-
 %     The following must have at least as many elements as dpars.fitModes!
-pars.xPeakPositionA=cell(1,numel(dpars.fitModes));
-pars.xPeakPositionA{end}=pars.peakPositionA;
-% pars.xPeakPositionA={[] pars.peakPositionA}; % centers of extra peaks, in angstrom
+pars.xPeakPositionA=cell(1,numel(pars.fitModes));
+pars.xPeakPositionA{end}=pars.peakPositionA; % add the peaks to the last round.
+
 % -----------------------
 
 % See if we are on the cluster.
@@ -76,15 +80,14 @@ isCluster=strncmp(host,'c',1); % if we are on a farnam node
 batchMode=isCluster  && (exist('miNames','var') && numel(miNames)>0);
 
 displayOn=~batchMode;
-% displayOn=0; %####### 1: show results at end of each fit; 2 update while fitting.
+% displayOn=0; % 1: show results at end of each fit; 2 update while fitting.
 
 dsModel=4;  % net downsampling of "full res" model relative to orig micrograph
 dsSmall=pars.dsSmall;  % net downsampling of 'small' output file.
 
 forceNewModel=0;   % Always ask the user to select a new refined model
   % on the first micrograph (can be from the same micrograph)
-resetBasePath=1;   % update the basePath field of the mi file.
-
+resetBasePath=pars.resetBasePath;
 writeMiFile=pars.writeMiFile;     % Save the updated mi file
 
 vm=struct;         % our local vesicle (membrane) model
@@ -108,6 +111,8 @@ end;
 
 %%
 vmOk=0;
+numErr=0;
+maxErr=10; % Max number of error messages to print out
 
 %% --------loop over files --------
 for fileIndex=1:numel(miNames)
@@ -133,7 +138,7 @@ for fileIndex=1:numel(miNames)
         end;
         
         %     Check to see if we have a generic vesicle model (central 5 points are
-        %     essentially equal)
+        %     essentially equal) in which case we try to load a good model.
         nvm=numel(mi.vesicleModel);
         vmCtr=ceil((nvm+1)/2);
         if (nvm < 3 || std(mi.vesicleModel(vmCtr-1:vmCtr+1))<1e-6...
@@ -177,53 +182,72 @@ for fileIndex=1:numel(miNames)
         
         % Read the image and normalize to fractional contrast
         sufExts={'.mrc' 's.mrc' 'z.tif'}; % suffix and extension options for small, compressed or full files.
-        % drawnow;
-        % [m0, mergePath]=meReadMergedImage(mi);
-        [mergedName,ok]=CheckForAltImage([mi.procPath mi.baseFilename 'm.mrc'],sufExts);
-        if ok
-            disp(['Merged image: ' mergedName]);
-            m0=ReadEMFile(mergedName);
-        end;
-        if ok && numel(m0)>1 % we've got an image
-            n0=size(m0,1);  % merged image size
-            dsm=mi.imageSize(1)/size(m0,1);  % downsampling factor of merged image
-            if dsModel>dsm
-                disp(['Merged image will be downsampled by ' num2str(dsModel/dsm) ' for fitting.']);
-                m=DownsampleGeneral(m0,n0/(dsModel/dsm));
+        ds0=floor(pars.maxPixA/(2*mi.pixA));  % downsampling for bigger images
+%         to yield pixA below maxPixA/2
+        [m4,M4,ok,m1]=meLoadNormalizedImage(mi,pars.maxPixA,sufExts);
+        [M,m8]=meGetImageScaling(m4,size(m4)/2,2); % get a twofold further downsampling
+        M8=M*M4;
+        if ~ok
+            disp(['No image found for ' mi.baseFilename]);
+            numErr=numErr+1;
+            if numErr>maxErr
+                break;
             else
-                m=m0;
+                continue;
             end;
-            %     Check that we have a temp directory
-            if ~isfield(mi,'tempPath')
-                mi.tempPath='Temp/';
-            end;
-            if ~exist(mi.tempPath,'dir')
-                mkdir('Temp');
-            end;
-            if ~isfield(mi,'mask')
-                mi.mask=[];
-            end;
-            
-            if pars.scaleOriginalAmplitudes~=1
-                mi.vesicle.s=mi.vesicle.s*pars.scaleOriginalAmplitudes;
-            end;
-            
-            %                    mi.vesicle.s=mi.vesicle.s*dsm/2;  % scale down if not downsamping....
-            
+        end;
+% % %         pixAWork=pars.scl.ds0*mi.pixA;
+        
+%        % [m0, mergePath]=meReadMergedImage(mi);
+%         [mergedName,ok]=CheckForAltImage([mi.procPath mi.baseFilename 'm.mrc'],sufExts);
+%         if ok
+%             disp(['Merged image: ' mergedName]);
+%             m0=ReadEMFile(mergedName);
+%         end;
+%         if ok && numel(m0)>1 % we've got an image
+%             n0=size(m0,1);  % merged image size
+%             dsm=mi.imageSize(1)/size(m0,1);  % downsampling factor of merged image
+%             if dsModel>dsm
+%                 disp(['Merged image will be downsampled by ' num2str(dsModel/dsm) ' for fitting.']);
+%                 m=DownsampleGeneral(m0,n0/(dsModel/dsm));
+%             else
+%                 m=m0;
+%             end;
+%             %     Check that we have a temp directory
+%             if ~isfield(mi,'tempPath')
+%                 mi.tempPath='Temp/';
+%             end;
+%             if ~exist(mi.tempPath,'dir')
+%                 mkdir('Temp');
+%             end;
+%             if ~isfield(mi,'mask')
+%                 mi.mask=[];
+%             end;
+%             
+%             if pars.scaleOriginalAmplitudes~=1
+%                 mi.vesicle.s=mi.vesicle.s*pars.scaleOriginalAmplitudes;
+%             end;
+%             
+%             %                    mi.vesicle.s=mi.vesicle.s*dsm/2;  % scale down if not downsamping....
+%             
             
             %%  -------------------All the work is done here---------------------------
             %   do nRounds fits; each time fit all the vesicles in the
             %   image.
             nRounds=numel(pars.fitModes);
-            for ind=1:nRounds  % We loop through 2-3 times, first with no extra peaks
+            for ind=1:nRounds  % We loop through 2-3 times, first with no extra peaks,
+%                                 and perhaps with no amplitude fitting
+%                                 (except the constant term).
                 %                 The first time through we fit no peaks because xPeakPositionA{1}=[]
                 %                 later times include the extra peaks.
                 p=struct;
+%                 p.scl=pars.scl; % scaling of downsampled image
                 p.extraPeaks=pars.xPeakPositionA{ind}/mi.pixA;
                 p.extraSD=pars.xPeakSigmaA{ind}/mi.pixA;
                 p.rTerms=pars.rTerms;
-                p.targetPixA=pars.targetPixA;
                 p.disA=pars.disA;
+                p.M8=M8;
+                p.M4=M4;
                 maxRTerms=numel(p.rTerms);
                 % Set up parameters
                 p.limitOrigNTerms=round(pars.fractionStartingTerms(ind)*maxRTerms+1);
@@ -237,8 +261,8 @@ for fileIndex=1:numel(miNames)
                 p.doPreSubtraction=pars.doPreSubtraction | ind>1; % force pre-subtraction in rounds
                 p.listFits=pars.listFits;  % write out individual fit values?
                 disp(['Round ' num2str(ind) '  ' miNames{fileIndex}]);
-                %                   Fit all the vesicles in this mi file.
-                mi1=rsRefineVesicleFitsSub(mi,m,p,displayOn);
+                %       --------- Do the fitting  -----------
+                mi1=rsRefineVesicleFitsSub(mi,m8,m4,p,displayOn);
                 mi=mi1;
             end;
             
@@ -253,23 +277,26 @@ for fileIndex=1:numel(miNames)
             
             %             Compute and store model vesicles
             pixAModel=mi.pixA*dsModel;  % pixel size of working merged image
-            pixA0=mi.pixA*dsm;
+%             pixA0=mi.pixA*dsm;
             
             dfc=.1;  % display filter relative to raw data
             %%
             if displayOn
                 figure(1); clf;
-                imags(GaussFilt(m,dfc*dsModel));  % show the unsubtracted image
+                imags(GaussFilt(m1,dfc*dsModel));  % show the unsubtracted image
                 title(['Original image ' outName],'interpreter','none');
                 drawnow;
             end;
             
+            scl4=struct;
+            scl4.n=size(m4);
+            scl4.M=M4;
             disp('Making the final vesicle models');
-            vs1=meMakeModelVesicles(mi,size(m),find(mi.vesicle.ok(:,3)));
-            vsm=Downsample(vs1,n0);  % scale up if needed to match m0
+            vs4=meMakeModelVesicles(mi,scl4,find(mi.vesicle.ok(:,3)));
+            vs1=Crop(Downsample(vs4,M4(1,1)*size(vs4)),size(m1));  % scale up if needed to match m0
             
             if displayOn
-                imags(GaussFilt(m0-vsm,dfc*dsm));
+                imags(GaussFilt(m4-vs4,dfc*M4(1,1)));
                 title(['Final subtraction ' outName],'interpreter','none');
                 drawnow;
             end;
@@ -279,8 +306,8 @@ for fileIndex=1:numel(miNames)
                 outVesName=[mi.tempPath mi.baseFilename 'v'];
                 %             WriteMRC(vsm,pixA0,[outVesName '.mrc']);
                 %             WriteJpeg(vsm,outVesName);
-                WriteMRC(vs1,pixAModel,[outVesName '.mrc']);
-                WriteJpeg(vs1,outVesName,0);
+                WriteMRC(vs4,pixAModel,[outVesName '.mrc']);
+                WriteJpeg(vs4,outVesName,0);
                 %             imwrite(uint8(imscale(rot90(vs1),256,0)),[outVesName '.jpg']);
                 disp([outVesName ' saved']);
             end;
@@ -290,25 +317,21 @@ for fileIndex=1:numel(miNames)
                 ztPars.lfCutoff=.1;
                 ztPars.snrRatio=300;
                 outSubName=[mi.procPath mi.baseFilename 'mv' suffix 'z.tif'];
-                WriteZTiff(m0-vsm,pixA0,outSubName,ztPars);
+                WriteZTiff(m4-vs1,pixA0,outSubName,ztPars);
                 disp([outSubName ' saved']);
             end;
             
             if pars.writeSubMRC  % write an MRC file
                 outSubName=[mi.procPath mi.baseFilename 'mv' suffix '.mrc'];
-                WriteMRC(m0-vsm,pixA0,outSubName);
+                WriteMRC(m1-vs1,mi.pixA,outSubName);
                 disp([outSubName ' saved']);
             end;
             
             if pars.writeSmallSubMRC
-                nSmall=mi.imageSize/dsSmall;
                 outSubName=[mi.procPath mi.baseFilename 'mvs' suffix '.mrc'];
-                WriteMRC(Downsample(m0-vsm,nSmall),mi.pixA*dsSmall,outSubName);
+                WriteMRC(Crop(Downsample(m1-vs1),mi.pixA*M4(1,1),outSubName),size(m4));
                 disp([outSubName ' saved']);
             end;
-        else
-            disp('  ...no image read.');
-        end;
     else  % No vesicles have been found to refine
         if numel(mi.vesicle.x)<1
             disp('  ...no vesicles');

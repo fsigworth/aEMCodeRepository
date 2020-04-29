@@ -55,11 +55,14 @@ nIters=(1:nRounds)*nRoundIters;
 
 sigmaT=2;  % SD of prior for shifts
 n=size(img,1);
-ds=mi.imageSize(1)/n;
+ds=pars.M(1,1);
 
 % Get the vesicle coordinates in the downsampled image
-vx=(mi.vesicle.x(vIndex))/ds+1;  % start with zero-based coordinates
-vy=(mi.vesicle.y(vIndex))/ds+1;
+origXY=[mi.vesicle.x(vIndex); mi.vesicle.y(vIndex); 1];
+localXY=pars.M\origXY+1; % i.e. inv(M)*origXY
+
+vx=localXY(1);  % start with zero-based coordinates
+vy=localXY(2);
 vr0=mi.vesicle.r(vIndex,:)/ds;
 if numel(vr0)<finalNTerms
     vr0(finalNTerms)=0; % pad with zeros

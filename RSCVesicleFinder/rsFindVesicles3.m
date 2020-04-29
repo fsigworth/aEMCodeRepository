@@ -238,8 +238,14 @@ else % m is a string, 'next' or 'end'
                 support=single(circshift(t.orefs(:,:,jz),round([jx jy])-ctrx) ...
                                                 /sum(t.mi.vesicleModel) > .001);
                 t.ccsmx2=t.ccsmx2.*(~support); % blank the running cc map
-%  imags(t.ccsmx2); drawnow;
+                        %  imags(t.ccsmx2); drawnow;
+
                 fracMasked=support(:)'*single((~t.mask(:)))/sum(support(:));
+                
+                if ampi>thresh(2)  % Having blanked the object, we skip high amplitudes.
+                    continue;
+                end;
+%                                 Low-stringency tests
                 if max(ampi,t.globalmax)>thresh(1)*(1-maxFracMasked)*bigRThresh % quick check for any possible find
                     spcc=t.spccs(jx,jy,jz); % Check the sphere correlation too.
 % %                 nccv=t.nccs(jx,jy,jz)*medSD;

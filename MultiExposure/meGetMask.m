@@ -1,4 +1,4 @@
-function msk=meGetMask(mi,n,indices)
+function msk=meGetMask(mi,no,indices)
 % function msk=meGetMask(mi,n,indices)
 % From the mi.mask array of structures, generate a boolean image of size n.
 % If the optional argument indices is given, use only those elements of the
@@ -21,7 +21,12 @@ function msk=meGetMask(mi,n,indices)
 
 maxExpandedImage=3*1024;  % maximum temporary array dimension;
 %                       if larger than this, we use Fourier interpolation
-if n==0
+% if isa(no,'struct')
+%     scl=no;
+%     no=scl.n;  % output dimension
+%     nsc=scl.ds;
+% end;
+if no==0
     if nargin<3 || numel(indices)>0
         indices=indices(1);
     else
@@ -29,7 +34,7 @@ if n==0
     end;
     msk=true;
 else
-    msk=true(n);  % default
+    msk=true(no);  % default
 end;
 
 if isfield(mi,'mask')
@@ -50,29 +55,32 @@ if isfield(mi,'mask')
                 case 'RLE'
                     m1=RunLengthDecode(mi.mask(i).data);
                 case {'RIM' 'beam'}
-                    ctr=ceil((n+1)/2);
+                    ctr=ceil((no+1)/2);
                     d=mi.mask(i).data;
-                    m1=fuzzymask(n,2,d(3)*n(1),0,d(1:2).*n+ctr);
+                    m1=fuzzymask(no,2,d(3)*no(1),0,d(1:2).*no+ctr);
                 otherwise
                     error(['Unexpected mi.mask.encoding: ' mi.mask(i).encoding]);
             end;
-            if n==0
+            if no==0
                 msk=m1;
                 return
             end;
 
-            n1=size(m1);
-            if n1(1) ~= n(1)  % need to change size
-                lcf=LeastCommonFactor(n(1),n1(1));
-                if n1(1)*n(1)/lcf <= maxExpandedImage  % don't allow huge expansions
-                    m1=BinImage(ExpandImage(m1,n(1)/lcf),n1(1)/lcf);
+%           Work on changing the mask size, e.g. expanding it.
+            ni=size(m1);  % 'input' dimension
+            if any(ni~=no)  % need to change size
+                [nxo,jx]=max(no); % We'll match the largest output dimension
+                nxi=ni(jx); % corresponding input dimension
+                lcf=LeastCommonFactor(nxo,nxi);
+                if nxi*nxo/lcf <= maxExpandedImage  % don't allow huge expansions
+                    m1=BinImage(ExpandImage(m1,no(1)/lcf),ni(1)/lcf);
                 else
-                    m1=DownsampleGeneral(m1,n,n(1)/n1(1))>0.5;
+                    m1=DownsampleGeneral(m1,no,nxo/nxi)>0.5;
                 end;
             end;
-            if any(size(m1)~=n)
-                disp('Mismatched mask dimensions; cropping.');
-                m1=Crop(m1,n);
+            if any(size(m1)~=no)
+%                 disp('Mismatched mask dimensions; cropping.');
+                m1=logical(Crop(m1,no)); % crop or pad to match
             end;
             switch mi.mask(i).merge
                 case 'AND'
@@ -89,5 +97,5 @@ if isfield(mi,'mask')
         end;
     end;
 else
-    msk=true(n);  % default is no mask.
+    msk=true(no);  % default is no mask.
 end;

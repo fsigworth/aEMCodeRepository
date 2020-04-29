@@ -1,7 +1,8 @@
-function [miNew,vesFit]=rsRefineVesicleFitsSub(miOld,m,pars,displayOn)
+function [miNew,vesFit]=rsRefineVesicleFitsSub(miOld,ms,mb,pars,displayOn)
 % Do the vesicle refinement.  miOld is the original mi file; miNew is a
 % copy with model parameters, vesicle.extraPeaks and vesicle.extraSD set.
-
+%  ms is the 'small' image, downsampled to about 8A/pixel. mb is the 'big'
+%  image, about 4A/pixel.
 % pars.rTerms is a vector of radii in A, setting the number of terms in the fit.
 %  e.g. rTerms=[90 120 160 200 inf] causes all vesicles with r<90A to be
 %  fitted only with one term (spherical)
@@ -12,22 +13,23 @@ dpars.fractionStartingTerms=1; % total terms to use in each round
 dpars.fracAmpTerms=1;
 dpars.extraPeaks=[-30 0 30];  % in pixA.
 dpars.extraSD=5; % width of extra Gaussian peaks, in angstrom
-dpars.targetPixA=10;  % downsampled image resolution for radius fitting
+dpars.pixAWork=10;  % downsampled image resolution for radius fitting
 dpars.doPreSubtraction=1;
 dpars.listFits=0;
 dpars.limitOrigNTerms=4;
 dpars.maxVesiclesToFit=inf;
 dpars.radiusStepsA=0;
 dpars.disA=1200;  % display/fitted window size in angstroms
+dpars.M4=zeros(3,3,'single');
+dpars.M8=zeros(3,3,'single');
 
 % Merge the defaults with the given mpars
 pars=SetOptionValues(dpars,pars);
 
-p=struct; % structure to pass to sub-function
+ps=struct; % structure to pass to sub-function for small fits
 
 minRadiusA=45;
-doTweakAmplitudes=0;
-doPreSubtraction=pars.doPreSubtraction;
+% doTweakAmplitudes=0;
 
 doFitAmp=1; % linear fit of amplitudes to full-size image
 doFitRadius=1; % nonlinear fit
@@ -47,18 +49,18 @@ doFitAmp
 
 maxMaskLayers=2;   % Don't include any masking beyond merge and beam
 useOkField=1;      % refine every vesicle for which ok is true.
-doDownsampling=1;  % Downsample for speed
+% doDownsampling=1;  % Downsample for speed
 disA=pars.disA;          % size of displayed/fitted window in angstroms
-fHP=.003;          % Gauss high-pass filter for fitting
+fHP=.0003;          % Gauss high-pass filter for fitting: 300 A^-1
 nZeros=1;          % number of zeros used in the merged CTF
 tinySValue=1e-4;   % negligible amplitude threshold
 %       Calculate variance from .30 to .45 x Nyquist; this is faster than using RadialPowerSpectrum:
-n=size(m);
+ns=size(ms);       % Size of the 8A image.
 % pick the frequency range with an annulus in freq domain
-annulus=fuzzymask(n,2,0.225*n,.05*n)-fuzzymask(n,2,0.15*n,.05*n);
-spc=annulus.*fftshift(abs(fftn(m)).^2)/(n(1)*n(2));
-hfVar0=sum(spc(:))/sum(annulus(:));
-
+annulus=fuzzymask(ns,2,0.225*ns,.05*ns)-fuzzymask(ns,2,0.15*ns,.05*ns);
+spc=annulus.*fftshift(abs(fftn(ms)).^2)/(prod(ns));
+ps.hfVar=sum(spc(:))/sum(annulus(:));
+pixAs=pars.M8(1,1)*miOld.pixA; % pixel size of the image we're given.
 % % Handle cases where the ok field is old style
 % if ~isfield(miOld.vesicle,'ok') || numel(miOld.vesicle.ok)<numel(miOld.vesicle.x) % no ok field at all
 %     miOld.vesicle.ok=true(numel(miOld.vesicle.x),1);
@@ -77,29 +79,29 @@ end;
 
 % Get image and pixel sizes ns, pixA
 % ns will be the size of the downsampled image ms; pixA its pixel size.
-n=size(m,1);
-ds0=miOld.imageSize(1)/n;  % downsampling factor of m
-pixA0=miOld.pixA*ds0;    % actual pixel size of m
-if doDownsampling
-    % further downsample the merged image to about 10A per pixel, yielding the image ms
-    %     pars.targetPixA=10;  % maximum pixel size
-    ns=NextNiceNumber(n*pixA0/pars.targetPixA,5,4);  % multiple of 4, largest factor 5.
-    if ns<n
-        disp(['Downsampling the micrograph to ' num2str(ns) ' pixels.']);
-        ms=Downsample(m,ns);
-    else
-        ns=n;
-        ms=m;
-    end;
-    ds=ds0*n/ns;  % downsampling factor of ms relative to original images.
-    pixA=ds*miOld.pixA;  % pixA in the image ms.
-else  % use the original merged image scale
-    ds=ds0;
-    pixA=pixA0;
-    ns=n;
-    ms=m;
-end;
-p.hfVar=hfVar0*ds0/ds;  % reduced hf spectral density after downsampling
+% n=size(m,1);
+% ds0=miOld.imageSize(1)/n;  % downsampling factor of m
+% pixA0=miOld.pixA*ds0;    % actual pixel size of m
+% if doDownsampling
+%     % further downsample the merged image to about 10A per pixel, yielding the image ms
+%     %     pars.targetPixA=10;  % maximum pixel size
+%     ns=NextNiceNumber(n*pixA0/pars.targetPixA,5,4);  % multiple of 4, largest factor 5.
+%     if ns<n
+%         disp(['Downsampling the micrograph to ' num2str(ns) ' pixels.']);
+%         ms=Downsample(m,ns);
+%     else
+%         ns=n;
+%         ms=m;
+%     end;
+%     ds=ds0*n/ns;  % downsampling factor of ms relative to original images.
+%     pixA=ds*miOld.pixA;  % pixA in the image ms.
+% else  % use the original merged image scale
+%     ds=ds0;
+%     pixA=pixA0;
+%     ns=n;
+%     ms=m;
+% end;
+% p.hfVar=hfVar0*ds0/ds;  % reduced hf spectral density after downsampling
 
 
 %%  Get the original subtraction, and modify the amplitudes if necessary.
@@ -126,72 +128,82 @@ nvToFit=min(nvToFit,dpars.maxVesiclesToFit);
 disp([num2str(nvToFit) ' vesicles to fit.']);
 vesList=find(miNew.vesicle.ok(:,1));
 
+% Get the scaling structure for the small image size.
+scls=struct;
+scls.n=ns;
+scls.M=pars.M8;
+dss=pars.M8(1,1);
 
-%   Compute the old subtraction (downsampled size)
-nsPW=meGetNoiseWhiteningFilter(miOld,ns,ds,nZeros,fHP);
-nsCTF=meGetEffectiveCTF(miOld,ns,ds);
+%   Compute the old subtraction (small image size)
+nsPW=meGetNoiseWhiteningFilter(miOld,ns,dss,nZeros,fHP*pixAs);
+nsCTF=meGetEffectiveCTF(miOld,ns,dss);
 msf=real(ifftn(fftn(ms).*ifftshift(nsPW)));  % High-pass filtered image
-if doPreSubtraction
-    vs=meMakeModelVesicles(miOld,ns,vesList,0,0); % no ctf or prewhitening
+if pars.doPreSubtraction
+    vs=meMakeModelVesicles(miOld,scls,vesList,0,0); % no ctf or prewhitening
     vsf=real(ifftn(fftn(vs).*ifftshift(nsPW.*nsCTF)));  % hp filtered model
 else
-    vs=0;
+%     vs=0;
     vsf=0;
 end;
 
 % Get the CTF information for the fitting regions
-nds=NextNiceNumber(disA/pixA);  % size of display/fitting image
-ndsPW=meGetNoiseWhiteningFilter(miOld,nds,ds,nZeros,fHP);
-ndsCTF=meGetEffectiveCTF(miOld,nds,ds);
+nds=NextNiceNumber(disA/pixAs);  % size of display/fitting image
+ndsPW=meGetNoiseWhiteningFilter(miOld,nds,dss,nZeros,fHP*pixAs);
+ndsCTF=meGetEffectiveCTF(miOld,nds,dss);
 
-if doFitAmp  % Get full-sized CTF and PW functions also
-    nPW=meGetNoiseWhiteningFilter(miOld,n,ds0,nZeros,fHP);
-    nCTF=meGetEffectiveCTF(miOld,n,ds0);
-    mf=real(ifftn(fftn(m).*ifftshift(nPW)));  % High-pass filtered image
+    dsb=pars.M4(1,1); % downsampling of the big image m0
+    pixAb=dsb*miOld.pixA;
+    nb=size(mb);
+if doFitAmp  % Get big-sized CTF and PW functions also
+    sclb.n=nb;
+    sclb.M=pars.M4;
+    nbPW=meGetNoiseWhiteningFilter(miOld,nb,dsb,nZeros,fHP*pixAb);
+    nbCTF=meGetEffectiveCTF(miOld,nb,dsb);
+    mbf=real(ifftn(fftn(mb).*ifftshift(nbPW)));  % High-pass filtered image
     
     if displayOn
         figure(1);
         clf;
-        imags(GaussFilt(mf,.1*ds0));
+        imags(GaussFilt(mbf,.1*dsb));
         title(['Prewhitened image ' miOld.baseFilename],'interpreter','none');
         drawnow;
     end;
     %     Make a full-sized subtraction
-    if doPreSubtraction
-        v=meMakeModelVesicles(miOld,n,vesList,0,0);
-        vf=real(ifftn(fftn(v).*ifftshift(nPW.*nCTF)));
+    if pars.doPreSubtraction
+        vb=meMakeModelVesicles(miOld,sclb,vesList,0,0);
+        vfb=real(ifftn(fftn(vb).*ifftshift(nbPW.*nbCTF)));
         if displayOn
-            imags(GaussFilt(mf-vf,.1*ds0));
+            imags(GaussFilt(mbf-vfb,.1*pixAb));
             title(['Preliminary subtraction ' miOld.baseFilename],'interpreter','none');
             drawnow;
         end;
     else
-        vf=0;
+        vfb=0;
     end;
-    nd=NextNiceNumber(disA/pixA0);  % size of fit for full-size image
-    ndPW=meGetNoiseWhiteningFilter(miOld,nd,ds0,nZeros,fHP);
-    ndCTF=meGetEffectiveCTF(miOld,nd,ds0);
+    ndb=NextNiceNumber(disA/pixAb);  % size of fit for full-size image
+    ndbPW=meGetNoiseWhiteningFilter(miOld,ndb,dsb,nZeros,fHP*pixAb);
+    ndbCTF=meGetEffectiveCTF(miOld,ndb,dsb);
 end;
 
 %   If amplitude values are ridiculous, use linear least-squares to adjust the model scaling
-if doTweakAmplitudes
-    msAmpScale=(vsf(:)'*msf(:))/(vsf(:)'*vsf(:));
-    if msAmpScale < 0.5 || msAmpScale > 1.5
-        disp(['Amp scale for initial subtraction: ' num2str(msAmpScale)]);
-        if msAmpScale>1e-3 % don't allow ridiculous values; it should be close to 1.
-            vsf=vsf*msAmpScale;  % scale up the model
-            vf=vf*msAmpScale;
-            miOld.vesicle.s=miOld.vesicle.s*msAmpScale; % and the amplitude parameters
-        else
-            warning('Amp scale is too small, ignored.');
-        end;
-    end;
-end;
+% % if doTweakAmplitudes
+% %     msAmpScale=(vsf(:)'*msf(:))/(vsf(:)'*vsf(:));
+% %     if msAmpScale < 0.5 || msAmpScale > 1.5
+% %         disp(['Amp scale for initial subtraction: ' num2str(msAmpScale)]);
+% %         if msAmpScale>1e-3 % don't allow ridiculous values; it should be close to 1.
+% %             vsf=vsf*msAmpScale;  % scale up the model
+% %             vf=vf*msAmpScale;
+% %             miOld.vesicle.s=miOld.vesicle.s*msAmpScale; % and the amplitude parameters
+% %         else
+% %             warning('Amp scale is too small, ignored.');
+% %         end;
+% %     end;
+% % end;
 
 %         Get the masks
 layers=1:min(maxMaskLayers,numel(miOld.mask));
-msmask=meGetMask(miOld,ns,layers);
-mmask=meGetMask(miOld,n,layers);
+msmask=Crop(meGetMask(miOld,round(miOld.imageSize/dss),layers),ns);
+mbmask=Crop(meGetMask(miOld,round(miOld.imageSize/dsb),layers),nb);
 
 
 %%  Actual fitting is done here
@@ -206,10 +218,10 @@ if pars.listFits
 end;
 figure(2);
 
-for j=1:nvToFit
+for j=1:nvToFit  % Loop over vesicles
     ind=vesList(j);
     ok=miOld.vesicle.ok(ind,1);  % The vesicle exists
-    if ~ok && useOkField
+    if (~ok && useOkField) || miOld.vesicle.s(ind,1,1)==0
         continue;  % skip this vesicle.
     end;
     
@@ -228,25 +240,25 @@ for j=1:nvToFit
     stepNSTerms=max(1,ceil((finalNSTerms-origNSTerms)/3));
     
     %             Set up the number of terms we'll fit for each round
-    p.nTerms=zeros(nRounds,2); % no. terms in round for [r s]
+    ps.nTerms=zeros(nRounds,2); % no. terms in round for [r s]
     for i=1:nRounds
-        p.nTerms(i,1)=min(finalNRTerms,ceil(origNRTerms+i*stepNRTerms));
-        p.nTerms(i,2)=min(finalNSTerms,ceil(origNSTerms+i*stepNSTerms));
+        ps.nTerms(i,1)=min(finalNRTerms,ceil(origNRTerms+i*stepNRTerms));
+        ps.nTerms(i,2)=min(finalNSTerms,ceil(origNSTerms+i*stepNSTerms));
     end;
     %%%% rConstraints set here.
-    p.rConstraints=ones(finalNRTerms,1);
-    p.rConstraints(2:finalNRTerms)=0.4./((2:finalNRTerms).^2)';
+    ps.rConstraints=ones(finalNRTerms,1);
+    ps.rConstraints(2:finalNRTerms)=0.4./((2:finalNRTerms).^2)';
     %-------------------Basic fit------------------
     if doFitRadius % we're doing nonlinear fit
-        if doPreSubtraction
+        if pars.doPreSubtraction
             %                 First, compute the old model of the one vesicle in question
-            vs1=meMakeModelVesicles(miOld,ns,ind,0,0); % no ctf or prewhitening
+            vs1=meMakeModelVesicles(miOld,scls,ind,0,0); % no ctf or prewhitening
             vs1f=real(ifftn(fftn(vs1).*ifftshift(nsPW.*nsCTF)));  % filtered model
         else
             vsf=0;
             vs1f=0;
         end;
-        
+        ps.M=pars.M8;
         %         Repeated fits with perturbed initial radius
         ndr=numel(pars.radiusStepsA);
         miTemps=cell(ndr,1);
@@ -260,11 +272,11 @@ for j=1:nvToFit
             miInput.vesicle.r(ind,1)=newR1;
             %      --------------nonlinear fitting---------------
             [miTemps{jr},fitIms,vesFits]=rsQuickFitVesicle2(msf-vsf,vs1f,msmask,miInput,...
-                ind,ndsCTF.*ndsPW,p,displayOn);
+                ind,ndsCTF.*ndsPW,ps,displayOn);
             errs(jr)=miTemps{jr}.vesicle.err(ind);
             if displayOn
                 resImgs(:,:,jr)=fitIms-vesFits;
-                 subplot(2,2,4);
+                subplot(2,2,4);
                 imags(resImgs(:,:,jr));
                 title(num2str([jr finalNRTerms]));
                 drawnow;
@@ -273,12 +285,12 @@ for j=1:nvToFit
         %         Find the best fit
         [~,jr]=min(errs);
         [~,jr0]=min(abs(pars.radiusStepsA));
-
+        
         miNew=miTemps{jr};
         if displayOn && ndr>1 % show the various fit results
             figure(3);
             for k=1:ndr
-                subplot(ndr,1,k);
+                subplot(ndr,4,k);
                 imags(resImgs(:,:,k));
                 if k==jr
                     str='***';
@@ -289,33 +301,34 @@ for j=1:nvToFit
             end;
             figure(2);
         end;
-end;
-%   ----------------- Linear fit only --------------
+    end;
+    %   ----------------- Linear fit only --------------
     if doFitAmp % do a linear fit of the vesicle
         jr=1;
         jr0=1;
-        if doPreSubtraction
-            v1=meMakeModelVesicles(miOld,n,ind,0,0);
-            v1f=real(ifftn(fftn(v1).*ifftshift(nPW.*nCTF)));  % filtered model
+        if pars.doPreSubtraction
+            v1=meMakeModelVesicles(miOld,sclb,ind,0,0);
+            v1f=real(ifftn(fftn(v1).*ifftshift(nbPW.*nbCTF)));  % filtered model
         else
             v1=0;
             v1f=0;
         end;
-        pa=p;
-        pa.nTerms=[0 p.nTerms(end,end)];
+        pb=ps;
+        pb.nTerms=[0 ps.nTerms(end,end)];
+        pb.M=pars.M4;
         %                 Do a fit of only the amplitude terms
-        [miNew,fitIm,vesFit]=rsQuickFitVesicle2(mf-vf,v1f,mmask,miNew,...
-            ind,ndCTF.*ndPW,pa,displayOn & ~doFitRadius);  % no display
+        [miNew,fitIm,vesFit]=rsQuickFitVesicle2(mbf-vfb,v1f,mbmask,miNew,...
+            ind,ndbCTF.*ndbPW,pb,displayOn & ~doFitRadius);  % no display
         
         if displayOn  % update the subtracted image
             subplot(2,2,4);
-            imags(GaussFilt(fitIm-vesFit,pixA/20)); % 20 A filter
+            imags(GaussFilt(fitIm-vesFit,pixAb*.05)); % 20 A filter
             drawnow;
         end;
     else
         vesFit=vesFits;
     end;
-   
+    
     nsTerms=size(miNew.vesicle.s,2);
     ampString=repmat('%6.2f  ',1,nsTerms-2);
     if pars.listFits
@@ -324,7 +337,7 @@ end;
             round(miNew.vesicle.r(ind,1)*miNew.pixA),...
             jr-jr0,...
             miNew.vesicle.ok(ind,:), sum(miNew.vesicle.r(ind,:)~=0),...  % insert s(1)
-        100*abs(miNew.vesicle.s(ind,3:end,1))/miNew.vesicle.s(ind,1,1));
+            100*abs(miNew.vesicle.s(ind,3:end,1))/miNew.vesicle.s(ind,1,1));
         disp(str);
     end;
 end;

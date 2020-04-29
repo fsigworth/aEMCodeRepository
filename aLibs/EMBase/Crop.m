@@ -62,7 +62,7 @@ switch ndi
         nsy=floor(ny/2)-floor(n(2)/2);
         nox=min(nx,n(1));
         noy=min(ny,n(2));
-        if any([nsx nsy]<0)
+        if any([nsx nsy]<=0)
             mc=fillval*ones(n,'single');
         end;
         nsxi=max(-nsx,0);
