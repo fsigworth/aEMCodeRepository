@@ -268,6 +268,21 @@ set(h.MaskRadiobuttons,'SelectedObject',[]);
 % UIWAIT makes Vesicle_finding_GUI wait for user response (see UIRESUME)
 % uiwait(h.figure1);
 
+
+% Get the figure handle, starting with the axes handle.
+fh=h.axes1;
+str=get(fh,'Type');
+while ~strcmpi(str,'figure')
+    fh=get(fh,'Parent');
+    str=get(fh,'Type');
+end;
+
+% Set up the keypress function
+fhndl=@(hObject,eventdata) Vesicle_finding_GUI('KeyPressFcn',hObject,eventdata,guidata(hObject));
+set(fh,'keypressfcn',fhndl);
+
+return % ###########
+
 h.batchMode=numel(varargin)>0 && isa(varargin(1),'cell');
 if h.batchMode
     disp('Batch mode.');
@@ -853,18 +868,18 @@ h.ctf=meGetEffectiveCTF(h.mi,h.displaySize,h.ds0);
 h=UpdateDisplayFiltering(h);
 h=UpdateAutomaskBeam(h);  % Also calls ShowImage.
 
-% Get the figure handle, starting with the axes handle.
-fh=h.axes1;
-str=get(fh,'Type');
-while ~strcmpi(str,'figure')
-    fh=get(fh,'Parent');
-    str=get(fh,'Type');
-end;
-
-% Set up the keypress function
-fhndl=@(hObject,eventdata) Vesicle_finding_GUI('KeyPressFcn',hObject,eventdata,guidata(hObject));
-set(fh,'keypressfcn',fhndl);
-end
+% % Get the figure handle, starting with the axes handle.
+% fh=h.axes1;
+% str=get(fh,'Type');
+% while ~strcmpi(str,'figure')
+%     fh=get(fh,'Parent');
+%     str=get(fh,'Type');
+% end;
+% 
+% % Set up the keypress function
+% fhndl=@(hObject,eventdata) Vesicle_finding_GUI('KeyPressFcn',hObject,eventdata,guidata(hObject));
+% set(fh,'keypressfcn',fhndl);
+% end
 
 % UpdateDisplayFiltering
 function h=UpdateDisplayFiltering(h,doRawImage)
@@ -1541,6 +1556,9 @@ if h.automaskBeamOn
     h.mi.mask(2).encoding='RIM';
     h.mi.mask(2).data=h.sav.beamPars/100;
     h.miChanged=1;
+    return
+    
+    %%%%%%%%%%
     h=ShowImage(h);
 else
     h.mi.mask(2).merge=[];
@@ -1837,8 +1855,8 @@ guidata(axesHandle,h);
 end
 
 
-function WindowButtonMotionFcn(hObject, eventdata, h)
-% h=guidata(hObject);
+function WindowButtonMotionFcn(hObject, eventdata)
+h=guidata(hObject);
 if h.axes1ButtonDown && h.manualMaskActive && h.manualMaskDiameter>0
     pt=get(h.axes1,'currentpoint');
     h.manualMaskCoords(end+1,:)=pt(1,1:2);
