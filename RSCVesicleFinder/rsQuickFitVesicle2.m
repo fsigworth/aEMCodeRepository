@@ -59,7 +59,7 @@ ds=pars.M(1,1);
 
 % Get the vesicle coordinates in the downsampled image
 origXY=[mi.vesicle.x(vIndex); mi.vesicle.y(vIndex); 1];
-localXY=pars.M\origXY+1; % i.e. inv(M)*origXY
+localXY=pars.M\origXY; % i.e. inv(M)*origXY
 
 vx=localXY(1);  % start with zero-based coordinates
 vy=localXY(2);
@@ -213,8 +213,12 @@ if pars.nTerms(1,1)>0  % we fitted position and radius
     t=gather(t);
     miNew.vesicle.r(vIndex,:)=0;
     miNew.vesicle.r(vIndex,1:finalNTerms)=p.vr*ds;   % complex radius
-    miNew.vesicle.x(vIndex)=(t(1)+sh(1)-1)*ds;  % zero-based position in image
-    miNew.vesicle.y(vIndex)=(t(2)+sh(2)-1)*ds;
+    localXY=[t+sh-1 1]';
+    globalXY=pars.M*localXY;
+%     miNew.vesicle.x(vIndex)=(t(1)+sh(1)-1)*ds;  % zero-based position in image
+%     miNew.vesicle.y(vIndex)=(t(2)+sh(2)-1)*ds;
+    miNew.vesicle.x(vIndex)=globalXY(1); % zero-based position in image
+    miNew.vesicle.y(vIndex)=globalXY(2);
 end;
 miNew.vesicle.s(vIndex,:,:)=0;
 nxc=numel(mi.vesicle.extraPeaks);  % number of extra amplitude terms

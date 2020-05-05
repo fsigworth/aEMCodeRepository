@@ -182,11 +182,11 @@ for fileIndex=1:numel(miNames)
         
         % Read the image and normalize to fractional contrast
         sufExts={'.mrc' 's.mrc' 'z.tif'}; % suffix and extension options for small, compressed or full files.
-        ds0=floor(pars.maxPixA/(2*mi.pixA));  % downsampling for bigger images
+%         ds0=floor(pars.maxPixA/(2*mi.pixA));  % downsampling for bigger images
 %         to yield pixA below maxPixA/2
         [m4,M4,ok,m1]=meLoadNormalizedImage(mi,pars.maxPixA,sufExts);
         [M,m8]=meGetImageScaling(m4,size(m4)/2,2); % get a twofold further downsampling
-        M8=M*M4;
+        M8=M4*M;
         if ~ok
             disp(['No image found for ' mi.baseFilename]);
             numErr=numErr+1;
@@ -329,7 +329,7 @@ for fileIndex=1:numel(miNames)
             
             if pars.writeSmallSubMRC
                 outSubName=[mi.procPath mi.baseFilename 'mvs' suffix '.mrc'];
-                WriteMRC(Crop(Downsample(m1-vs1),mi.pixA*M4(1,1),outSubName),size(m4));
+                WriteMRC(m4-vs4,mi.pixA*M4(1,1),outSubName);
                 disp([outSubName ' saved']);
             end;
     else  % No vesicles have been found to refine

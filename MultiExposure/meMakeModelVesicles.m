@@ -23,7 +23,7 @@ if isa(n,'struct')% has n and an affine matrix
     ds=M(1,1);
     n=n.n;
     doFitImage=0;
-else
+else % in th other cases, we assume mi.imageSize is simply a multiple of n
     if numel(n)>2 % we supplied an image
         m0=n;
         n=size(m0);
@@ -32,7 +32,6 @@ else
         doFitImage=0;
     end;
     ds=mi.imageSize(1)/n(1);   % downsample factor
-%     dsShift=[0 0]; % by default no shift.
     M=[ds 0 0; 0 ds 0; 0 0 1]; 
 end;
 
@@ -90,6 +89,7 @@ vd=meDownsampleVesicleModel(mi.vesicleModel,ds)*ds*mi.pixA;
 nim=numel(vindex);
 sumv=single(zeros(n));
 nv=numel(mi.vesicle.x);
+% Transform from original micrograph coordinates to local coords
 globalXY=[mi.vesicle.x mi.vesicle.y ones(nv,1)]';
 vesXY=1+M\globalXY;
 for k=1:nim

@@ -1,6 +1,6 @@
 function [mOut,M,ok,mIn]=meLoadNormalizedImage(mi,target,sufExts)
-% function [mOut,M,ok]=meLoadNormalizedImage(mi,targetSize,sufExts,ds0)
-% function [mOut,M,ok]=meLoadNormalizedImage(mi,maxPixA,sufExts,ds0)
+% function [mOut,M,ok,mIn]=meLoadNormalizedImage(mi,targetSize,sufExts)
+% function [mOut,M,ok,mIn]=meLoadNormalizedImage(mi,maxPixA,sufExts)
 %  -targetSize is a two-element vector.
 %  -maxPixA is a scalar.
 %  -M is the affine transform of mOut's possible downsampling and shift,
@@ -8,10 +8,10 @@ function [mOut,M,ok,mIn]=meLoadNormalizedImage(mi,target,sufExts)
 % in the case that we have normalization information in the mi structure.
 % Return an image mOut that is cropped and downsampled to fit within
 % targetSize. Alternatively, a nice number output size is chosen 
-% to have a pixel size <= maxPixA.
+% to have a pixel size <= maxPixA and an integer downsampling factor.
 % The returned matrix M has the elements
 %   M(1,1): downsampling factor from original micrograph to mOut
-%   M(1:2,3): shift added to original micrograph before sampling. Thus to
+%   -M(1:2,3): shift added to original micrograph before downsampling. Thus to
 %   determine a pixel coordinate in the the original micrograph, it is
 %   computed so:
 % origMicrographXY=M*[xOut;yOut;1];
@@ -53,7 +53,7 @@ if ok
     M1=meGetImageScaling(mi.imageSize,nIn);
 
 %     Determine our further downsampling
-if numel(target)>1 % it's a target size
+if numel(target)>1 % it's a target image size
         [M2,mOut]=GetImageScaling(mIn,target);
 else % it's a maximum pixel size
         ds=floor(target/(M1(1,1)*mi.pixA)); % smallest integer downsampling that will work.

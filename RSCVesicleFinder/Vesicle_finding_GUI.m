@@ -1,5 +1,6 @@
 function varargout = Vesicle_finding_GUI(varargin)
 % Find vesicles in micrographs.
+% 30 Apr 20 version.
 % Vesicle_finding_GUI() calls this in graphical interactive mode.
 % Vesicle_finding_GUI(fileList,[contextFile]) has this run in batch mode. fileList is a
 % cell array of strings being the mi.txt files to process, and the optional contextFile
@@ -269,19 +270,21 @@ set(h.MaskRadiobuttons,'SelectedObject',[]);
 % uiwait(h.figure1);
 
 
-% Get the figure handle, starting with the axes handle.
-fh=h.axes1;
-str=get(fh,'Type');
-while ~strcmpi(str,'figure')
-    fh=get(fh,'Parent');
-    str=get(fh,'Type');
-end;
+% % Get the figure handle, starting with the axes handle.
+% fh=h.axes1;
+% str=get(fh,'Type');
+% while ~strcmpi(str,'figure')
+%     fh=get(fh,'Parent');
+%     str=get(fh,'Type');
+% end;
+%
+% return % ###########
+%
+%
+% % Set up the keypress function
+% fhndl=@(hObject,eventdata) Vesicle_finding_GUI('KeyPressFcn',hObject,eventdata,guidata(hObject));
+% set(fh,'keypressfcn',fhndl);
 
-% Set up the keypress function
-fhndl=@(hObject,eventdata) Vesicle_finding_GUI('KeyPressFcn',hObject,eventdata,guidata(hObject));
-set(fh,'keypressfcn',fhndl);
-
-return % ###########
 
 h.batchMode=numel(varargin)>0 && isa(varargin(1),'cell');
 if h.batchMode
@@ -331,7 +334,7 @@ function h=GetFileList(h);
 %     Check if the previous file is around
 if exist(h.sav.startPath,'dir') && numel(h.sav.fileList)>0 ...
         && exist([AddSlash(h.sav.startPath) h.sav.fileList{1}],'file')==2
-    h.sav.fileIndex=min(h.sav.fileIndex,numel(h.sav.fileList));
+    h.sav.fileIndex=max(1,min(h.sav.fileIndex,numel(h.sav.fileList)));
     disp(['Restarting at ' AddSlash(h.sav.startPath) h.sav.fileList{h.sav.fileIndex}]);
     cd(h.sav.startPath);
     %         [infoPath,nm,ex]=fileparts(h.sav.startFile);
@@ -400,10 +403,11 @@ while h.imageLoaded && get(h.togglebutton_RoboFit,'value')
     %         guidata(hObject,h);
     %         Find vesicles
     %             guidata(hObject,h);
-    DoFind(h.pushbutton_Find, 0, h);
+    DoFind(h.pushbutton_Find, 0, h, 0);
     h=guidata(hObject);
     pause(0.1);
-    pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
+    DoFind(h.pushbutton_Find, 0, h, 1);
+%     pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
     h=guidata(hObject);
     pause(0.1);
     %         Make a new automask
@@ -416,9 +420,11 @@ while h.imageLoaded && get(h.togglebutton_RoboFit,'value')
     %         Find vesicles again
     h=guidata(hObject);
     h.doTrackMembranes=h.roboTrackMembranes;
-    DoFind(h.pushbutton_Find, 0, h)
+    DoFind(h.pushbutton_Find, 0, h, 0)
     h=guidata(hObject);
     pause(0.1);
+    DoFind(h.pushbutton_Find, 0, h, 1);
+
     %     pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
     
     %     %         Make a new automask
@@ -868,18 +874,20 @@ h.ctf=meGetEffectiveCTF(h.mi,h.displaySize,h.ds0);
 h=UpdateDisplayFiltering(h);
 h=UpdateAutomaskBeam(h);  % Also calls ShowImage.
 
-% % Get the figure handle, starting with the axes handle.
-% fh=h.axes1;
-% str=get(fh,'Type');
-% while ~strcmpi(str,'figure')
-%     fh=get(fh,'Parent');
-%     str=get(fh,'Type');
-% end;
-% 
-% % Set up the keypress function
-% fhndl=@(hObject,eventdata) Vesicle_finding_GUI('KeyPressFcn',hObject,eventdata,guidata(hObject));
-% set(fh,'keypressfcn',fhndl);
-% end
+
+% Get the figure handle, starting with the axes handle.
+fh=h.axes1;
+str=get(fh,'Type');
+while ~strcmpi(str,'figure')
+    fh=get(fh,'Parent');
+    str=get(fh,'Type');
+end;
+
+% Set up the keypress function
+fhndl=@(hObject,eventdata) Vesicle_finding_GUI('KeyPressFcn',hObject,eventdata,guidata(hObject));
+set(fh,'keypressfcn',fhndl);
+end
+
 
 % UpdateDisplayFiltering
 function h=UpdateDisplayFiltering(h,doRawImage)
@@ -1051,8 +1059,8 @@ if h.imageLoaded
     %     end;
     nv=numel(h.mi.vesicle.x);
     if nv>0 % something to show
-        globalXY=[h.mi.vesicle.x h.mi.vesicle.y ones(1,nv,'single')];
-        vesXY=double(1+h.M2\globalXY);
+        globalXY=[h.mi.vesicle.x h.mi.vesicle.y ones(nv,1,'single')]';
+        vesXY=double(1+h.M2\globalXY); % convert to window coordinates
         if showAmps
             for i=1:nv
                 x=vesXY(1,i);
@@ -1385,6 +1393,8 @@ end
 
 % Hint: get(hObject,'Value') returns toggle state of fixedCheckbox
 
+
+
 function h=CreateE1Map(h)  % Create the e1Map, based on the 1st exposure
 %                           (if available) for automasking.
 %   Create the global "dense" mask
@@ -1556,9 +1566,9 @@ if h.automaskBeamOn
     h.mi.mask(2).encoding='RIM';
     h.mi.mask(2).data=h.sav.beamPars/100;
     h.miChanged=1;
-    return
-    
-    %%%%%%%%%%
+    %             return
+    %
+    %             %%%%%%%%%%
     h=ShowImage(h);
 else
     h.mi.mask(2).merge=[];
@@ -1619,7 +1629,6 @@ end
 
 % --- Executes on button press in pushbutton_Find.-----------------
 function pushbutton_Find_Callback(hObject, eventdata, h)
-
 h.doTrackMembranes=0;
 DoFind(hObject,eventdata,h,false);
 end
@@ -1666,10 +1675,10 @@ vm=load([pa 'VFDefaultVM.mat']);
 h.mi.vesicleModel=meDownsampleVesicleModel(vm.vm1,h.mi.pixA);
 
 rPars=h.sav.vesicleRadii;
+mi1=h.mi;
 
 if ~findMore
     % Zero out the previous particles if requested
-    mi1=h.mi;
     if h.sav.eraseOldPicks
         mi1.particle=struct;
         mi1.particle.picks=[];
@@ -1688,6 +1697,7 @@ if ~findMore
         mi1.mergeMode=3;
     end;
 end;
+prevNFound=numel(mi1.vesicle.x);
 pars.rPars=rPars;
 pars.ds0=h.ds0;
 pars.ds0Shift=-h.M2(1:2,3)';
@@ -1714,7 +1724,8 @@ while mins>minAmp
     set(hObject,'string',num2str(nves));
     %     Make the scatterplot of vesicle radii and amplitudes.
     
-    %%     This should be its own function...
+    %%     This scatterplot should be its own function...
+%     Make a rectangle to show the selected range of radius and amplitude values
     xs1=rPars(1);
     xs2=rPars(2);
     xs=[xs1    xs1    xs2    xs2    xs1];
@@ -1856,25 +1867,25 @@ end
 
 
 function WindowButtonMotionFcn(hObject, eventdata)
-h=guidata(hObject);
-if h.axes1ButtonDown && h.manualMaskActive && h.manualMaskDiameter>0
-    pt=get(h.axes1,'currentpoint');
-    h.manualMaskCoords(end+1,:)=pt(1,1:2);
-    %         if numel(h.theImage)>0
-    %             n=size(h.theImage);
-    %             msk=(1-uint8(disc(n,50,pt(1,:))))';
-    %             h.theImage(:,:,1)=h.theImage(:,:,1).*msk;
-    %                 axes(h.axes1);
-    %             imshow(h.theImage,'InitialMagnification',100);
-    %         end;
-    set(h.axes1,'nextplot','add');
-    plot(h.axes1,pt(1,1),pt(1,2),'o','markersize',h.manualMaskDiameter,'markerfacecolor','b');
-    set(h.axes1,'nextplot','add');
-    
-    %         pt=get(h.axes3,'currentpoint');
-    %         disp(pt);
-    guidata(hObject,h);
-end
+        h=guidata(hObject);
+        if h.axes1ButtonDown && h.manualMaskActive && h.manualMaskDiameter>0
+            pt=get(h.axes1,'currentpoint');
+            h.manualMaskCoords(end+1,:)=pt(1,1:2);
+            %         if numel(h.theImage)>0
+            %             n=size(h.theImage);
+            %             msk=(1-uint8(disc(n,50,pt(1,:))))';
+            %             h.theImage(:,:,1)=h.theImage(:,:,1).*msk;
+            %                 axes(h.axes1);
+            %             imshow(h.theImage,'InitialMagnification',100);
+            %         end;
+            set(h.axes1,'nextplot','add');
+            plot(h.axes1,pt(1,1),pt(1,2),'o','markersize',h.manualMaskDiameter,'markerfacecolor','b');
+            set(h.axes1,'nextplot','add');
+
+            %         pt=get(h.axes3,'currentpoint');
+            %         disp(pt);
+            guidata(hObject,h);
+        end
 end
 
 function WindowButtonUpFcn(hObject, eventdata)

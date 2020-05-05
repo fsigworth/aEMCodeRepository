@@ -185,6 +185,11 @@ if doFitAmp  % Get big-sized CTF and PW functions also
     ndbCTF=meGetEffectiveCTF(miOld,ndb,dsb);
 end;
 
+%  If amplitude values are tiny, we force them to a default value.
+smallAmps=miOld.vesicle.s(:,1)<1e-5; % More than an order of magnitude too small.
+miOld.vesicle.s(smallAmps,:)=0;
+miOld.vesicle.s(smallAmps,1)=1e-5;
+
 %   If amplitude values are ridiculous, use linear least-squares to adjust the model scaling
 % % if doTweakAmplitudes
 % %     msAmpScale=(vsf(:)'*msf(:))/(vsf(:)'*vsf(:));

@@ -13,14 +13,16 @@ function [h, doUpdateDisplay]=vfMouseClick(h)
 
 nrgn=15;  % size of box, in display pixels, allowed for clicking on
 % existing vesicle
-shiftVec=h.M2(1:2,3)';
+shiftVec=-h.M2(1:2,3)';
 % shiftVec=h.dsMicrograph*h.dsImageShift+h.dsMicrographShift; % shift due to cropping
 % in original pixels
 p=get(h.axes1,'CurrentPoint');
+n=h.displaySize;
+p0=[p(1,1)-1 n(2)-p(1,2)]; % corrected current point
 n=size(h.origImage);
-p1=([p(1,1) n(2)-p(1,2)]-1)*h.ds0-shiftVec; % Selected point in global coords
+p1=p0*h.ds0-shiftVec; % Selected point in global coords
 if h.debug
-    disp(['Image coords ' num2str(p1)]);
+    disp(['Local, image coords ' num2str([p0 p1])]);
 end;
 b=get(gcf,'SelectionType'); % normal, alt, extend are the 3 buttons.
 h.changedVesicleIndex=0;   % default

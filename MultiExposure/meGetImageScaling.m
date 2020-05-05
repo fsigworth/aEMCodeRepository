@@ -3,7 +3,7 @@ function [M,mOut]=meGetImageScaling(nIn,nOut,ds);
 % function [M,mOut]=meGetImageScaling(mIn,nOut,ds);
 % Create an affine transformation matrix M for the operation of
 %  padding and downsampling arbitrarily-sized
-%  images, from size nIn to nOut, each 1x2 vectors.
+%  images, from size nIn to nOut, each given as 1x2 vectors.
 % If an output image mOut is requested, the input image mIn is also
 %  downsampled and cropped appropriately.
 % If the downsampling
