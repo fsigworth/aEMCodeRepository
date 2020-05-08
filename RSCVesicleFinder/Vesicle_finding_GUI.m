@@ -119,7 +119,7 @@ disp(['The current path is ' pwd]);
 % Use a context file to get the parameters h.sav
 % First, find our source directory
 pa=fileparts(which('Vesicle_finding_GUI'));
-ourContextName=[pa '/VFContext.mat'];
+ourContextName=[pa filesep 'VFContext.mat'];
 
 if numel(varargin)>1 % attempt to use our given context file
     if exist(varargin{2},'file')
@@ -289,7 +289,7 @@ set(h.MaskRadiobuttons,'SelectedObject',[]);
 h.batchMode=numel(varargin)>0 && isa(varargin(1),'cell');
 if h.batchMode
     disp('Batch mode.');
-    h.jpegDir='Jpeg/';
+    h.jpegDir=AddSlash('Jpeg');
     CheckAndMakeDir(h.jpegDir,1);
     h.sav.fileList=varargin{1};
     h.sav.fileIndex=1;

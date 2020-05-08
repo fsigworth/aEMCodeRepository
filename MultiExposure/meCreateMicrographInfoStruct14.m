@@ -50,13 +50,13 @@ mi.originalBasePath='';
 mi.basePath='';     % global path
 
 % Movie info, new to version 14
-mi.moviePath='movie_frames';
+mi.moviePath=AddSlash('movie_frames');
 mi.movieFilename='';
 mi.frameDose=[];
 mi.frameSets=[];   % e.g. [2 20; 22 40];
 mi.gainRefName='';
 
-mi.imagePath='Micrograph/';
+mi.imagePath=AddSlash('Micrograph');
 mi.imageFilenames={};
 mi.imageSize=[1 1]*0;  % Original micrograph dimension (x,y)
 mi.pixA=0;          % Original micrograph pixel size
@@ -92,10 +92,10 @@ mi.vesicle=struct('x',[],'y',[],'r',[],'s',[],'ok',false(0,4),...
 
 mi.mask=struct('merge',[],'encoding',[],'data',[]);
 
-mi.procPath='Merged/';
-mi.infoPath='Info/';
-mi.tempPath='Temp/';
-mi.stackPath='Stack/';
+mi.procPath=AddSlash('Merged');
+mi.infoPath=AddSlash('Info');
+mi.tempPath=AddSlash('Temp');
+mi.stackPath=AddSlash('Stack');
 
 % Movie info, new to version 14
 mi.frameShifts={}; % 1 x nsets of nFrames x 2
