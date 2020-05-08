@@ -380,8 +380,9 @@ end
 function togglebutton_RoboFit_Callback(hObject, eventdata, h)
 active=get(hObject,'value');
 if active
-    h.sav.fileIndex=h.sav.fileIndex+1;
-    [h,ok]=LoadAFile(h);
+%     h.sav.fileIndex=h.sav.fileIndex+1;
+%     [h,ok]=LoadAFile(h);
+ok=true;
     if ok
         doRobofit(hObject,h);
         guidata(hObject,h);
@@ -756,6 +757,12 @@ if ok
     szm=size(m);
     % estimate the downsampling factor and origin shift from the micrograph to
     % our image.
+    if any(mi.imageSize==0) % No image size given, we'll assume this is the 
+%         original micrograph size.
+        mi.imageSize=size(m);
+        disp(['mi.imageSize assigned to be ' num2str(mi.imageSize)]);
+    end;
+        
     dsMicrograph=round(max(mi.imageSize./szm)); % we assume that any cropping
     %                                               or padding is small.
     h.M0=meGetImageScaling(mi.imageSize,szm,dsMicrograph);
@@ -934,6 +941,8 @@ if h.imageLoaded
                     h.mi.vesicle.s(h.markedVesicleIndex,1),'ks','markersize',12);
                 set(h.axes3,'nextplot','replace');
             end;
+            xlabel('Radius, A');
+            ylabel('Amplitude');
             title(h.axes3,[num2str(sum(goodVes)) ' vesicles in range']);
         else
             title(h.axes3,' '); % clear the title
@@ -1744,6 +1753,8 @@ while mins>minAmp
     else
         cla(h.axes3);
     end;
+    xlabel('Radius, A');
+    ylabel('Amplitude');
     title(nves);
     %%
     

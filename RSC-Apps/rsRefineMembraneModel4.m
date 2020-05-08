@@ -135,7 +135,9 @@ for groupIndex=1:ngroups
             Ri=zeros([n nfiles nim nt],'single');  % big array for basis functions
             %         R=zeros([n nfiles nim nt],'single');  % big reference array
         end;
-        %         Collect all the images and masks
+
+        
+        %%         Collect all the images and masks
         mtsHP=GaussHP(mts,fHP*pixA,1);
         mtsi(:,:,:,h)=mtsHP;
         maski(:,:,h)=meGetMask(mi,n);
@@ -145,7 +147,7 @@ for groupIndex=1:ngroups
         title(fname{h},'interpreter','none');
         drawnow;
         
-        %%
+        %
         if isfield(mi.vesicle,'x') && numel(mi.vesicle.x)>0 % there are some
         if useAllGoodVesicles
             vesOk=(all(mi.vesicle.ok,2)); % marked good, and refined
