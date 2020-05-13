@@ -1,0 +1,116 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2512
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;\f1\fswiss\fcharset0 Helvetica-Bold;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red9\green79\blue209;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0;\cssrgb\c0\c40784\c85490;}
+\margl1440\margr1440\vieww10800\viewh12600\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs44 \cf0 Introduction to RSC programs
+\fs24 \
+Fred Sigworth \
+work in progress 12 May 2020\
+\
+\pard\pardeftab720\partightenfactor0
+\cf0 \expnd0\expndtw0\kerning0
+I\'92ve finally updated some of my programs so they should work better with Relion-style image processing.\
+1. rlStarToMiFiles. This converts a file such as micrographs_ctf.star to a set of mi.txt files. There is one of these per micrograph, and this stores the metadata including fitting parameters for each vesicle. I put these into a folder Info/\
+2. Vesicle_finding_GUI. This is the program for finding and making initial fits to vesicle densities. I attach a screenshot with one of your micrographs.\
+3. rsRefineVesicleFits. This refines the fits and produces subtracted micrographs.\
+\
+There are three more programs that I use, which need a little work for general use.\
+- rsRefineMembraneModel. This estimates the membrane density cross section from image data. This is the model that is used in the vesicle fits.\
+- rsPickingPreprocessor. This creates FOM maps by geometry-aware, template picking.\
+- SimpleRSPicker. This is the interactive picker that uses the FOM maps.\
+\
+\pard\pardeftab720\partightenfactor0
+
+\fs36 \cf0 Getting started\
+\pard\pardeftab720\partightenfactor0
+
+\fs24 \cf0 Here\'92s a way you can get started using my git repository.\
+1. Clone or pul the latest version\
+(example of cloning: on the terminal type\
+\pard\pardeftab720\partightenfactor0
+
+\f1\b \cf0 git clone {\field{\*\fldinst{HYPERLINK "https://github.com/fsigworth/aEMCodeRepository.git"}}{\fldrslt \cf3 \ul \ulc3 https://github.com/fsigworth/aEMCodeRepository.git}} ~/FolderNameToCreate
+\f0\b0 \
+\'97if you leave FolderNameToCreate blank, it will create the folder aEMCodeRepository/ (I apologize for the horrible name).\
+2. Copy the startup.m file from that directory to a place where Matlab will find it on startup. ~/ is a good place.\
+3. If you made a better FolderNameToCreate you\'92ll have to edit startup.m to change the definition of basePath in line 6.\
+4. Start up Matlab. You\'92ll know if everything is working if typing\
+
+\f1\b rlStarToMiFiles
+\f0\b0 \
+into the Command Window puts up a file selector. Click Cancel to stop it.\
+5. Type\
+
+\f1\b help rlStarToMiFiles
+\f0\b0 \
+to see a brief help message.\
+6. Type\
+
+\f1\b edit rlStarToMiFiles
+\f0\b0 \
+and you will see the code. Lines 18-32 define a set of default parameters. These are the ones I used for your dataset. The fact that I set changeImagePath to true (1) and set imagePath=\'91\'92 means that I stripped the path from the micrograph image file names, left it empty, and so just looked for them in the current directory. Suppose the star file contains the proper path, then you\'92d do the following:\
+
+\f1\b cd 
+\f0\b0 myRelionDirectory/\
+
+\f1\b pars=struct;
+\f0\b0 \
+
+\f1\b pars.changeImagePath=0;
+\f0\b0 \
+This creates a structure and sets one field. The other parameters can be changed by defining other fields of pars\
+Then you can call the program this way\
+
+\f1\b rlStarToMiFiles([],pars);
+\f0\b0 \
+where the empty brackets tell it that it will have to find the star file name using the file selector.\
+7. in your working directory rlStarToMiFiles creates a directory Info and writes a pair of files for each micrograph. The file Micrograph1mi.txt (mi for "microgralph info") contains the metadata for your micrograph1.mrc, stored as a human-readable text file but containing the contents of a Matlab data structure. The file Micrograph1mie.mat is an extension that holds additional, lengthy fields of the struct, mainly the parameters for modeling non-round vesicles. The *mie.mat files were introduced because reading/writing the text representation was getting slow. Reading a *mi.txt file always loads the corresponding *mie.mat file transparently.\
+\
+
+\fs36 Vesicle_finding_GUI
+\fs24 \
+This and all succeeding programs read the *mi.txt files and update them with new information. Vesicle_finding_GUI adds descriptions of vesicles (position, radius, polar expansion of perturbed radius, signal amplitude).\
+I run this program having set Matlab's layout to Command Window Only. (Select Home > Environment > Layout to make this setting.) The command window lists the operations taking place inside the program.\
+\
+---Startup---\
+1. On startup Vesicle_finding_GUI attempts to load the last mi file it was working on. If that fails, it puts up a file selector where you select an mi.txt file. It then uses the path and name stored there to load your micrograph.\
+\
+---Finding Vesicles---\
+The program is not very quick in finding vesicles. Matlab is multithreaded, so a fast 4 or 8 core machine helps.\
+2. The main tools are the three Find buttons and the Min Amp and Max Amp fields. The basic finding algorithm computes cross correlations with CTF-modified vesicle models of various radii (set by Min R, Max R and R step, each in angstroms). The three Find buttons are\
+- Find: simple detection with a round vesicle model.\
+- Find and Track: the same, but after applying the round vesicle model, attempts to track the membrane to fit non-round vesicles.\
+\pard\pardeftab720\partightenfactor0
+\cf0 - Find Concentric: same as Find, but searches again to allow concentric vesicles to be found.\
+\pard\pardeftab720\partightenfactor0
+\cf0 3. Min Amp and Max Amp are lower and upper signal limits for "found" vesicles. The units are 1000x the scale of theoretical relative contrast per 1 volt-angstrom of electrostatic potential. In a perfect imaging situations the amplitude value should be near 1. In practice I get values around 0.3 to 0.5 but it will depend on the vesicle lipid composition. I usually set Max Amp to be about twice the Min Amp value. Big R Thresh is a factor describing the reduction in the MinAmp threshold for large (radius >300A or so) vesicles. This is necessary because big vesicles are usually not round, and this allows detection of the poorer correlation between a round model and a non-round vesicle.\
+4. The Show button at the bottom cycles through various displays: circles (default) where the detected vesicle amplitude is shown in the center. Other displays are the original micrograph and the micrograph with the (tentative) vesicle models subtracted.\
+5. The scatterplot shows the estimated vesicle amplitude vs radius. Vesicles falling a bit outside the ranges are plotted with red dots and indicated with red circles in the main display. The idea is that these vesicles are "bad" in some respect but are modeled anyway to help prevent interference with the particle picker.\
+6. You can edit the vesicles by clicking with the mouse. You click in the center of an existing blue (good) vesicle to turn it red. Click again to delete it. If you click where there is no vesicle, a new blue vesicle is created, whose size is dictated by which size model gave the highest correlation at that position. The latest vesicle you've clicked on is indicated by a box around the colored point in the scatterplot. --note, I have had trouble with Matlab 2020a Mac version giving many error messages as I move the mouse pointer across the image. This problem disappeared when I switched back the 2019b Mac version.\
+7. Find in Mask allows vesicles to be found in masked regions. Erase old Picks is normally left on. If off, it attempts to preserve particle-picking information. Each picked particle is associated with a vesicle, so links between particles and vesicles are maintained.\
+\
+---Masking---\
+8. Most of the remaining controls are for establishing masked regions (pink color) that will be ignored by the particle picker. There are two kinds of manual masks. Outline Mask allows you to click and drag in the display to define a polygonal region. Alternatively Paint Mask allows you to "paint" discs of various diameters.\
+9. Automasking is intended to mask the edges of holes and ice particles. Global and Var adjust sensitivity to dark regions and regions of high variance for large-area masking, the width of which is controlled by Border. Local adjusts the sensitivity to small dark areas, and Smoothness adjusts the width of those regions.\
+10. Beam specifies a round mask also for masking hole edges. The X, Y and R settings are all in units of percent of the displayed area.\
+\
+---Display---\
+11. Highpass and Lowpass set Gaussian filters. Set to zero to have no filtering. W and B set the white and black levels as percent of the normalized image range. A is auto-adjustment of W and B to give reasonable contrast.\
+12. Read Only disables the writing out of modified mi.txt files.\
+\
+---Robofitting---\
+13. RoboFit turns on automatic vesicle finding. Once you have the parameters set to your liking, click on RoboFit. The sequence of operations is to perform rough fitting, so that automasking does not pick out vesicles themselves. Then with automasking on the finding is repeated with tracking on. Here is the sequence of, in effect, button clicks:\
+ - Find\
+ - Find Concentric\
+ - Automask on\
+ - Find and Track\
+ - Find Concentric\
+ - Go to the next file.\
+To stop RoboFitting, click again *once* on the RoboFit button. The operation won't stop till the end of a cycle.\
+\
+---Exiting and Aborting--\
+14. Just close the main window to write out the current mi.txt file. Also a file VFContext.mat is written both to your working directory and to the program source directory to remember the current settings. To abort operation you can also bring the Command Window to the front and type ctrl-C.\
+}
