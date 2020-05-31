@@ -89,10 +89,13 @@ rLimit=70;
 aLimit=40*pars.sat;
 bLimit=40*pars.sat;
 rgb=lab2rgb([rLimit*ar1(:) aLimit*re1(:) bLimit*ri1(:)]);
+rgb(monoMask(:),:)=repmat(real(m(monoMask(:))),1,3);
 rgb=reshape(rgb,[sz 3]);
 
-%     'ColorSpace','linear-rgb');
-    rgb(monoMask(:),:)=repmat(real(m(monoMask(:))),1,3);
+% %     'ColorSpace','linear-rgb');
+% for k=1:3
+%     rgb(monoMask,k)=real(m(monoMask));
+% end;
 if numel(pars.x)>0 && numel(pars.y)>0
     image(pars.x,pars.y,rgb);
 else

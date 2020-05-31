@@ -1,13 +1,22 @@
 % GratingFresnel3.m
 % Use the Fresnel propagator to model electron waves below the sample
 backPropagationOn=1;
-secondGrating=1;
+bigDefocus=1;
+useTrueLambda=0;
+secondGrating=0;
     trueLambda=.02;
+if useTrueLambda
+    lambda=trueLambda;
+else
     lambda=.25; % simulated wavelength
-%     lambda=.02; % simulated wavelength
+end;
+    %     lambda=.02; % simulated wavelength
 
     nz=4096*3;
     dz=lambda/12; % number of A per z unit
+    if bigDefocus
+        dz=5*lambda/12;
+    end;
 %     total height will be equivalent of lambda/trueLambda * nz * dz
     effDz=dz*lambda/trueLambda;
     
@@ -27,9 +36,14 @@ secondGrating=1;
 
 zFraction=.1; % grating distance from top.
 if backPropagationOn
-    zFraction=.3;
+    zFraction=.3;    
     zBlock=0;
 end;
+if bigDefocus
+    zFraction=0.75;
+    zBlock=0;
+end;
+
 fpsi=zeros(nx,nz);
 origZ=round(zFraction*nz);
 origX=nx/2+1;
@@ -157,7 +171,7 @@ xlabel('x, angstroms');
 title('\Psi(x,z)','color','w');
 
 subplot(142);
-psidNorm=psi./psi0;
+psidNorm=env.*(psi./psi0);
 psidNorm(:,zOrigi+1:zOrigi+nBlockZ)=amp*repmat(fullGrating*.5+.5,1,nBlockZ)+1i*inf;
 pars.sat=1;
 pars.scl=[];

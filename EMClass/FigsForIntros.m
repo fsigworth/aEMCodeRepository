@@ -1,7 +1,7 @@
 % Figs for intro lectures
 
 % TRPV1 map for displaying defocus contrast
-cd('/Users/fred/Documents/papers/Microscopy review/Figs/EMPIAR 10005/EMD-5778/map');
+cd('/Users/fred/Documents/Documents - Katz/papers/Microscopy review/Figs/EMPIAR 10005/EMD-5778/map');
 [m,s]=ReadMRC('emd_5778.map');
 map=Downsample(m,128);
 rotMapd=(ERotate3(map,[0 pi pi/2]));
@@ -52,7 +52,7 @@ clf;
 imags(xProjC);
 
 %% Make a video of the defocus series
-showTrp=0;
+showTrp=1;
 lineY=ndis/2+10;
 lw=0.5;
 plotScale=1/800;

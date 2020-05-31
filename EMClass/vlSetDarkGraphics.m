@@ -10,6 +10,13 @@ end;
 if nargin<2 || numel(bkdColor)<1
     bkdColor=[0 .14 .2]; % = 0 36 52 in Keynote.
 end;
+if all(bkdColor<.5)
+    txtColor=[1 1 1];
+else
+    txtColor=[0 0 0];
+end;
+
+
 if nargin<1 || numel(fontSize)<1
     fontSize=18;  % default value.
 end;
@@ -19,8 +26,8 @@ if ~doReset
     set(groot,'defaultFigureColor',bkdColor);
     set(groot,'defaultFigureInvertHardCopy','off');
     set(groot,'defaultAxesColor',bkdColor);
-    set(groot,'defaultAxesXColor','w');
-    set(groot,'defaultAxesYColor','w');
+    set(groot,'defaultAxesXColor',txtColor);
+    set(groot,'defaultAxesYColor',txtColor);
     set(groot,'defaultAxesFontSize',fontSize);
     set(groot,'defaultLineLineWidth',2);
     
