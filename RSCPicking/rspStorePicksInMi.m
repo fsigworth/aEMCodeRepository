@@ -39,7 +39,7 @@ for j=1:numel(ptrs)  % There are 7 elements of ptrs, 7 classes of picks
 end;
 if doDisplay
     [np,npv,npa]=rspGetParticleStats(mi);
-    sp='•  ';
+    sp='  ';
       disp([sp num2str(np) ' particles']);
         disp([sp num2str(npv,3) ' particles/vesicle']);
         disp([sp num2str(npa,3), ' particles/area']);

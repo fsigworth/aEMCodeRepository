@@ -13,13 +13,17 @@ if numel(mi.particle.picks)>0
     parts=(flags>=16 & flags<48);
     if sum(parts)>0 % we have some particles to analyze
         vesInds=mi.particle.picks(parts,4);
-        radii=real(mi.vesicle.r(vesInds,1));
-        maxRadius=max(radii);
-        allRadii=real(mi.vesicle.r(:,1));
-        goodVes=mi.vesicle.ok(:,2);
-        okVes=goodVes & allRadii<=maxRadius;
-        nParts=sum(parts);
-        partsPerVes=nParts/sum(goodVes);
-        partsPerArea=1e6*nParts/sum(allRadii(okVes).^2);
+        okInds=vesInds>0; % We'll ignore particles not associated with vesicles.
+        if sum(okInds)>0
+%             Pick up the radii of all vesicles associated with particles
+            radii=real(mi.vesicle.r(vesInds(okInds),1));
+            maxRadius=max(radii);
+            allRadii=real(mi.vesicle.r(:,1));
+            goodVes=mi.vesicle.ok(:,2);
+            okVes=goodVes & allRadii<=maxRadius;
+            nParts=sum(okInds); % no. of particles associated with vesicles
+            partsPerVes=nParts/sum(goodVes);
+            partsPerArea=1e6*nParts/sum(allRadii(okVes).^2);
+        end;
     end;
 end;

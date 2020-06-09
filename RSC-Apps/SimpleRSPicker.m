@@ -480,9 +480,9 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     dis.miMode=isa(dis.infoName,'char');
                     if dis.miMode
                         dis.infoPath=AddSlash(dis.infoPath);
-                        dis.basePath=ParsePath(dis.infoPath);
-                        allMiNames=f2FindInfoFiles(dis.infoPath);
-                        dis.miIndex=find(strcmp([dis.infoPath dis.infoName],allMiNames),1);
+                        [dis.basePath,dis.infoPath]=ParsePath(dis.infoPath);
+                        miNames=f2FindInfoFiles(dis.infoPath,0,1);
+                        dis.miIndex=find(strcmp(dis.infoName,miNames),1);
                     else
                         disp('Find an si file.');
                         [dis.siName,dis.basePath] = uigetfile({'*.mat'},'Load si File');
