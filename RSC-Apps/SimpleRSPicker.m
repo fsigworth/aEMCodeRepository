@@ -20,7 +20,7 @@ if exist(datName,'file')>0
 end;
 
 newDis=0;
-disOk=0;
+% disOk=0;
 if ~disOk
     disp('Loading defaults');
     dis=struct;
@@ -90,7 +90,7 @@ if ~disOk
     %     spectFactor, ampFactor
     dis.pars(20)=150;  % box size in A.
     dis.minDist=dis.pars(20)/4;  % distance in original pixels, based on box size
-    dis.filter=[1000 20 0];  % inverse frequency in A; third is % inverse CTF
+    dis.filter=[1000 20 0 0];  % inverse frequency in A; third is % inverse CTF
     dis.infoName='';
     dis.defaultPixA=3;
     dis.minCCVal=1e-3;  % Value below which we figure CC is zero.
@@ -121,12 +121,12 @@ end;
 %%
 % dis.miIndex=1;
 % dis.spectrumScale=8;
-dis.labelFontSize=10; %%%
-dis.zeroPreviousPicks=0;
-dis.filter(4)=0;  % initialization
-dis.tFactor=1.03; %%%
-dis.pars(3)=inf; %%%
-dis.pars(12)=1; %%%
+% % dis.labelFontSize=10; %%%
+% % dis.zeroPreviousPicks=0;
+% % dis.filter(4)=0;  % initialization
+% % dis.tFactor=1.03; %%%
+% % dis.pars(3)=inf; %%%
+% % dis.pars(12)=1; %%%
 if dis.miIndex
     disp('Loading the file Info/miNames.mat');
     try
@@ -481,13 +481,22 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     if dis.miMode
                         dis.infoPath=AddSlash(dis.infoPath);
                         [dis.basePath,dis.infoPath]=ParsePath(dis.infoPath);
+%                         Make and save the mi file list
                         miNames=f2FindInfoFiles(dis.infoPath,0,1);
                         dis.miIndex=find(strcmp(dis.infoName,miNames),1);
+                        disp(['Saving ' dis.infoPath 'miNames.mat']);
+                        save([dis.infoPath 'miNames.mat'],'miNames');
+      
+                        if numel(dis.miIndex)<1 || dis.miIndex>numel(miNames)
+                            disp('Setting the file index to 1.');
+                            dis.miIndex=1;
+                        end;
+                        dis.infoName=miNames{dis.miIndex};
                     else
                         disp('Find an si file.');
                         [dis.siName,dis.basePath] = uigetfile({'*.mat'},'Load si File');
                         if ~isa(dis.siName, 'char')
-                            disp('No files selected');
+                            disp('No files selected. Exiting.');
                             return
                         end;
                         si=[]; % get ready to load a new one.
@@ -887,7 +896,7 @@ end;
 dis.finished=(b=='q');  % lower-case q causes final exit.
 set(gcf,'name','Done');
 if dis.finished
-    %     dis.miValid=0;
+    dis.miValid=0;
     disp('Exiting');
 else
     disp('Exiting, to continue this micrograph.');
