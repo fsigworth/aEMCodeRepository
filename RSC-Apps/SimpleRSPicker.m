@@ -26,6 +26,7 @@ if ~disOk
     dis=struct;
     dis.version=version;
     dis.datName=datName;
+    dis.basePath=pwd;
     dis.rsMode=true;  % RSC data instead of simple image.
     dis.readVesicleImage=false;
     dis.readSubImage=true;
@@ -127,15 +128,21 @@ end;
 % % dis.tFactor=1.03; %%%
 % % dis.pars(3)=inf; %%%
 % % dis.pars(12)=1; %%%
-if dis.miIndex
-    disp('Loading the file Info/miNames.mat');
-    try
-        load('Info/miNames.mat');
-    catch
-        disp('...not found.');
-        dis.miIndex=0;
-        dis.miValid=0;
+if exist(dis.basePath)
+    cd(dis.basePath);
+    if dis.miIndex
+        disp('Loading the file Info/miNames.mat');
+        try
+            load('Info/miNames.mat');
+        catch
+            disp('...not found.');
+            dis.miIndex=0;
+            dis.miValid=0;
+        end;
     end;
+else
+    dis.miIndex=0;
+    dis.miValid=0;
 end;
 dis.jpegCounter=0;  % zero until a file is successfully loaded. Incremented by 'T' option.
 
@@ -477,10 +484,11 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                 if dis.miIndex==0 % no files available.
                     disp('Find an mi file');
                     [dis.infoName,dis.infoPath] = uigetfile({'*mi.txt'},'Load Info File');
-                    dis.miMode=isa(dis.infoName,'char');
+                    dis.miMode=isa(dis.infoPath,'char');
                     if dis.miMode
-                        dis.infoPath=AddSlash(dis.infoPath);
+%                         dis.infoPath=AddSlash(dis.infoPath);
                         [dis.basePath,dis.infoPath]=ParsePath(dis.infoPath);
+                        cd(dis.basePath);
 %                         Make and save the mi file list
                         miNames=f2FindInfoFiles(dis.infoPath,0,1);
                         dis.miIndex=find(strcmp(dis.infoName,miNames),1);
@@ -895,12 +903,11 @@ end;
 
 dis.finished=(b=='q');  % lower-case q causes final exit.
 set(gcf,'name','Done');
-if dis.finished
-    dis.miValid=0;
-    disp('Exiting');
-else
+% if dis.finished
+%     dis.miValid=0;
+%     disp('Exiting');
+% else
     disp('Exiting, to continue this micrograph.');
-end;
 close(1);
 save(datName,'dis');
 if isa('si','struct')
