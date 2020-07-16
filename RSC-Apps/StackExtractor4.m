@@ -7,6 +7,9 @@ function StackExtractor4(names,pars)
 % images, and *tsi.mat which contains the total si structure. Contrast is
 % reversed so protein is white.
 % Supports mi.particle.picks(:,10) flag for active particles.
+if nargin<2
+    pars=struct; % Accept all the defaults
+end;
 
 dpars.batchMode= nargin>0 && numel(names)>0;
 
@@ -64,11 +67,11 @@ defaultMembraneOffsetA=52;
 
 clear log % We had the error that the log function was overloaded.
 
-if batchMode
+if pars.batchMode
     miNames=f2FindInfoFiles(dpars.infoPath);
     nmi=numel(miNames);
     pa=pars.infoPath;
-elseif restoreFromSiFile
+elseif pars.restoreFromSiFile
     disp('Select si file');
     [oldSiName,pa]=uigetfile('*si.mat','Select si file to read');
     if isnumeric(pa)
@@ -128,7 +131,7 @@ end;
 fileIndex=1;
 %%  Scan over files
 while fileIndex<= nmi
-    if restoreFromSiFile || loadAllMisFile
+    if pars.restoreFromSiFile || loadAllMisFile
         mi=allMis{fileIndex};
     else
         if pars.doPrint
@@ -145,7 +148,7 @@ while fileIndex<= nmi
     
     % Make new entries into the mi file
     mi.boxSize=boxSize;
-    mi.stackPath=AddSlash(outputStackDir);
+    mi.stackPath=AddSlash(pars.outputDir);
     si.mi{fileIndex}=mi;  % store a copy of the micrograph info even if there are
     %                           no particles.
     
@@ -413,7 +416,7 @@ if totalNParts>0 || ~doExtractParticles % We'll write out .si and perhaps stack 
     disp(['Base output name: ' outname]);
     
     siName=[outname 'tsi.mat'];
-    if exist(siName,'file') && ~batchMode
+    if exist(siName,'file') && ~pars.batchMode
         ch=MyInput(['Overwrite the file ' siName],'n');
         if ch~='y'
             outname=MyInput('New base name',[outname 'z']);
