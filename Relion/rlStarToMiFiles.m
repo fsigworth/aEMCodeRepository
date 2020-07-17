@@ -39,6 +39,7 @@ dpars.skipMissingMrcs=true; % Skip over any absent micrographs
 dpars.writeMiFile=1; % Write out each mi.txt file.
 dpars.writeMergedImage=1;
 dpars.writeMergedSmall=1;
+dpars.dsSmall=4;
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
 cd(pars.basePath);
@@ -72,33 +73,40 @@ for i=1:nLines
         error(['Error reading star file data at line ' num2str(i)]);
     end;
     if first
-        CheckAndMakeDir(mi.infoPath,1);
-        if pars.writeMiFile
+        if pars.writeMiFile 
+            CheckAndMakeDir(mi.infoPath,1);
             disp('Written:');
+        end;
+        if pars.writeMergedImage
+            CheckAndMakeDir(mi.procPath,1);
+        end
+        if pars.writeMergedSmall % We now use Merged_sm as a new directory.
+            CheckAndMakeDir(mi.procPath_sm);
         end;
         first=false;
     end;
     if ~micFound && pars.skipMissingMrcs % silently skip these lines.
         continue;
     end;
-    
+    miName=WriteMiFile(mi);
+    disp([num2str(i) ': ' miName]);
     if pars.writeMergedImage || pars.writeMergedSmall
-        mode=1;  % We'll scale and write images into the Merged directory
-        [mi,m]=rlSetImageScale(mi,mode,nFrames);
-        if pars.writeMicrograph
+        scaleMode=1;  % We'll scale and write images into the Merged directory
+        [mi,m]=rlSetImageScale(mi,scaleMode,pars.nFrames);
+        if pars.writeMergedImage
             micName=[mi.procPath mi.baseFilename 'm.mrc'];
             WriteMRC(m,mi.pixA,micName);
         end;
         if pars.writeMergedSmall
-            smallName=[mi.procPath mi.baseFilename 'ms.mrc'];
+            smallName=[mi.procPath_sm mi.baseFilename 'ms.mrc'];
             ms=Downsample(m,mi.imageSize/pars.dsSmall);
             WriteMRC(ms,mi.pixA*pars.dsSmall,smallName);
         else
             ms=BinImage(m,pars.dsSmall);
-            imags(ms);
-            title(mi.baseFilename,'interpreter','none');
-            drawnow;
         end;
+            imags(ms);
+            title([num2str(i),': ' mi.baseFilename],'interpreter','none');
+            drawnow;
     end;
 end;
 

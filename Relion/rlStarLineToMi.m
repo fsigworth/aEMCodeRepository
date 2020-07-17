@@ -15,22 +15,30 @@ end;
 readOk=false;
 micFound=false;
 mi=[];
-img=[];
 
-% Here are example parameters.
-% dpars.basePath=pwd; % assume we're in the relion project directory
+% % Here are example par values (from rlStarToMiFiles).
+
+% pars.basePath=pwd; % assume we're in the relion project directory
 % dpars.cameraIndex=5; % K2
-% dpars.cpe=0.8;  % counts per electron, for K2 counting mode.
-% % cameraIndex=6; % 'Falcon2' as we don't have info for Falcon 3 yet.
-% % cpe=64;
-% % processed by MotionCor2, this should be 0.2 I think.
-% dpars.dose=60; % Approx total movie dose in e/A^2
-% dpars.writeMiFile=0;
-% dpars.BFactor=60;
-% dpars.changeImagePath=1; % Where to find micrographs
-% dpars.imagePath='';
-% % dpars.readMicrographForScale=false;
- pars=SetDefaultValues(dpars,pars,1); % 1 means check the fieldnames.
+% dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
+% %  0.2 for superres image that is binned by MotionCor2.
+% % ! For Falcon3: cameraIndex=6, I think cpe=64.
+% dpars.dose=60; % Approx total movie dose in e/A^2. We have to guess this
+% % because MotionCor2 scaling doesn't allow the total dose to be calculated.
+% dpars.nFrames=40;
+% dpars.BFactor=60; % Used by my CTF functions. Not critical.
+% dpars.changeImagePath=0; % change from the path given in the star file
+% dpars.imagePath='Micrographs/';
+% dpars.defaultImageSize=[0 0]; % Value to insert if we can't read the
+% % mrc file to get header information. If zeros, Vesicle_finding_GUI will
+% % assign this upon reading the image.
+% % dpars.readMicrographForScale=false; % If true, uses micrograph statistics
+% % the actual image. Slower because each file is read.
+% dpars.skipMissingMrcs=true; % Skip over any absent micrographs
+% dpars.writeMiFile=1; % Write out each mi.txt file.
+% dpars.writeMergedImage=1;
+% dpars.writeMergedSmall=1;
+
 
 % Pick up the parameters that might be special to an optics group
 iOptics=0; % pointer to Optics block in star file
@@ -76,7 +84,17 @@ mi.basePath='';
 mi.moviePath='';
 mi.imageFilenames{1}=[baseName imageExtension];
 mi.imagePath=imagePath;
-mi.procPath=imagePath; % look in the original images folder
+
+micName=[mi.imagePath mi.imageFilenames{1}];
+micFound=exist(micName,'file');
+
+if pars.writeMergedImage || pars.writeMergedSmall
+    mi.procPath='Merged/';
+    mi.procPath_sm='Merged_sm/';
+else
+    mi.procPath=imagePath; % look in the original images folder
+    mi.procPath_sm=imagePath;
+end;
 
 % pick up or calculate the pixel size
 if isfield(mic,'rlnMicrographPixelSize') || isfield(opt,'rlnMicrographPixelSize')
@@ -111,6 +129,8 @@ else % 200 kV code
 end;
 
 readOk=true; % We got the data from the star line.
+return
+
 
 % The following code is now in rlSetImageScale()
 %
@@ -169,7 +189,6 @@ readOk=true; % We got the data from the star line.
 % end;
 % 
 %     disp(iLine);
-return
 
 % %     %     Read the micrograph; pad and rescale it.
 % %     mrcFilename=[mi.imagePath mi.imageFilenames{1}];
@@ -213,7 +232,7 @@ return
     function val=GetOptField(fieldName,ind)
         % if mic.(fieldName) doesn't exist, pick it up from the opt structure.
         if isfield(mic,fieldName)
-            val=mic.(fieldName);
+            val=mic.(fieldName)(ind);
         else
             iGrp=mic.rlnOpticsGroup(ind);
             val=opt.(fieldName)(iGrp);
