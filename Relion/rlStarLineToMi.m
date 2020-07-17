@@ -1,4 +1,4 @@
-function [readOk,micFound,mi,img,nLines]=rlStarLineToMi(sNames,sDats,iLine,pars)
+function [readOk,micFound,mi,nLines]=rlStarLineToMi(sNames,sDats,iLine,pars)
 % function [ok, mi,img,nLines]=rlStarLineToMi(sNames,sDats,iLine,pars)
 % Given [sNames,sDats]=ReadStarFile(name), create an mi struct from the
 % line index iLine. Optionally returns the scaled micrograph img and the
@@ -29,8 +29,8 @@ img=[];
 % dpars.BFactor=60;
 % dpars.changeImagePath=1; % Where to find micrographs
 % dpars.imagePath='';
-% dpars.readMicrographForScale=false;
-% pars=SetDefaultValues(dpars,pars,1); % 1 means check the fieldnames.
+% % dpars.readMicrographForScale=false;
+ pars=SetDefaultValues(dpars,pars,1); % 1 means check the fieldnames.
 
 % Pick up the parameters that might be special to an optics group
 iOptics=0; % pointer to Optics block in star file
@@ -46,10 +46,7 @@ for i=1:numel(sNames)
     end;
 end;
 
-if iMicrographs==0 % bad star structure
-    warning('Bad star structure argument ''sDats''');
-    return
-end;
+iMicrographs=max(1,iMicrographs); % has to be at least 1
 
 if iOptics>0 % There is an optics block
     opt=sDats{iOptics};
@@ -115,6 +112,8 @@ end;
 
 readOk=true; % We got the data from the star line.
 
+% The following code is now in rlSetImageScale()
+%
 %   Set up to use the original micrograph as the "processed" or "merged"
 %   image.
 %     Compute the normalization we'll have to apply to make the AC image component
@@ -131,44 +130,44 @@ readOk=true; % We got the data from the star line.
 %     scaledImg = (m-mi.imageMedian)*mi.imageNormScale;
 
 % if pars.readMicrographForScale || pars.readMicrographHeader
-    micName=[mi.imagePath mi.imageFilenames{1}];
-    micFound=exist(micName,'file');
-%         ok=false;
-%         return  % Return with ok=false.
-%     end;
+%     micName=[mi.imagePath mi.imageFilenames{1}];
+%     micFound=exist(micName,'file');
+% %         ok=false;
+% %         return  % Return with ok=false.
+% %     end;
+% % else
+% %     ok=true;
+% % end;
+% 
+% if micFound && pars.readMicrographForScale % We'll read the actual micrograph
+%     m=ReadMRC(micName);
+%     mi.imageSize=size(m);
+%     sds=floor(min(mi.imageSize)/256); % Downsampling factor for spectrum
+%     mc=single(Crop(m,256*sds)); % Grab a square region of the image.
+%     sp1=RadialPowerSpectrum(mc,0,sds);
+%     spN=numel(sp1);
+%     spLims=round(spN*[.3 .7]);
+%     estVar=sum(sp1(spLims(1):spLims(2)))/diff(spLims);
+%     mi.imageNormScale=1/(mi.pixA*sqrt(mi.doses*estVar));
+%     mi.imageMedian=median(m(:)); % best estimate we have of the main image mean.
+%     img=(single(m)-mi.imageMedian)*mi.imageNormScale;
 % else
-%     ok=true;
+%     %      Image statistics: in the absence of image data,
+%     %         we assume a true counting camera, binned from superres, and
+%     %         just wing it for scale, don't compute median.
+%     mi.imageNormScale=1/(mi.cpe*mi.pixA^2*mi.doses(1));
+% 
+%     %  Image Size: if we don't read the header we leave the mi.imageSize as
+% %     zero, which is a marker that this image was not read.
+%     if micFound % Try to get the size from the header at least.
+%         [~,s]=ReadMRC(micName);
+%         mi.imageSize=[s.nx s.ny];
+%     else
+%         mi.imageSize=pars.defaultImageSize;
+%     end;
+%     
 % end;
-
-if micFound && pars.readMicrographForScale % We'll read the actual micrograph
-    m=ReadMRC(micName);
-    mi.imageSize=size(m);
-    sds=floor(min(mi.imageSize)/256); % Downsampling factor for spectrum
-    mc=single(Crop(m,256*sds)); % Grab a square region of the image.
-    sp1=RadialPowerSpectrum(mc,0,sds);
-    spN=numel(sp1);
-    spLims=round(spN*[.3 .7]);
-    estVar=sum(sp1(spLims(1):spLims(2)))/diff(spLims);
-    mi.imageNormScale=1/(mi.pixA*sqrt(mi.doses*estVar));
-    mi.imageMedian=median(m(:)); % best estimate we have of the main image mean.
-    img=(single(m)-mi.imageMedian)*mi.imageNormScale;
-else
-    %      Image statistics: in the absence of image data,
-    %         we assume a true counting camera, binned from superres, and
-    %         just wing it for scale, don't compute median.
-    mi.imageNormScale=1/(mi.cpe*mi.pixA^2*mi.doses(1));
-
-    %  Image Size: if we don't read the header we leave the mi.imageSize as
-%     zero, which is a marker that this image was not read.
-    if micFound % Try to get the size from the header at least.
-        [~,s]=ReadMRC(micName);
-        mi.imageSize=[s.nx s.ny];
-    else
-        mi.imageSize=pars.defaultImageSize;
-    end;
-    
-end;
-
+% 
 %     disp(iLine);
 return
 

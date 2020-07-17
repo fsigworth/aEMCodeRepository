@@ -21,22 +21,24 @@ dpars=struct; % Set up the defaults.
 
 dpars.basePath=pwd; % assume we're in the relion project directory
 dpars.cameraIndex=5; % K2
-dpars.cpe=0.2;  % counts per electron, 0.8 for K2 counting mode, but
+dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
 %  0.2 for superres image that is binned by MotionCor2.
 % ! For Falcon3: cameraIndex=6, I think cpe=64.
 dpars.dose=60; % Approx total movie dose in e/A^2. We have to guess this
 % because MotionCor2 scaling doesn't allow the total dose to be calculated.
+dpars.nFrames=40;
 dpars.BFactor=60; % Used by my CTF functions. Not critical.
-dpars.changeImagePath=1; % change from the path given in the star file
+dpars.changeImagePath=0; % change from the path given in the star file
 dpars.imagePath='Micrographs/';
 dpars.defaultImageSize=[0 0]; % Value to insert if we can't read the
 % mrc file to get header information. If zeros, Vesicle_finding_GUI will
 % assign this upon reading the image.
-dpars.readMicrographForScale=false; % If true, uses micrograph statistics
+% dpars.readMicrographForScale=false; % If true, uses micrograph statistics
 % the actual image. Slower because each file is read.
 dpars.skipMissingMrcs=true; % Skip over any absent micrographs
 dpars.writeMiFile=1; % Write out each mi.txt file.
-
+dpars.writeMergedImage=1;
+dpars.writeMergedSmall=1;
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
 cd(pars.basePath);
@@ -58,16 +60,14 @@ else % starName might be a string. If empty, we get starName from a file
     [names,dat]=ReadStarFile(starName);
 end;
 
-[~,~,~,~,nLines]=rlStarLineToMi(names,dat,0);
+[~,~,~,nLines]=rlStarLineToMi(names,dat,0);
 disp([num2str(nLines) ' entries.']);
 if pars.skipMissingMrcs
     disp('Skipping lines with no micrographs');
-elseif pars.readMicrographForScale
-    disp('Reading micrographs to set scaling.');
 end;
 first=true;
 for i=1:nLines
-    [readOk,micFound,mi,m]=rlStarLineToMi(names,dat,i,pars);
+    [readOk,micFound,mi]=rlStarLineToMi(names,dat,i,pars);
     if ~readOk
         error(['Error reading star file data at line ' num2str(i)]);
     end;
@@ -81,18 +81,24 @@ for i=1:nLines
     if ~micFound && pars.skipMissingMrcs % silently skip these lines.
         continue;
     end;
-    miName=WriteMiFile(mi);
-    if ~micFound
-        extraText=[' -- mrc file not found. Size set to ' num2str(mi.imageSize)];
-    else
-        extraText='';
-    end;
-    fprintf('%6d %s %s\n',i,miName,extraText);
-    if numel(m)>0 % we read the image, let's display it.
-        nsz=NextNiceNumber(mi.imageSize);
-        imags(BinImage(Crop(m,nsz,0,mean(m(:))),4));
-        title(mi.baseFilename,'interpreter','none');
-        drawnow;
+    
+    if pars.writeMergedImage || pars.writeMergedSmall
+        mode=1;  % We'll scale and write images into the Merged directory
+        [mi,m]=rlSetImageScale(mi,mode,nFrames);
+        if pars.writeMicrograph
+            micName=[mi.procPath mi.baseFilename 'm.mrc'];
+            WriteMRC(m,mi.pixA,micName);
+        end;
+        if pars.writeMergedSmall
+            smallName=[mi.procPath mi.baseFilename 'ms.mrc'];
+            ms=Downsample(m,mi.imageSize/pars.dsSmall);
+            WriteMRC(ms,mi.pixA*pars.dsSmall,smallName);
+        else
+            ms=BinImage(m,pars.dsSmall);
+            imags(ms);
+            title(mi.baseFilename,'interpreter','none');
+            drawnow;
+        end;
     end;
 end;
 
