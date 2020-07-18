@@ -37,8 +37,9 @@ dpars.defaultImageSize=[0 0]; % Value to insert if we can't read the
 % the actual image. Slower because each file is read.
 dpars.skipMissingMrcs=true; % Skip over any absent micrographs
 dpars.writeMiFile=1; % Write out each mi.txt file.
+dpars.setProcImage=0; % Set proc path to image path (if not writing merged images)
 dpars.writeMergedImage=1;
-dpars.writeMergedSmall=1;
+dpars.writeMergedSmall=0;
 dpars.dsSmall=4;
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
@@ -67,6 +68,7 @@ if pars.skipMissingMrcs
     disp('Skipping lines with no micrographs');
 end;
 first=true;
+skipCount=0;
 for i=1:nLines
     [readOk,micFound,mi]=rlStarLineToMi(names,dat,i,pars);
     if ~readOk
@@ -86,7 +88,13 @@ for i=1:nLines
         first=false;
     end;
     if ~micFound && pars.skipMissingMrcs % silently skip these lines.
+        skipCount=skipCount+1;
         continue;
+    elseif pars.skipMissingMrcs
+        if skipCount>0
+            disp([num2str(skipCount) ' files skipped, up to ' mi.baseFilename]);
+            skipCount=0;
+        end;
     end;
     miName=WriteMiFile(mi);
     disp([num2str(i) ': ' miName]);

@@ -88,7 +88,7 @@ mi.imagePath=imagePath;
 micName=[mi.imagePath mi.imageFilenames{1}];
 micFound=exist(micName,'file');
 
-if pars.writeMergedImage || pars.writeMergedSmall
+if pars.writeMergedImage || pars.writeMergedSmall || ~pars.setProcImage
     mi.procPath='Merged/';
     mi.procPath_sm='Merged_sm/';
 else

@@ -93,6 +93,7 @@ mi.vesicle=struct('x',[],'y',[],'r',[],'s',[],'ok',false(0,4),...
 mi.mask=struct('merge',[],'encoding',[],'data',[]);
 
 mi.procPath=AddSlash('Merged');
+mi.procPath_sm=AddSlash('Merged_sm');
 mi.infoPath=AddSlash('Info');
 mi.tempPath=AddSlash('Temp');
 mi.stackPath=AddSlash('Stack');
