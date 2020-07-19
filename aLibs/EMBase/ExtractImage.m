@@ -48,4 +48,5 @@ inl=inl+(rgl0-rgl);  % shift the input up if necessary
 inu=inu-(rgu0-rgu);
 
 out=zeros(n,class(in));  % force the output to be the same class as input.
+%disp([inl inu rgl rgu]);
 out(rgl(1):rgu(1),rgl(2):rgu(2))=in(inl(1):inu(1),inl(2):inu(2));

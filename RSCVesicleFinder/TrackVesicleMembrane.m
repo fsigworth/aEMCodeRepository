@@ -222,8 +222,12 @@ for ind=startInd:nv;
     end;
     
 %     Modify the amplitude to fit the vesicle image
+if isnan(cx1) || isnan(cy1)
+    s1=NaN;
+else
     v2x=ExtractImage(v1Model,round(v1ctr-[cx1 cy1]),nx);
     s1=ampRefitScale*v2x(:)'*mx(:)/(v2x(:)'*v2x(:));
+end;
 %     Explicit lin least squares yields essentially the same result:    
 %     n2x=numel(v2x);
 %     f=zeros(n2x,2);

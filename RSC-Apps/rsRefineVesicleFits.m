@@ -37,6 +37,7 @@ dpars.dsSmall=4; % downsampling factor
 dpars.writeVesFiles=0;   % Write vesicle models into Temp/
 
 dpars.resetBasePath=1;   % update the basePath field of the mi file to the current directory.
+dpars.modifiedAlpha=0;  % Good alpha value for lipids.
 
 % Number of terms (for both radius and amplitude fitting) is set thusly:
 %    nTerms=find(vesicle.r(ind,1) < pars.rTerms/mi.pixA,1);
@@ -119,6 +120,10 @@ for fileIndex=1:numel(miNames)
     %%
     disp(['Reading ' num2str(fileIndex) ' ' infoPath miNames{fileIndex}]);
     mi=ReadMiFile([infoPath miNames{fileIndex}]);
+            originalAlpha=mi.ctf(1).alpha;
+    if pars.modifiedAlpha>0
+        mi.ctf(1).alpha=pars.modifiedAlpha;        
+    end;
     if resetBasePath
         mi.basePath=rootPath;
     end;
@@ -268,7 +273,7 @@ for fileIndex=1:numel(miNames)
             
             %% Outputting
             outName='';
-            
+            mi.ctf(1).alpha=originalAlpha;
             if writeMiFile
                 mi.log{end+1,1}=['rsRefineVesicleFits ' TimeStamp];
                 outName=WriteMiFile(mi,[infoPath miNames{fileIndex}]);
@@ -320,6 +325,11 @@ for fileIndex=1:numel(miNames)
                 WriteZTiff(m4-vs1,pixA0,outSubName,ztPars);
                 disp([outSubName ' saved']);
             end;
+            if ~isfield(mi,'procPath_sm')
+                procPath_sm=mi.procPath;
+            else
+                procPath_sm=mi.procPath_sm;
+            end;
             
             if pars.writeSubMRC  % write an MRC file
                 outSubName=[mi.procPath mi.baseFilename 'mv' suffix '.mrc'];
@@ -328,7 +338,7 @@ for fileIndex=1:numel(miNames)
             end;
             
             if pars.writeSmallSubMRC
-                outSubName=[mi.procPath mi.baseFilename 'mvs' suffix '.mrc'];
+                outSubName=[procPath_sm mi.baseFilename 'mvs' suffix '.mrc'];
                 WriteMRC(m4-vs4,mi.pixA*M4(1,1),outSubName);
                 disp([outSubName ' saved']);
             end;

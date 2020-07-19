@@ -39,7 +39,7 @@ dpars.skipMissingMrcs=true; % Skip over any absent micrographs
 dpars.writeMiFile=1; % Write out each mi.txt file.
 dpars.setProcImage=0; % Set proc path to image path (if not writing merged images)
 dpars.writeMergedImage=1;
-dpars.writeMergedSmall=0;
+dpars.writeMergedSmall=1;
 dpars.dsSmall=4;
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
