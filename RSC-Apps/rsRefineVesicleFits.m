@@ -83,7 +83,7 @@ batchMode=isCluster  && (exist('miNames','var') && numel(miNames)>0);
 displayOn=~batchMode;
 % displayOn=0; % 1: show results at end of each fit; 2 update while fitting.
 
-dsModel=4;  % net downsampling of "full res" model relative to orig micrograph
+dsModel=2;  % net downsampling of "full res" model relative to orig micrograph
 dsSmall=pars.dsSmall;  % net downsampling of 'small' output file.
 
 forceNewModel=0;   % Always ask the user to select a new refined model
@@ -270,6 +270,7 @@ for fileIndex=1:numel(miNames)
                 mi1=rsRefineVesicleFitsSub(mi,m8,m4,p,displayOn);
                 mi=mi1;
             end;
+            
             
             %% Outputting
             outName='';

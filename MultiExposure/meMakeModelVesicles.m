@@ -91,7 +91,8 @@ sumv=single(zeros(n));
 nv=numel(mi.vesicle.x);
 % Transform from original micrograph coordinates to local coords
 globalXY=[mi.vesicle.x mi.vesicle.y ones(nv,1)]';
-vesXY=1+M\globalXY;
+% vesXY=1+M\globalXY;
+vesXY=M\globalXY;
 for k=1:nim
     ind=vindex(k);
     % Get the coordinates and radius, scaled down by ds
