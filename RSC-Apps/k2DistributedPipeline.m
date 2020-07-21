@@ -29,10 +29,10 @@ doRefineVesicles      =1;
 forceRefineVesicles   =0;
 refineVesicleAmpsOnly=0;
 % minRefineVesiclesSequence=0;  % 0 if don't consider.
-minRefineVesiclesSequence=1 ;    % inf forces refinement
-doInverseFilter       =0;
+minRefineVesiclesSequence=inf ;    % inf forces refinement
+doInverseFilter       =1;
 forceInverseFilter=1;
-minAge=1;  % if the corresponding log entry has a date stamp < minAge
+minAge=.1;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
@@ -40,36 +40,7 @@ minAge=1;  % if the corresponding log entry has a date stamp < minAge
 doPickingPreprocessor =1;
 
 
-workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/191115/'
-%workingDir='/gpfs/ysm/project/nm537/20180315_2/';
-%workingDir='/gpfs/ysm/scratch60/fjs2/20180315_3/';
-%workingDir='/gpfs/ysm/scratch60/fjs2/170926';
-%workingDir='/gpfs/ysm/scratch60/fjs2/171031';
-% workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq09_2';
-%workingDir='/gpfs/ysm/scratch60/fjs2/20181218/No5/sq07_3';
-%workingDir='/gpfs/ysm/scratch60/fjs2/20181216/No5Graphene/sq08_1';
-%workingDir='/gpfs/ysm/project/fjs2/180226/Kv_1/';
-%workingDir='/ysm-gpfs/pi/cryoem/krios/20171120/KvLipo123_1/'
-%workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w11v3m1/'
-% workingDir='/ysm-gpfs/scratch60/fjs2/160909/KvLipo121_2w10v3t/'
-% workingDir='/ysm-gpfs/scratch60/fjs2/170808p/SimpleVes_raFit/';
-%workingDir='~/project/180226/Kv_1selw10/';
-%workingDir='~/project/20180620/';
-%workingDir='~/project/20181025/20Frames/';
-%workingDir='/gpfs/ysm/scratch60/fjs2/180226/Kv_1SelW10/';
-%workingDir='/ysm-gpfs/scratch60/fjs2/170926Nelli/'
-%workingDir='/ysm-gpfs/scratch60/fjs2/171031Nelli/'
-%workingDir='/ysm-gpfs/scratch60/fjs2/170808/SiW10/'
-%workingDir='/ysm-gpfs/scratch60/fjs2/170417/KvLipo134_4/sq04w11/';
-%workingDir='/fastscratch/fjs2/160909/KvLipo121_2retw10ds1/'
-%workingDir='/net/scratch2/fjs2/transfer/161124/KvW366FLipo_1/';
-%workingDir='/net/scratch2/fjs2/transfer/161124/KvLipo/';
-%workingDir='/Volumes/D215/160909/KvLipo121_2';
-%workingDir='/net/scratch2/fjs2/transfer/160909/KvLip121_3/'
-%workingDir='/fastscratch/fjs2/140625n/'
-% workingDir='/Users/fred/EMWork/Hideki/140625/ExampleImages';
-%workingDir='/Users/fred/EMWork/Hideki/150714/';
-% workingDir='/Volumes/WD2Blue/EMWork/Hideki/150620/BoxTmp1_slot4_WalkerBx1_30sec/';
+workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/200707/';
 
 
 compressedDir=[workingDir 'Compressed/'];

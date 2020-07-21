@@ -29,8 +29,7 @@ dpars.doPreSubtraction=1; % subtract all vesicles except the one being fitted
 dpars.listFits=1;  % print out each fit's parameters
 dpars.scaleOriginalAmplitudes=1; % multiply amplitudes by this value
 
-dpars.writeSubZTiff=0;    % Write compressed, subtracted image
-suffix='';  % extra character ? for XXmv?z.tif output file
+dpars.writeSmallMRC=1; % Write out downsampled image
 dpars.writeSubMRC=1; % Write out subtracted image <basename>mv.mrc
 dpars.writeSmallSubMRC=1; % Write out a downsampled subtracted image
 dpars.dsSmall=4; % downsampling factor
@@ -57,7 +56,7 @@ dpars.fractionAmpTerms=[0 1]; % fraction of amp terms to use
 %  To avoid crazy fits, we repeat the whole radius-only fitting with the base
 %  radius perturbed by these steps (in angstroms) and pick the best.
 dpars.radiusStepsA=[-100 -50 0 50]; % repeat radius-only fitting with perturbed r(1)
-dpars.maxPixA=10;  % downsampled image resolution for radius fitting
+dpars.maxPixA=6;  % downsampled image resolution for radius fitting
 dpars.disA=1200;  % size of the fit window, in angstroms
 % dpars.disA=1600;  % for Mengqiu
 
@@ -318,14 +317,6 @@ for fileIndex=1:numel(miNames)
                 disp([outVesName ' saved']);
             end;
             
-            if pars.writeSubZTiff  % write a zTiff file
-                ztPars=struct;
-                ztPars.lfCutoff=.1;
-                ztPars.snrRatio=300;
-                outSubName=[mi.procPath mi.baseFilename 'mv' suffix 'z.tif'];
-                WriteZTiff(m4-vs1,pixA0,outSubName,ztPars);
-                disp([outSubName ' saved']);
-            end;
             if ~isfield(mi,'procPath_sm')
                 procPath_sm=mi.procPath;
             else
@@ -333,15 +324,19 @@ for fileIndex=1:numel(miNames)
             end;
             
             if pars.writeSubMRC  % write an MRC file
-                outSubName=[mi.procPath mi.baseFilename 'mv' suffix '.mrc'];
+                outSubName=[mi.procPath mi.baseFilename 'mv.mrc'];
                 WriteMRC(m1-vs1,mi.pixA,outSubName);
                 disp([outSubName ' saved']);
             end;
-            
+            if pars.writeSmallMRC
+                outName=[procPath_sm mi.baseFilename 'ms.mrc'];
+                WriteMRC(m4,mi.pixA*M4(1,1),outName);
+                disp([outName ' saved.']);
+            end;
             if pars.writeSmallSubMRC
-                outSubName=[procPath_sm mi.baseFilename 'mvs' suffix '.mrc'];
+                outSubName=[procPath_sm mi.baseFilename 'mvs.mrc'];
                 WriteMRC(m4-vs4,mi.pixA*M4(1,1),outSubName);
-                disp([outSubName ' saved']);
+                disp([outSubName ' saved, ' num2str(size(m4)) ' pixels']);
             end;
     else  % No vesicles have been found to refine
         if numel(mi.vesicle.x)<1
