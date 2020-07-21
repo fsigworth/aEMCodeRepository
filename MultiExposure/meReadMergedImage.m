@@ -1,4 +1,4 @@
-function [m, mergeFullPath,ok]=meReadMergedImage(mi,doNorm,suffix)
+function [m, mergeFullName,ok]=meReadMergedImage(mi,doNorm,suffix)
 % function [m mergeFullPath]=ReadMergedImage(mi,doNorm,suffix)
 % Typical suffix values: '', 'v', 's', 'vs'
 % if suffix(end)=='s' we first try to read a small image from mi.procPath_sm.
@@ -47,15 +47,15 @@ for ibase=1:2 % Try mi.basePath, then pwd
 end; % for
 if ok
     m=ReadEMFile(iname);
-    mergeFullPath=iname;
+    mergeFullName=iname;
 elseif nargout<3  % if no error return given
     %%
     disp('Expected merged-image file not found:');
     disp(iname);
     [iname, mergeFullPath]=uigetfile('*m*.mrc','Find the merged image');
     if numel(iname)>1
-        m=ReadEMFile([mergeFullPath iname]);
-        mergeFullPath=[mergeFullPath '/' iname];
+        mergeFullName=[AddSlash(mergeFullPath) iname];
+        m=ReadEMFile(mergeFullName);
     end;
 end;
 if doNorm

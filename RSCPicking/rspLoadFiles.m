@@ -34,18 +34,24 @@ masks=[];
 rawMask=[];
 success=false;
 
-sufExts={'s.mrc' 'z.tif' '.mrc'}; % suffix and extension options for small, compressed or full files.
+%sufExts={'s.mrc' 'z.tif' '.mrc'}; % suffix and extension options for small, compressed or full files.
 % drawnow;
-[mergedName,ok]=CheckForAltImage([mi.procPath mi.baseFilename 'm.mrc'],sufExts);
+[mc, mergedName,ok]=meReadMergedImage(mi,0,'s');
+%[mergedName,ok]=CheckForAltImage([mi.procPath mi.baseFilename 'm.mrc'],sufExts);
 % [mc,mergedName]=meReadMergedImage(mi);
-mc=ReadEMFile(mergedName);
+% mc=ReadEMFile(mergedName);
 disp(mergedName);
-if numel(mc)<2  % unsuccessful read
+if ~ok  % unsuccessful read
     mc=single(zeros(960));
     disp('No merged image found.');
     return
 end;
-rsccName=[mi.procPath mi.baseFilename 'rscc.mat'];
+if isfield(mi,'procPath_sm')
+    procPath_sm=mi.procPath_sm;
+else
+    procPath_sm=mi.procPath;
+end;
+rsccName=[procPath_sm mi.baseFilename 'rscc.mat'];
 disp(rsccName);
 dis.rsMode=exist(rsccName,'file');
 if dis.rsMode
@@ -224,12 +230,13 @@ if dis.readVesicleImage
         mVesBad=0*mVesGood;
     end;
 elseif dis.readSubImage
-    mvName=[mi.basePath mi.procPath mi.baseFilename 'mv.mrc'];
+    [mv0,mvName,vesOk]=meReadMergedImage(mi,0,'vs');
+%     mvName=[mi.basePath mi.procPath mi.baseFilename 'mv.mrc'];
     %     [mvName,vesOk]=CheckForImageOrZTiff(mvName);
-    [mvName,vesOk]=CheckForAltImage(mvName,sufExts);
+%    [mvName,vesOk]=CheckForAltImage(mvName,sufExts);
     if vesOk
-        disp([mvName]);
-        mv=DownsampleGeneral(ReadEMFile(mvName),dis.ndis);
+        disp(mvName);
+        mv=DownsampleGeneral(mv0,dis.ndis);
         mVesGood=m0-mv;
         mVesBad=0*mVesGood;
     end;
