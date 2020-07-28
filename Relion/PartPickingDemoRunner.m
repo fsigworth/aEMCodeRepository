@@ -86,29 +86,28 @@ while b~='q'
         doPicking=1;
     end;
     
-    if displayMode==1 % Always 1 if we haven't displayed yet
-        
-        % Set up scaling of the filtered image
-        mdf=GaussFilt(p.md,displayFilter);
-        [mds,mdmul,mdadd]=imscale(mdf,256,.001);
-        imaga(mds);
-        
-    elseif displayMode==2
-        %         nb=size(
-        np=size(picks,1);
-        modelImage=zeros(nd,'single');
-        for i=1:np
-            modelImage=modelImage+ExtractImage(picks(i,3)*p.cTemplates(:,:,picks(i,4)),...
-                picks(i,1:2),nd,1);
-        end;
-        if b=='r'
-            modelImage=mdf-modelImage;
-        end;
-        imaga(mdmul*modelImage+mdadd);
-    end;
     
-    
-    if boxesOn && doPicking
+    if doPicking % any display operation includes picking.
+        
+        if displayMode==1 % Always 1 if we haven't displayed yet. Standard display
+            % Set up scaling of the filtered image
+            mdf=GaussFilt(p.md,displayFilter);
+            [mds,mdmul,mdadd]=imscale(mdf,256,.001);
+            imaga(mds);
+            
+        elseif displayMode==2 % Show expectation or residual
+            np=size(picks,1);
+            modelImage=zeros(nd,'single');
+            for i=1:np
+                modelImage=modelImage+ExtractImage(picks(i,3)*p.cTemplates(:,:,picks(i,4)),...
+                    picks(i,1:2),nd,1);
+            end;
+            if b=='r'
+                modelImage=mdf-modelImage;
+            end;
+            imaga(mdmul*modelImage+mdadd);
+        end;
+        
         
         % set up to search
         stackScales=ones(nGroups,1);
@@ -159,38 +158,21 @@ while b~='q'
         end;
         hold off;
         
-    end;
-    
-    
-    
-    % %     q=struct;
-    % %     p.baseName=baseName;
-    % %     p.pixAds=pixAds;
-    % %     p.nd=nd;
-    % %     p.md=md;
-    % %     p.cnd=cnd;
-    % %     p.ctfParsDs=ctfParsDs;
-    % %     p.cTemplates=cTemplates;
-    % %     p.borders=borders;
-    % %     p.goods=goods;
-    % %
-    % %     p.ccImgs=reshape(ccVecs,[nd nGroups]);
-    % %     p.ccInds=reshape(ccInds,[nd nGroups]);
-    
     txt=num2str([th0 nonScale size(picks,1)],3);
     text(1,1,txt,'verticalalignment','bottom','horizontalalignment','left',...
         'fontsize',16,'color',[1 1 0]);
     title(matName,'interpreter','none');
     %     axis off;
+    end; % if doPicking
+      
     
-    
+    pause(0.1);
     [ix,iy,b]=Myginput(1);
-
     
     np=size(picks,1);
     
     if any(b==['nNq'])
-
+        
         % Construct the output star file
         pk=struct;
         pk.rlnCoordinateX=picks(:,1)*ds-p.offsets(1)-1;
@@ -204,18 +186,18 @@ while b~='q'
         disp(['Written: ' outStarName ' with ' num2str(np) ' picks.']);
         
         
-%         % Compare picks
-%         [nms,pk0]=ReadStarFile([p.baseName '_autopick.star'],1);
-%         pk0=pk0{1};
-%         
-%         imags(mdf);
-%         hold on;
-%         % plot(pk.rlnCoordinateX*ds+offsets(1)+1,rlnCoordinateY*ds+offsets(2)+1),'gs');
-%         plot( (pk.rlnCoordinateX+offsets(1))/ds+1,(pk.rlnCoordinateY+offsets(2))/ds+1,'gs');
-%         plot((pk0.rlnCoordinateX+offsets(1))/ds+1,(pk0.rlnCoordinateY+offsets(2))/ds+1,'rs');
-%         hold off;
-%         
-%         
+        %         % Compare picks
+        %         [nms,pk0]=ReadStarFile([p.baseName '_autopick.star'],1);
+        %         pk0=pk0{1};
+        %
+        %         imags(mdf);
+        %         hold on;
+        %         % plot(pk.rlnCoordinateX*ds+offsets(1)+1,rlnCoordinateY*ds+offsets(2)+1),'gs');
+        %         plot( (pk.rlnCoordinateX+offsets(1))/ds+1,(pk.rlnCoordinateY+offsets(2))/ds+1,'gs');
+        %         plot((pk0.rlnCoordinateX+offsets(1))/ds+1,(pk0.rlnCoordinateY+offsets(2))/ds+1,'rs');
+        %         hold off;
+        %
+        %
         
     end;
 end; % while
