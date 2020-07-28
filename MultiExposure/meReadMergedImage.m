@@ -17,8 +17,8 @@ end;
 if nargin<3
     suffix='';
 end;
-mergeFullPath='';
 m=0;
+mergeFullName='';
 ok=false;
 if isfield(mi,'procPath_sm')
     ppath_sm=mi.procPath_sm;
