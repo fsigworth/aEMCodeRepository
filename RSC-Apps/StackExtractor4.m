@@ -1,5 +1,5 @@
-function StackExtractor4(names,pars)
-
+% function StackExtractor4(names,pars)
+nargin=0;
 % Quick, simplified version that works directly from the merged image.
 % No padding or rotation; no CTF computation, no merge compensation.
 % Stores *tstack.mrc
@@ -172,9 +172,9 @@ while fileIndex<= nmi
         fileIndex=fileIndex+1;
         continue;
     end;
-    n0=mi.imageSize/ds;
+    n0=mi.imageSize/pars.ds;
     %     Get the final pixel size
-    pixA=mi.pixA*ds;
+    pixA=mi.pixA*pars.ds;
     if pixA0==0
         pixA0=pixA;
     end;
@@ -185,22 +185,22 @@ while fileIndex<= nmi
         disp(['   box size in A, box size in pixels: ' num2str([boxSize*pixA boxSize])]);
     end;
     
-    mvName=[mi.procPath mi.baseFilename 'mv' inputModeSuffix '.mrc'];
+    mvName=[mi.procPath mi.baseFilename 'mv' pars.inputModeSuffix '.mrc'];
     mvImageOk=exist(mvName,'file');
-    mName=[mi.procPath mi.baseFilename 'm' inputModeSuffix '.mrc'];
+    mName=[mi.procPath mi.baseFilename 'm' pars.inputModeSuffix '.mrc'];
     mImageOk=exist(mName,'file');
     imagesOk=mImageOk & mvImageOk;
     if imagesOk
         mvMergeU=ReadEMFile(mvName);
         mMergeU=ReadEMFile(mName);
         n0=size(mMergeU);
-        n1=n0/ds;
+        n1=n0/pars.ds;
         if any(size(mvMergeU)~=size(mMergeU))
             disp('image size discrepancy.');
             imagesOk=0;
         else
-            mMerge=Downsample(mMergeU,n1)*ds^2;
-            mvMerge=Downsample(mvMergeU,n1)*ds^2;
+            mMerge=Downsample(mMergeU,n1)*pars.ds^2;
+            mvMerge=Downsample(mvMergeU,n1)*pars.ds^2;
         end;
     end;
     imagesOk=imagesOk && std(mvMerge(:))>minImageSD && std(mMerge(:))>minImageSD;
@@ -221,7 +221,7 @@ while fileIndex<= nmi
     end;
     if pars.doDisplay
         subplot(121);
-        imags(GaussFilt(mvfMerge,dfc*ds));
+        imags(GaussFilt(mvfMerge,dfc*pars.ds));
         title([num2str(fileIndex) '  ' mi.baseFilename '  ' num2str(nParts)],'interpreter','none');
         drawnow;
     end;
@@ -255,7 +255,7 @@ while fileIndex<= nmi
             end;
             %   Up to this point, all coordinates are in original pixel size.
             %   Make downsampled coordinates and do extraction
-            iCoords=round(pCoords/ds)+1;  % downsampled coordinates
+            iCoords=round(pCoords/pars.ds)+1;  % downsampled coordinates
             %                 Store for box display
             iCoordsList(i,:)=iCoords;  % store for box display
             intCoords=round(iCoords);  % downsampled coordinates
@@ -304,9 +304,9 @@ while fileIndex<= nmi
             si.miIndex(jt)=     fileIndex;
             si.miParticle(jt)=  ourMiParticles(i); %% bug fixed here!!!
             si.alpha0(jt)=      alpha*180/pi;
-            si.yClick(jt)=      hypot(pVec(1),pVec(2))/ds;  % in units of si.pixA
+            si.yClick(jt)=      hypot(pVec(1),pVec(2))/pars.ds;  % in units of si.pixA
             if vInd>0
-                si.rVesicle(jt)=    mi.vesicle.r(vInd)/ds;
+                si.rVesicle(jt)=    mi.vesicle.r(vInd)/pars.ds;
                 si.sVesicle(jt)=    mi.vesicle.s(vInd);
             end;
         end; % for i
@@ -335,7 +335,7 @@ while fileIndex<= nmi
             drawnow;
         end;
         
-        if ~restoreFromSiFile && updateMiFile
+        if ~pars.restoreFromSiFile && updateMiFile
             WriteMiFile(mi,[infoPath miNames{fileIndex}]);
             disp([infoPath miNames{fileIndex} ' updated']);
         end;
@@ -385,7 +385,7 @@ if totalNParts>0 || ~doExtractParticles % We'll write out .si and perhaps stack 
     si.ctfs = [];
     si.ctf1s=[];
     si.pwfs=[];
-    if restoreFromSiFile && exist('oldActiveFlags','var')
+    if pars.restoreFromSiFile && exist('oldActiveFlags','var')
         si.activeFlags=oldActiveFlags;
         si.activeFlagLog=oldActiveFlagLog;
     else
@@ -405,14 +405,14 @@ if totalNParts>0 || ~doExtractParticles % We'll write out .si and perhaps stack 
     if si.mergeMode>1
         modeSuffix=['m' num2str(si.mergeMode)];
     end;
-    if ds>1
-        dsSuffix=sprintf('ds%g',ds);
+    if pars.ds>1
+        dsSuffix=sprintf('ds%g',pars.ds);
     end;
     if pars.fHighPass>0
         filtSuffix=sprintf('fh%g',round(1000*pars.fHighPass));
     end;
     % -------------Name constructed here------------
-    outname=[mi.stackPath baseName sizeString dsSuffix modeSuffix filtSuffix];
+    outname=[mi.stackPath pars.baseName sizeString dsSuffix modeSuffix filtSuffix];
     disp(['Base output name: ' outname]);
     
     siName=[outname 'tsi.mat'];

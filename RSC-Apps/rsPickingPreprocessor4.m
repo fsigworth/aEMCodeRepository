@@ -21,9 +21,8 @@ if nargin<2
     pars=struct;
 end;
 
-defPars.overwrite=0; % overwrite existing *rscc.mat files
+defPars.overwrite=1; % overwrite existing *rscc.mat files
 defPars.mapMode='Kv';
-defPars.imSuffix='s';  % use the small merged images
 defPars.doNoiseWhitening=0; % if 0, use only a HP filter.
 defPars.onlyChangedFlags=0; % do only mi files where the log shows flags were changed.
 
@@ -43,7 +42,7 @@ maskPaddingA=40;     % extra space around outer radius, should be greater than m
 membraneThicknessA=60;
 
 defPars.outputImageSize=960;  % size of output images.
-% defPars.outputImageSize=768;
+defPars.outputImageSize=768;
 defPars.mergedImageSuffix='s';
 defPars.mapMode='Kv';
 defPars.checkLog=0;
