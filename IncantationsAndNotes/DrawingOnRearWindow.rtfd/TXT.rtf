@@ -1,0 +1,79 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2513
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 ArialMT;\f1\fswiss\fcharset0 Helvetica;\f2\fnil\fcharset0 Menlo-Regular;
+}
+{\colortbl;\red255\green255\blue255;\red12\green98\blue151;\red0\green0\blue0;\red255\green255\blue255;
+\red49\green49\blue49;\red92\green92\blue92;\red245\green245\blue245;\red140\green0\blue236;}
+{\*\expandedcolortbl;;\cssrgb\c0\c46275\c65882;\cssrgb\c0\c0\c0;\cssrgb\c100000\c100000\c100000;
+\cssrgb\c25098\c25098\c25098;\cssrgb\c43529\c43529\c43529;\cssrgb\c96863\c96863\c96863;\cssrgb\c62745\c12549\c94118;}
+\margl1440\margr1440\vieww10800\viewh12600\viewkind0
+\deftab720
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs30 \cf2 \expnd0\expndtw0\kerning0
+Notes on drawing without bringing a window to the front\
+
+\fs24 \cf3 https://www.mathworks.com/matlabcentral/answers/9572-keep-figures-from-popping-up-when-running?s_tid=mlc_ans_email_view#comment_917149\
+
+\fs30 \cf2 \
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://www.mathworks.com/matlabcentral/profile/authors/434782-walter-roberson"}}{\fldrslt 
+\fs25\fsmilli12750 \cf2 \cb4 Walter Roberson}}
+\fs25\fsmilli12750 \cf5 \cb4  on 5 Jan 2018\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\fs30 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs26 \cf5 \cb4 "Is there any way I can update figure 2 without it becoming the front window?"\cf0 \cb1 \
+\cf5 \cb4 Yes: do not figure() it.
+\f2\fs28 \cf6 \cb1 \
+\
+\pard\pardeftab720\partightenfactor0
+
+\fs26 \cf5 \cb7 fig1 = figure(1);\cf0 \cb1 \
+\cf5 \cb7 ax1 = axes(\cf8 'Parent'\cf5 , fig1);\cf0 \cb1 \
+\cf5 \cb7 fig2 = figure(2);\cf0 \cb1 \
+\cf5 \cb7 ax2 = axes(\cf8 'Parent'\cf5 , fig2);\cf0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1 \cf5 \cb4 Now enter your loop, and\cf0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f2\fs28 \cf6 \
+\
+\pard\pardeftab720\partightenfactor0
+
+\fs26 \cf5 \cb7 plot(ax1, some_data_vector);\cf0 \cb1 \
+\cf5 \cb7 plot(ax2, another_data_vector);\cf0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f1 \cf5 \cb4 "In that situation calling figure(1) puts that figure window in front of everything on the screen"\cf0 \cb1 \
+\cf5 \cb4 That would be a function of the window manager, and there are probably relevant X options. It has been quite a number of years since I last programmed in X so the names of the appropriate control structures are not coming to mind at the moment.\cf0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs30 \cf5 \
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://www.mathworks.com/matlabcentral/profile/authors/2905980-stephan-moeller"}}{\fldrslt 
+\fs25\fsmilli12750 \cf2 \cb4 Stephan Moeller}}
+\fs25\fsmilli12750 \cb4  about 12 hours ago\cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\fs30 \cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs26 \cf5 \cb4 how would we do it instead of plot : mesh ?\cf0 \cb1 \
+\pard\pardeftab720\partightenfactor0
+
+\f0\fs30 \cf5 \
+\pard\pardeftab720\partightenfactor0
+{\field{\*\fldinst{HYPERLINK "https://www.mathworks.com/matlabcentral/profile/authors/434782-walter-roberson"}}{\fldrslt 
+\fs25\fsmilli12750 \cf2 \cb4 Walter Roberson}}
+\fs25\fsmilli12750 \cb4  about 12 hours ago
+\fs30 \cf6 \cb1 \
+\pard\pardeftab720\partightenfactor0
+\cf5 \
+\pard\pardeftab720\partightenfactor0
+
+\f1\fs26 \cf5 \cb4 You would use the same way: you can pass an axes as the first parameter to mesh().\cf0 \cb1 \
+\cf5 \cb4 Many plotting functions accept an axes as a first parameter, but not all of them do. The ones that accept plotting into an axes but do not accept passing in an axes as the first parameter, you would pass the 'Parent' option to.\cf0 \cb1 \
+\cf5 \cb4 There are some plotting routines that do not accept passing an axes and do not accept 'Parent' either: if you encounter one of those routines, you usually cannot stop the routine from bringing the figure to the front... sometimes you cannot even stop the routine from creating a new figure entirely. bode() for example always creates a new figure.}
