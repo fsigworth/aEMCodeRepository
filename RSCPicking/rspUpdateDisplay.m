@@ -1,4 +1,4 @@
-function rspUpdateDisplay(mi,dis,imgs,masks,picks,ptrs);
+    function rspUpdateDisplay(mi,dis,imgs,masks,picks,ptrs);
 % Version 2 handles boxes with corners more elegantly
 % Here is how picks are classified
 % flags        pick array index and color

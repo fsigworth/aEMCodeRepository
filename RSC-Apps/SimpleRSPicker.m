@@ -2,9 +2,11 @@
 % F. Sigworth, Jan '13
 %  See rspLoadPicksFromMi.m to see assignment of ptrs
 %  See rspNewBox to see assignment of flag values
+% Modified so that 'j' and 'k' have the max amp track the min amp
 si=struct;
 
 version=101;
+disOk=0;
 
 % Retrieve parameters from a file in the program directory
 pa=fileparts(which('SimpleRSPicker'));
@@ -20,7 +22,7 @@ if exist(datName,'file')>0
 end;
 
 newDis=0;
-% disOk=0;
+%  disOk=0;
 if ~disOk
     disp('Loading defaults');
     dis=struct;
@@ -85,12 +87,13 @@ if ~disOk
     dis.varThresh=40;
     %     dis.pars=[.4 .63 1000 150 ...
     %                 150 100 70 200 50 20];
-    dis.pars=[ 3.6   6   1000  300  150  0   70  100   50   12 1 1];
+    dis.pars=[ 3.6   6   100  0  150  0   70  100   50   12 1 1];
     %     pars(1:12) are:  minAmp, maxAmp; max var; rso offset;
     %     particle blank radius, vesicle blank radius, maxBob, border, maskRadius, spect.
     %     spectFactor, ampFactor
     dis.pars(20)=150;  % box size in A.
-    dis.minDist=dis.pars(20)/4;  % distance in original pixels, based on box size
+    dis.minDist=dis.pars(20)/4;  % max distance in original pixels, based on box size,
+                                 % click location from object location
     dis.filter=[1000 20 0 0];  % inverse frequency in A; third is % inverse CTF
     dis.infoName='';
     dis.defaultPixA=3;
@@ -230,9 +233,9 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             fileOk=1;
             switch b
                 case 'j' % increase amp threshold
-                    dis.pars(1)=dis.pars(1)*dis.tFactor;
+                    dis.pars(1:2)=dis.pars(1:2)*dis.tFactor;
                 case 'k' % decrease amp threshold
-                    dis.pars(1)=dis.pars(1)/dis.tFactor;
+                    dis.pars(1:2)=dis.pars(1:2)/dis.tFactor;
                 case 'i'  % increase spect limit
                     dis.pars(10)=dis.pars(10)*dis.TFactor;
                 case 'u'  % decrease spect limit
