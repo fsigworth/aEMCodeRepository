@@ -1,4 +1,4 @@
-function [mi,m]=rlSetImageScale(mi,mode,nFrames);
+function [mi,m,origImageSize]=rlSetImageScale(mi,mode,nFrames);
 % Set the size and scale parameters in the mi struct, possibly loading and
 % scaling the image m as well.
 % There are three modes.
@@ -23,8 +23,8 @@ function [mi,m]=rlSetImageScale(mi,mode,nFrames);
 %     In the end we'll get the scaled micrograph as
 %     scaledImg = (m-mi.imageMedian)*mi.imageNormScale;
 
-    m=0; % default returned value.
-
+    m0=0; % default returned value.
+    m=0;
 micName=[mi.imagePath mi.imageFilenames{1}];
 micFound=exist(micName,'file');
 if mode<3
@@ -36,14 +36,23 @@ if mode<3
         mode=3;
     end;
 end;
+origImageSize=size(m0);
+if numel(origImageSize)<2
+    origImageSize(2)=origImageSize(1);
+end;
+niceImageSize=NextNiceNumber(origImageSize,5,8);
+mi.imageSize=niceImageSize;
 
 switch mode
     case 1
-        nsz=NextNiceNumber(size(m0),5,8);
-        m=Crop((m0-med)/med*sqrt(nFrames),nsz);
-        mi.imageSize=nsz;
-    case 2
-        mi.imageSize=size(m0);
+        m1=RemoveOutliers(m0);
+        m=Crop((m1-med)/med*sqrt(nFrames),niceImageSize);
+        mi.imageNormScale=sqrt(nFrames);
+        mi.imageMedian=med;
+        m=(single(m0)-med)*mi.imageNormScale;
+    case 2 % don't know scaling, estimate from the image.
+        % We rely on the calling program to assign the image size correctly.
+%        mi.imageSize=origImageSize;
         sds=floor(min(mi.imageSize)/256); % Downsampling factor for spectrum
         mc=single(Crop(m0,256*sds)); % Grab a square region of the image.
         sp1=RadialPowerSpectrum(mc,0,sds);
@@ -53,7 +62,8 @@ switch mode
         mi.imageNormScale=1/(mi.pixA*sqrt(mi.doses(1)*estVar));
 %         Multiply the image by this to get a normalized image.
         mi.imageMedian=med; % best estimate we have of the main image mean.
-        m=(single(m0)-med)*mi.imageNormScale;
+        m=Crop((single(m0)-med)*mi.imageNormScale,niceImageSize);
+
     case 3
     %      Image statistics: in the absence of image data,
     %         we assume a true counting camera, binned from superres, and
