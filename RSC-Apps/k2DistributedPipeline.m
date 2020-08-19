@@ -17,7 +17,7 @@ forceMerging  =0;
 doDownsampleMergedImages=0; 
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =0;
+doFindVesicles        =1;
 %*** special multiple VesicleFinder runs ****
 doMultiFindVesicles   = 0;
 % findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
@@ -32,7 +32,7 @@ refineVesicleAmpsOnly=0;
 minRefineVesiclesSequence=inf ;    % inf forces refinement
 doInverseFilter       =1;
 forceInverseFilter=1;
-minAge=.1;  % if the corresponding log entry has a date stamp < minAge
+minAge=.04;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
@@ -41,6 +41,7 @@ doPickingPreprocessor =1;
 
 
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/200707/';
+workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/200816/025015_1_1/'
 
 
 compressedDir=[workingDir 'Compressed/'];
@@ -247,7 +248,8 @@ while iName(end)<=numJobNames
     end;
     % find vesicles (sequence 4) *****************
     if doFindVesicles && (logSequence(4)<=logSequence(3) || now-dates(4)>maxAge)
-            VesicleFinder(ourNames);
+%            VesicleFinder(ourNames);
+            Vesicle_finding_GUI(ourNames);
     elseif doMultiFindVesicles
         for i=1:numel(findVesicleAmps)
             vfpars.sav.vesicleAmps=[findVesicleAmps(i) 2e-3 0];

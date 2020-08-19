@@ -27,7 +27,8 @@ dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
 dpars.dose=60; % Approx total movie dose in e/A^2. We have to guess this
 % because MotionCor2 scaling doesn't allow the total dose to be calculated.
 dpars.estimateStatsFromImage=0; % 1: don't use the above, estimate from image spectrum
-dpars.nFrames=40;
+%dpars.nFrames=40;
+dpars.motionCorFrames=1; % put in the number of frames if not using Relion's motion corr
 dpars.BFactor=60; % Used by my CTF functions. Not critical.
 dpars.changeImagePath=0; % change from the path given in the star file
 dpars.imagePath='Micrographs/';
@@ -39,7 +40,7 @@ dpars.defaultImageSize=[0 0]; % Value to insert if we can't read the
 dpars.skipMissingMrcs=true; % Skip over any absent micrographs
 dpars.writeMiFile=1; % Write out each mi.txt file.
 dpars.setProcImage=0; % Set proc path to image path (if not writing merged images)
-dpars.writeMergedImage=0;
+dpars.writeMergedImage=1;
 dpars.writeMergedSmall=1;
 dpars.writeJpeg=1;
 dpars.dsSmall=4; % downscaling for Small and jpeg
@@ -104,18 +105,18 @@ for i=1:nLines
             disp([num2str(skipCount) ' files skipped, up to ' mi.baseFilename]);
             skipCount=0;
         else % Estimate scaling
-            mi=rlSetImageScale(mi,3,pars.nFrames);
+            mi=rlSetImageScale(mi,3,pars.motionCorFrames);
         end;
     end;
     scaleMode=1+(pars.estimateStatsFromImage>0);
     if pars.writeMergedImage || pars.writeMergedSmall || pars.writeJpeg
         if pars.writeMergedImage
-                    [mi,m,origSize]=rlSetImageScale(mi,scaleMode,pars.nFrames);
+                    [mi,m,origSize]=rlSetImageScale(mi,scaleMode,pars.motionCorFrames);
             micName=[mi.procPath mi.baseFilename 'm.mrc'];
             WriteMRC(m,mi.pixA,micName);
             padSize=mi.imageSize;
         else % we'll rely on reading the original micrograph
-                    [mi,m,origSize]=rlSetImageScale(mi,scaleMode,pars.nFrames);
+                    [mi,m,origSize]=rlSetImageScale(mi,scaleMode,pars.motionCorFrames);
             padSize=mi.imageSize;
             mi.imageSize=origSize;
         end;
@@ -137,10 +138,10 @@ for i=1:nLines
             title([num2str(i),': ' mi.baseFilename],'interpreter','none');
             drawnow;
     elseif  micFound
-        [mi,~,origSize]=rlSetImageScale(mi,scaleMode,pars.nFrames);
+        [mi,~,origSize]=rlSetImageScale(mi,scaleMode,pars.motionCorFrames);
         mi.imageSize=origSize;
     else         % Do dead reckoning (mode 3) if micrograph is not available.
-        [mi,m,origSize]=rlSetImageScale(mi,3,pars.nFrames);
+        [mi,m,origSize]=rlSetImageScale(mi,3,pars.motionCorFrames);
         mi.imageSize=origSize;
     end;
         miName=WriteMiFile(mi);
