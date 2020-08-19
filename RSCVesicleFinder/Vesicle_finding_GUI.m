@@ -738,6 +738,7 @@ sufExts={'s.mrc' 'z.tif' '.mrc'};
 
 if ok % Try for reading the raw micrograph
     m=single(ReadEMFile(fullMergedImageName));
+    disp([fullMergedImageName ' loaded.']);
 else
     % try for reading the raw micrograph. We then subtract the median and
     %     scale it to reflect fractional image intensity
@@ -750,6 +751,11 @@ else
         end;
         m=(m-mi.imageMedian)*mi.imageNormScale;
         ok=true;
+        disp([fullImageName ' (micrograph) loaded.']);
+        disp(['  imageNormScale = ' num2str(mi.imageNormScale)]);
+    elseif ~isfield(mi,'imageNormScale') || mi.imageNormScale==0
+        disp([fullImageName ' (micrograph) was found...']);
+        disp('  but mi.imageNormScale isn''t present.');
     end;
 end;
 if ok

@@ -97,24 +97,28 @@ for i=1:nLines
         end;
         first=false;
     end;
-    if ~micFound && pars.skipMissingMrcs % silently skip these lines.
-        skipCount=skipCount+1;
-        continue;
-    elseif pars.skipMissingMrcs
-        if skipCount>0
+    if pars.skipMissingMrcs % silently skip these lines.
+        if ~micFound
+            skipCount=skipCount+1;
+            continue;
+        elseif skipCount>0
             disp([num2str(skipCount) ' files skipped, up to ' mi.baseFilename]);
             skipCount=0;
-        else % Estimate scaling
-            mi=rlSetImageScale(mi,3,pars.motionCorFrames);
         end;
     end;
+%     if ~micFound
+%             mi=rlSetImageScale(mi,3,pars.motionCorFrames);
+%         end;
+%     end;
+    
     scaleMode=1+(pars.estimateStatsFromImage>0);
-    if pars.writeMergedImage || pars.writeMergedSmall || pars.writeJpeg
+    if micFound
+       [mi,m,origSize]=rlSetImageScale(mi,scaleMode,pars.motionCorFrames);
+        padSize=mi.imageSize;
+    if (pars.writeMergedImage || pars.writeMergedSmall || pars.writeJpeg)
         if pars.writeMergedImage
-                    [mi,m,origSize]=rlSetImageScale(mi,scaleMode,pars.motionCorFrames);
             micName=[mi.procPath mi.baseFilename 'm.mrc'];
             WriteMRC(m,mi.pixA,micName);
-            padSize=mi.imageSize;
         else % we'll rely on reading the original micrograph
                     [mi,m,origSize]=rlSetImageScale(mi,scaleMode,pars.motionCorFrames);
             padSize=mi.imageSize;
