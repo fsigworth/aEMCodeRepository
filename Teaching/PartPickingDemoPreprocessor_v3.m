@@ -5,9 +5,16 @@
 ds=6;%% downsampling factor
 bsA=300; % box size in angstroms
 psA=150  % particle size in angstroms
+% symmetry=3;
+% refMapName='emd_7009_flat_0822A_304.mrc';
+symmetry=4;
+refMapName= 
+
+
 templateFilt=.05; % inverse angstroms
 templateFilt=.033; % inverse angstroms
 hpFilt=.002;      % inverse angstroms
+
 
 dataHalf=1;
 
@@ -37,7 +44,8 @@ pixA=cPars.pixA;
 bsd=NextNiceNumber(round(bsA/(ds*pixA)),7,8);
 disp(['Box size is ' num2str(bsd) ' pixels, ' num2str(bsd*pixA*ds) ' A.']);
 % Pick up the 3D map
-[map,sm]=ReadMRC('emd_7009_flat_0822A_304.mrc');
+
+[map,sm]=ReadMRC(refMapName);
 disp(['Map box size is ' num2str(sm.pixA*size(map,1)) ' A']);
 % bsd=bsdA/(ds*sm.pixA)
 % npd=size(map,1)/ds;
