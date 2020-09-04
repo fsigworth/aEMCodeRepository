@@ -17,9 +17,10 @@ pin.templateFilt=.033; % inverse angstroms
 pin.hpFilt=.002;      % inverse angstroms
 
 
-dataHalf=1;
+dataHalf=2;
 
-cd /Volumes/D257/Yangyu/20200824/
+%cd /Volumes/D257/Yangyu/20200824/
+cd ~/hd0/data/20200824/
 
 pin.starInPath='CtfFind/job003/';
 pin.mrcInPath='MotionCorr/job002/Movies/';
@@ -39,11 +40,14 @@ nl=numel(d.rlnMicrographName);
 % Calculate the pixel size from the first entry
 cPars=rlCTFParsFromStruct(d,1);
 pixA=cPars.pixA;
+pin.pixA=pixA;
+
 % Get our box size in pixels
 bsd=NextNiceNumber(round(pin.bsA/(pin.ds*pixA)),7,8);
 disp(['Box size is ' num2str(bsd) ' pixels, ' num2str(bsd*pixA*pin.ds) ' A.']);
-% Pick up the 3D map
 
+% Pick up the 3D map
+disp('Reading the reference map');
 [map,sm]=ReadMRC(pin.refMapName);
 disp(['Map box size is ' num2str(sm.pixA*size(map,1)) ' A']);
 % bsd=bsdA/(ds*sm.pixA)
@@ -202,7 +206,7 @@ for ind=startInd:endInd
         norm=p1(:)'*p1(:);
         cTemplates(:,:,i)=p1/sqrt(norm);
     end;
-    if ind==1
+    if ind==startInd
         figure(3);
         imagsar(cTemplates);
         figure(1);

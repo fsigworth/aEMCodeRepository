@@ -1,10 +1,7 @@
 % PartPickingDemoRunner_5.m
 
 nonScale=1.2;
-% pixA=.822;
-
-load('TemplatePickerDat.mat'); % Get the po struct.
-po.starInPath='CtfFind/job003/';  %%%%%%
+outPath='TemplatePicker5_stars/';
 
 blankRadiusA=[100 100]; % Blank for non-particles, particles
         msz=30; % marker size
@@ -15,15 +12,14 @@ displayFilter=.2;
 maxThresholdMul=2;
 interpolateImage=2;
 
-% Read the star file
-% cd /Users/fred/EMWork/Yangyu/20190325/MotionCorr/job061_micrographs_ctf_Topaz
-% cd  /Volumes/Drobo4/Yangyu/20200603/
-outPath='TemplatePicker4_stars/';
-matInPath=po.matOutPath;
+load('TemplatePickerDat.mat'); % Get the pin struct of basic paths etc.
+% from the relion directory.
+
+matInPath=pin.matOutPath;
 
 CheckAndMakeDir(outPath,1);
 
-[~,d]=ReadStarFile([po.starInPath 'micrographs_ctf.star']);
+[~,d]=ReadStarFile([pin.starInPath 'micrographs_ctf.star']);
 d=d{1};
 nl=numel(d.rlnMicrographName);
 
@@ -35,6 +31,7 @@ matName=[matInPath baseName '.mat'];
 load(matName);
 
 ds=po.ds;
+pixA=po.pixA;
 blankRadius=blankRadiusA/(pixA*ds); % bad, good masks
 
 blankMasks=cell(2,1);
@@ -124,7 +121,7 @@ while b~='q'
             
             % Set up scaling of the filtered image
             mdf=GaussFilt(po.md,displayFilter);
-            [mds,mdmul,mdadd]=imscale(mdf,256,.001);
+            [mds,mdmul,mdadd]=imscale(mdf,256,.0001);
             imaga(Downsample(mds,interpolateImage*po.nd));
             interpFactor=interpolateImage;
         else % display mode 2: show residual or expectation
