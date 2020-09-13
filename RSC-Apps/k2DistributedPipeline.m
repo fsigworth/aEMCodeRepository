@@ -8,7 +8,7 @@ f2Mode        =0;  % 0 means k2 data
 serialMode    =1;   % go through all the steps before moving to next micrograph
 %checkLogs     =0;  % not yet in use.
 
-maxAge=1;         % Runs the operation if the previous one is older than this number of days.
+maxAge=5;         % Runs the operation if the previous one is older than this number of days.
 
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
@@ -17,7 +17,7 @@ forceMerging  =0;
 doDownsampleMergedImages=0; 
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =1;
+doFindVesicles        =0;
 %*** special multiple VesicleFinder runs ****
 doMultiFindVesicles   = 0;
 % findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
@@ -28,21 +28,21 @@ doPrelimInverseFilter =0;
 doRefineVesicles      =1;
 forceRefineVesicles   =0;
 refineVesicleAmpsOnly=0;
-% minRefineVesiclesSequence=0;  % 0 if don't consider.
-minRefineVesiclesSequence=inf ;    % inf forces refinement
-doInverseFilter       =1;
+minRefineVesiclesSequence=0;  % 0 if don't consider.
+% minRefineVesiclesSequence=inf ;    % inf forces refinement
+doInverseFilter       =0;
 forceInverseFilter=1;
 minAge=.04;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
 
-doPickingPreprocessor =1;
+doPickingPreprocessor =0;
 
 
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/200707/';
-workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/200816/025015_1_1/'
-
+workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/200816/025015_1_1/';
+workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/AcrB/Lipo_data/'
 
 compressedDir=[workingDir 'Compressed/'];
 localWorkingDir=workingDir;
@@ -62,7 +62,7 @@ pars.testSegments=[2 20; 25 inf]; % 161101 data
 pars.writeStack=1;  % Dirft tracker
 
 % for merging
-pars.defaultPixA=1.05;
+%pars.defaultPixA=1.05;
 %pars.defaultPixA=1.781;
 %pars.defaultPixA=0;
 pars.searchDefoci=[1 8 ; 8 15]; % for MergeImages [1stmin 2ndMin ; 1stMax 2ndMax]
@@ -82,7 +82,7 @@ pars.UsePWFilter=doPrelimInverseFilter;
 pars.doPreSubtraction=1;  % rsRefineVesicleFits: pre-subtract old vesicle fit.
 pars.rTerms=[100 150 200 300  inf];
 
-pars.dsSmall=8; % downsampling of 'small' merged image
+pars.dsSmall=4; % downsampling of 'small' merged image
 
 pars.loadFilenames=1; % pick up allNames.mat in base directory
 pars.cpe=0;  % 0 means no change.
@@ -264,7 +264,7 @@ while iName(end)<=numJobNames
             || (doRefineVesicles && (logSequence(5)<logSequence(4) ...
             || logSequence (5)< minRefineVesiclesSequence || now-dates(5)>maxAge))
         rpars=pars;
-            if refineVesicleAmpsOnly
+        if refineVesicleAmpsOnly
             rpars.fitModes={'LinOnly'};
             rpars.fractionStartingTerms=1; % total terms to use in each round
             rpars.fractionAmpTerms=1;
@@ -274,8 +274,8 @@ while iName(end)<=numJobNames
             
             rpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
             %     The following must have at least as many elements as dpars.fitModes!
-            end;
-            
+        end;
+        
         rsRefineVesicleFits(ourNames,rpars);
         if serialMode  % update the log sequence
             mi=ReadMiFile(ourNames{1});

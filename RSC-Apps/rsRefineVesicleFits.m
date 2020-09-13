@@ -57,6 +57,8 @@ dpars.fractionAmpTerms=[0 1]; % fraction of amp terms to use
 %  radius perturbed by these steps (in angstroms) and pick the best.
 dpars.radiusStepsA=[-100 -50 0 50]; % repeat radius-only fitting with perturbed r(1)
 dpars.maxPixA=6;  % downsampled image resolution for radius fitting
+dpars.maxPixA=3; %%%%%%%%%%%
+
 dpars.disA=1200;  % size of the fit window, in angstroms
 % dpars.disA=1600;  % for Mengqiu
 

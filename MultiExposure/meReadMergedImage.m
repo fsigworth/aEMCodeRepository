@@ -16,7 +16,7 @@ if nargin<2
 end;
 if nargin<3
     suffix='';
-end;
+end; 
 m=0;
 mergeFullName='';
 ok=false;
