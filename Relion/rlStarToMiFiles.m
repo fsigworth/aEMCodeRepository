@@ -76,7 +76,14 @@ end;
 %%
 first=true;
 skipCount=0;
+oldImageName='';
 for i=1:nLines
+    newName=dat{end}.rlnMicrographName{i};
+    if strcmp(newName,oldImageName)
+        continue;
+    else
+        oldImageName=newName;
+    end;
     [readOk,micFound,mi]=rlStarLineToMi(names,dat,i,pars);
     if ~readOk
         error(['Error reading star file data at line ' num2str(i)]);
