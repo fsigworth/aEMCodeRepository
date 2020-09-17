@@ -6,7 +6,7 @@ getNamesOnly=0;
 batchMode=1;
 if batchMode
     outPath='';
-    infoPath='Info/';
+    infoPath='Info1/';
     names=f2FindInfoFiles(infoPath);
 else
     [names, pathName]=uigetfile({'*mi.txt';'*mi.mat'},'Select mi files','multiselect','on');
