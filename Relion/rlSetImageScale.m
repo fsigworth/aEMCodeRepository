@@ -58,7 +58,7 @@ switch mode
         mi.imageNormScale=1/med*sqrt(nFrames);
         mi.imageMedian=med;
         m1=RemoveOutliers(mc);
-        m=(m1-med)*mi.imageNormScale;
+        m=m1*mi.imageNormScale;
     case 2 % don't know scaling or the DC value, estimate from the image.
 %       Estimate shot noise from the mean power spectrum 0.3 ... 0.7 x Nyquist
         sds=floor(min(mi.imageSize)/256); % Downsampling factor for spectrum
@@ -70,7 +70,7 @@ switch mode
         mi.imageNormScale=1/(mi.pixA*sqrt(mi.doses(1)*estVar));
 %         Multiply the image by this to get a normalized image.
         mi.imageMedian=med; % best estimate we have of the main image mean.
-        m=(mc-med)*mi.imageNormScale;
+        m=mc*mi.imageNormScale;
 
     case 3 % Don't have an image available
     %      Image statistics: in the absence of image data,

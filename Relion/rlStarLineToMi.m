@@ -49,7 +49,8 @@ for i=1:numel(sNames)
     nm=sNames{i};
     if iOptics==0 && numel(strfind(nm,'optics'))>0
         iOptics=i;
-    elseif iMicrographs==0 && numel(strfind(nm,'micrographs'))>0
+    elseif iMicrographs==0 && ...
+        (numel(strfind(nm,'micrographs'))>0 || numel(strfind(nm,'particles'))>0)
         iMicrographs=i;
     end;
 end;
@@ -97,8 +98,10 @@ else
 end;
 
 % pick up or calculate the pixel size
-if isfield(mic,'rlnMicrographPixelSize') || isfield(opt,'rlnMicrographPixelSize')
+if isfield(mic,'rlnMicrographPixelSize') || isfield(opt,'rlnMicrographPixelSize') 
     mi.pixA=GetOptField('rlnMicrographPixelSize',iLine);
+elseif isfield(opt,'rlnMicrographOriginalPixelSize')
+    mi.pixA=GetOptField('rlnMicrographOriginalPixelSize',iLine);
 else
     mi.pixA=1e4*mic.rlnDetectorPixelSize(iLine)/mic.rlnMagnification(iLine);
 end;

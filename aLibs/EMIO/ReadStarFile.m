@@ -104,6 +104,7 @@ while P<=numel(C) % loop through all the entries
         warning(['''data_'' expected at line ' num2str(nLines) ' . Returning.'])
         return
     end;
+    
     P=P+1;
     
     % skip blank lines
@@ -145,6 +146,17 @@ while P<=numel(C) % loop through all the entries
     %%
     nRows=1;
     if loopMode  % Now the values follow immediately after the fieldnames
+        % possibly skip blank lines.
+        while numel(C{P})<1 || numel(C{P}{1})<1
+            P=P+1;
+            if P>numel(C)
+                if doDisplay
+                    disp('done.');
+                end;
+                return  % exit the function.
+            end;
+        end;
+
         nRows=0;
         fieldVals=cell(nLines,nFields);
         while P<numel(C) && numel(C{P}{1})>=nFields
