@@ -1,9 +1,11 @@
 % rlMakeFakeDataset
 % Comparing our angle assignments with Relion's
-%
 % rl_rot = -phi = -angs(i,1)
 % rl_tilt=theta= angs(i,2)
 % rl_psi = -psi-90 = -angs(i,3)-90;
+% we apply shifts after rotating and projecting.
+% The star file written out here corresponds to the data.star file produced in
+% 3DRefine.
 
 mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
 outDir='/Users/fred/EMWork/Simulations/Relion/';
