@@ -35,7 +35,7 @@ return
 
 %% Find the micrographs closest to a given defocus value.
 targetDef=2.26;
-numToChoose=10;
+numToChoose=20;
 outDir1='Merged_sel/';
 outDir0='Merged_sm_sel/';
 outDir2='Info_sel/';
@@ -45,7 +45,7 @@ devs=abs(defs-targetDef);
 [sdevs,sinds]=sort(devs);
 cinds=sinds(1:numToChoose);
 for i=1:numToChoose
-    baseName=mis{i}.baseFilename;
+    baseName=mis{cinds(i)}.baseFilename;
     disp([num2str([i cinds(i)] ) '  '  num2str(defs(cinds(i) ),3) '  ' baseName]);
     m=ReadMRC(['Merged_sm/' baseName 'ms.mrc']);
     imags(GaussFilt(m,.1));
