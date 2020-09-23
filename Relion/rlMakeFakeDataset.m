@@ -19,9 +19,10 @@ refName='Ref3Damp15.mrc';
 
 amp=.015; % half amplitude
 % % amp=.03 % particle signal
-% amp=0  %% case for testing noise
+
+useWhiteNoise=0; % Lorentzian noise
 sigma=11.925 % noise makes unity variance (empirical)
-% sigma=0; %% case for noiseless projections
+
 B=60       % ctf B factor
 
 % makeProjections=~exist('templates','var');
