@@ -20,18 +20,18 @@ pin.hpFilt=.002;      % inverse angstroms
 dataHalf=2;
 
 %cd /Volumes/D257/Yangyu/20200824/
-cd ~/hd0/data/20200824/
+cd ~/hd0/data/20200922/
 
-pin.starInPath='CtfFind/job003/';
-pin.mrcInPath='MotionCorr/job002/Movies/';
-pin.matOutPath='TemplatePicker5/';
+pin.starInPath='CtfFind/job009/';
+pin.mrcInPath='MotionCorr/job004/data/';
+pin.matOutPath='TemplatePicker5_1/';
 
 CheckAndMakeDir(pin.matOutPath,1);
 
 save('TemplatePickerDat.mat','pin');
 
 % Read the star file
-starName=[pin.starInPath 'micrographs_ctf.star'];
+starName=[pin.starInPath 'micrographs_ctf_1.star'];
 disp(['Reading ' starName]);
 [~,d]=ReadStarFile(starName);
 d=d{1};
