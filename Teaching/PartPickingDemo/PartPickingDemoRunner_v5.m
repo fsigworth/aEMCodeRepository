@@ -7,7 +7,7 @@ blankRadiusA=[100 100]; % Blank for non-particles, particles
         msz=30; % marker size
 
 th0=.4;  % K2 starting value
-% th0=100; % K3 starting value
+% th0=100; % UMass K3 starting value
 displayFilter=.2;
 maxThresholdMul=2;
 interpolateImage=2;
@@ -21,8 +21,7 @@ CheckAndMakeDir(outPath,1);
 
 [bNames,bDats]=ReadStarFile([pin.starInPath 'micrographs_ctf.star']);
 [cPars,bInds,nl]=rlCTFParsFromStar3Line(bNames,bDats,1);
-
-d=d{bInds(2)};
+d=bDats{bInds(2)};
 % nl=numel(d.rlnMicrographName);
 
 ind=1;
@@ -243,7 +242,7 @@ while b~='q'
         drawnow;
         disp(['Index ' num2str(ind) ': Written: ' outStarName ' ' num2str(size(picks,1)) ' picks']);
         
-        if b=='q' % For the last one, read back the coordinates and show the match.
+        if b=='q' && ind>0 % For the last one, read back the coordinates and show the match.
             % Read back the coordiantes
             [nms,pk0]=ReadStarFile([outPath po.baseName '_autopick.star'],1);
             pk0=pk0{1};
