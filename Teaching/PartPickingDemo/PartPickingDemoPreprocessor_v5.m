@@ -1,5 +1,5 @@
 % PartPickingDemoPreprocessor_v5.m
-
+% We can read Relion3.1 star files.
 
 % PartPickingDemo.m
 pin=struct; % Input parameters
@@ -33,12 +33,11 @@ save('TemplatePickerDat.mat','pin');
 % Read the star file
 starName=[pin.starInPath 'micrographs_ctf_1.star'];
 disp(['Reading ' starName]);
-[~,d]=ReadStarFile(starName);
-d=d{1};
-nl=numel(d.rlnMicrographName);
+[bNames,bDats]=ReadStarFile(starName);
+[cPars,iBlocks,nl]=rlCTFParsFromStar3Line(bNames,bDats,1);
 
-% Calculate the pixel size from the first entry
-cPars=rlCTFParsFromStruct(d,1);
+d=bDats{iBlocks(2)}; % data struct from the star file.
+
 pixA=cPars.pixA;
 pin.pixA=pixA;
 

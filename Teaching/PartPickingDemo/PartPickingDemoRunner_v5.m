@@ -19,9 +19,11 @@ matInPath=pin.matOutPath;
 
 CheckAndMakeDir(outPath,1);
 
-[~,d]=ReadStarFile([pin.starInPath 'micrographs_ctf.star']);
-d=d{1};
-nl=numel(d.rlnMicrographName);
+[bNames,bDats]=ReadStarFile([pin.starInPath 'micrographs_ctf.star']);
+[cPars,bInds,nl]=rlCTFParsFromStar3Line(bNames,bDats,1);
+
+d=d{bInds(2)};
+% nl=numel(d.rlnMicrographName);
 
 ind=1;
 

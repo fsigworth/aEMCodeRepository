@@ -44,7 +44,7 @@ mi=[];
 iOptics=0; % pointer to Optics block in star file
 iMicrographs=0;
 opt=struct;
-% Find the first occurrences of '*optics' or '*micrographs' in sNames
+% Find the first occurrences of '*optics' or '*micrographs'/'*particles' in sNames
 for i=1:numel(sNames)
     nm=sNames{i};
     if iOptics==0 && numel(strfind(nm,'optics'))>0
