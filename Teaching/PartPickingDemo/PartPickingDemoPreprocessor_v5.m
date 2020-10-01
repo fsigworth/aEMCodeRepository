@@ -1,5 +1,5 @@
 % PartPickingDemoPreprocessor_v5.m
-
+% We can read Relion3.1 star files.
 
 % PartPickingDemo.m
 pin=struct; % Input parameters
@@ -17,14 +17,18 @@ pin.templateFilt=.033; % inverse angstroms
 pin.hpFilt=.002;      % inverse angstroms
 
 
-dataHalf=2;
+dataHalf=0;
+
+basePath='~/'; % on siggpu2
+%basePath='~/siggpu2/home/siggpu2/'; % mount on mini
 
 %cd /Volumes/D257/Yangyu/20200824/
-cd ~/hd0/data/20200824/
-
-pin.starInPath='CtfFind/job003/';
-pin.mrcInPath='MotionCorr/job002/Movies/';
-pin.matOutPath='TemplatePicker5/';
+cd([basePath 'hd0/data/20200922/']);
+disp(['Working directory: ' pwd]); 
+pin.starInPath='CtfFind/job009/';
+pin.mrcInPath='MotionCorr/job004/data/';
+pin.matOutPath='TemplatePicker5_1/';
+disp(['mat output path = ' pin.matOutPath]);
 
 CheckAndMakeDir(pin.matOutPath,1);
 
@@ -33,12 +37,11 @@ save('TemplatePickerDat.mat','pin');
 % Read the star file
 starName=[pin.starInPath 'micrographs_ctf.star'];
 disp(['Reading ' starName]);
-[~,d]=ReadStarFile(starName);
-d=d{1};
-nl=numel(d.rlnMicrographName);
+[bNames,bDats]=ReadStarFile(starName);
+[cPars,iBlocks,nl]=rlCTFParsFromStar3Line(bNames,bDats,1);
 
-% Calculate the pixel size from the first entry
-cPars=rlCTFParsFromStruct(d,1);
+d=bDats{iBlocks(2)}; % data struct from the star file.
+
 pixA=cPars.pixA;
 pin.pixA=pixA;
 
@@ -47,6 +50,7 @@ bsd=NextNiceNumber(round(pin.bsA/(pin.ds*pixA)),7,8);
 disp(['Box size is ' num2str(bsd) ' pixels, ' num2str(bsd*pixA*pin.ds) ' A.']);
 
 % Pick up the 3D map
+mapZShift=-3; %%%%%
 disp('Reading the reference map');
 [map,sm]=ReadMRC(pin.refMapName);
 disp(['Map box size is ' num2str(sm.pixA*size(map,1)) ' A']);
@@ -54,6 +58,7 @@ disp(['Map box size is ' num2str(sm.pixA*size(map,1)) ' A']);
 % npd=size(map,1)/ds;
 mag=sm.pixA/(pixA*pin.ds);
 mapd=DownsampleGeneral(map,bsd,mag); % Don't use an intermediate volume larger than 1GB
+mapd=circshift(mapd,[0 0 mapZShift]);
 mapMask=fuzzymask(bsd,3,bsd/2-3,4); % Nearly the maximum circular region
 mapMean=mapMask(:)'*mapd(:)/sum(mapMask(:));
 mape=mapMask.*(mapd-mapMean);
@@ -157,7 +162,10 @@ for ind=startInd:endInd
     m1c=Crop(m1,n,0,mean(m1(:)));
     offsets=[n(1)-m1sz(1) n(2)-m1sz(2)]/2; % origin offsets in padded image.
     
-    ctfPars=rlCTFParsFromStruct(d,ind);
+    ctfPars=rlCTFParsFromStar3Line(bNames,bDats,ind);
+    if numel(ctfPars)<1
+        error('index out of range.');
+    end;
     % c1=CTF(n,ctfPars);
     pixA=ctfPars.pixA;
     

@@ -1,23 +1,30 @@
 % rlMakeFakeDataset
 % Comparing our angle assignments with Relion's
-%
 % rl_rot = -phi = -angs(i,1)
 % rl_tilt=theta= angs(i,2)
 % rl_psi = -psi-90 = -angs(i,3)-90;
+% we apply shifts after rotating and projecting.
+% The star file written out here corresponds to the data.star file produced in
+% 3DRefine.
 
 mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
+pa=fileparts(which('arGetRefVolumes'));
+mapName=[pa '/KvMap.mat'];
 outDir='/Users/fred/EMWork/Simulations/Relion/';
+outDir='/home/siggpu/data/relion_sim/';
 % stackName='SimStack03deg2.mrcs';
-stackName='SimStack3.mrcs';
+stackName='SimStack3amp15ang6.mrcs';
 % starName='SimStack03deg2.star';
-starName='SimStack3.star';
-refName='Ref3D.mrc';
+starName='SimStack3amp15ang6.star';
+refName='Ref3Damp15.mrc';
 
-amp=.01;
-amp=.03 % particle signal
-% amp=0  %% case for testing noise
+
+amp=.015; % half amplitude
+% % amp=.03 % particle signal
+
+useWhiteNoise=0; % Lorentzian noise
 sigma=11.925 % noise makes unity variance (empirical)
-% sigma=0; %% case for noiseless projections
+
 B=60       % ctf B factor
 
 % makeProjections=~exist('templates','var');
@@ -36,6 +43,7 @@ if makeProjections % do this if templates haven't already been calculated.
     
     symmetry=4;
     angStep=4;
+%     angStep=6; %%%
     psiStep=90; % all angles are in degrees
     shiftMag=4;
     
@@ -140,7 +148,7 @@ for i=1:nAngs
     stack(:,:,i)=real(ifftn(fftn(img) ...
         .*ifftshift(ctfs(:,:,j))))+sigma*noise2(:,:,i);
 end;
-%
+%%
 
 fullStackName=[outDir stackName];
 fullStarName=[outDir starName];

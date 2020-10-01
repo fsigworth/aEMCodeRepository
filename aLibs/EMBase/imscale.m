@@ -36,7 +36,7 @@ if any(sds>0)  % compute according to the standard deviation or
         me=mean(m(:));
         mn=me-sds(1)*s;
         mx=me+sds(2)*s;
-    else
+    else % use sds as distribution limits.
         np=numel(m);
         [~,inds]=sort(m(:));
         mnp=round((np-1)*sds(1)+1); % lowest pixel value
