@@ -137,7 +137,8 @@ end;
 
 oldPixA=0;
 figure(1);
-%%
+
+%% ---------------Loop over micrographs--------------
 for fileIndex=1:numel(fname) % Operate on a single micrograph
     tic
     if doBatchProcessing
@@ -154,7 +155,9 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
     end;
     mi.basePath=rootPath;
     logIndices=miDecodeLog(mi);
-    outFileName=[mi.procPath mi.baseFilename 'rscc.mat'];
+    [origImg, mergeFullPath, mergedImgOk]=meReadMergedImage(mi,0,pars.mergedImageSuffix);
+    ourProcPath=AddSlash(fileparts(mergeFullPath));
+    outFileName=[ourProcPath mi.baseFilename 'rscc.mat'];
     if (exist(outFileName,'file') && logIndices(8)>logIndices(5)) && ~pars.overwrite
         disp('  A recent RSCC file exists.  Skipping.');
         continue;
@@ -171,7 +174,6 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
     end;
     if numVesicles>0
         %     Pick up the merged image
-        [origImg, mergeFullPath, mergedImgOk]=meReadMergedImage(mi,0,pars.mergedImageSuffix);
         if ~mergedImgOk
             disp('No merged image.  Skipping.');
             continue;
@@ -461,6 +463,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         title(miName,'interpreter','none');
 
         globalMask=meGetMask(mi,n);
+        
         %%  ----------Evaluate the cc for each vesicle----------
         disp('Evaluating cross-correlations');
         disp([' using ' num2str(nterms) ' terms']);
@@ -628,13 +631,12 @@ nves=numVesicles;
         mVesBad=round(mVesBad,3);
         
         partRadius=18; % ????
-    logTxt=['rsPickingPreprocessor4 ' TimeStamp];
-        
+        logTxt=['rsPickingPreprocessor4 ' TimeStamp];
         save(outFileName,'mxCC','mxCCU','mxVars','mxVesInds',...
             'mxDist','mxTemplInds','mxRsos','partRadius', 'membraneOffsetA','ds',...
             'badVesMask','eigenImgs','vList','angleList','ppVals','fHP',...
             'pwfRef','pwfImg','mVesGood','mVesBad','logTxt','m0','m1');
-        disp(['written: ' mi.procPath mi.baseFilename 'rscc.mat']);
+        disp(['written: ' outFileName]);
     mi.log{end+1,:}=logTxt;
     WriteMiFile(mi,miName); % miName includes the infoPath
 
