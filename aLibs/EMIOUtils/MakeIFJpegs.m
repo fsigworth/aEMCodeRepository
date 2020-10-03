@@ -6,7 +6,7 @@
 displayOn=1;
 targetSize=960;
 suffixes={'s' 'vs'};
-inverseFraction=.2;
+inverseFraction=.35;
 lpFilter=.05;
 jpegPath='jpeg/';
 
@@ -31,7 +31,8 @@ for i=1:numel(miNames)
             [mf,H]=meCTFInverseFilter(md,mi,inverseFraction);
             mf2=GaussFilt(mf,lpFilter*approxPixA);
             [pa,nm,ex]=fileparts(name);
-            outName=[jpegPath nm '.jpg'];
+            suffix=sprintf('.w%02d',100*inverseFraction);
+            outName=[jpegPath nm suffix '.jpg'];
             WriteJpeg(mf2,outName);
             if displayOn
                 imags(mf2);

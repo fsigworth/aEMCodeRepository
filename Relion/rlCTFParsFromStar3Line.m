@@ -35,7 +35,7 @@ for i=1:numel(sNames)
     end;
 end;
 iMicrographs=max(1,iMicrographs); % has to be at least 1
-blockIndices=[iOptics iMicrograph];
+blockIndices=[iOptics iMicrographs];
 
 opt=struct;
 if iOptics>0 % There is an optics block
@@ -48,6 +48,7 @@ if iLine>nLines || iLine<1 % out of bounds, return nothing
     return
 end;
 
+pars=struct;
 
 % pick up or calculate the pixel size
 if isfield(mic,'rlnMicrographPixelSize') || isfield(opt,'rlnMicrographPixelSize') 
@@ -59,7 +60,6 @@ else % compute from old-fashioned star file
 end;
 
 %     CTF parameters
-pars=struct;
 pars.defocus=(mic.rlnDefocusU(iLine)+mic.rlnDefocusV(iLine))/2e4;
 pars.deltadef=(mic.rlnDefocusU(iLine)-mic.rlnDefocusV(iLine))/2e4;
 pars.theta=mic.rlnDefocusAngle(iLine)*pi/180;

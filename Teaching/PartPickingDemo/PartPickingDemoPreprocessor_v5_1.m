@@ -121,7 +121,7 @@ disc=SharpFilt(junkMask,pin.templateFilt*pixA*pin.ds);
 nt2=nt2+1;
 normTemplates(:,:,nt2)=disc/sqrt(disc(:)'*disc(:));
 
-% allVars=zeros(nt2,1);
+% allVrs=zeros(nt2,1);
 % for i=1:nt2
 %     q=normTemplates(:,:,i);
 %     allVars(i)=q(:)'*q(:);
