@@ -131,19 +131,30 @@ end;
 % % dis.tFactor=1.03; %%%
 % % dis.pars(3)=inf; %%%
 % % dis.pars(12)=1; %%%
-if exist(dis.basePath)
+ok=false;
+if exist(dis.basePath,'dir')
     cd(dis.basePath);
+    ok=true;
     if dis.miIndex
         disp('Loading the file Info/miNames.mat');
+        try
+            ls;
+        catch
+            ok=false;
+        end;
+        if ok
         try
             load('Info/miNames.mat');
         catch
             disp('...not found.');
             dis.miIndex=0;
             dis.miValid=0;
+            ok=false;
+        end;
         end;
     end;
-else
+end;
+if ~ok
     dis.miIndex=0;
     dis.miValid=0;
 end;

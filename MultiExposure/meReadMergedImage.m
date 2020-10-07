@@ -27,7 +27,7 @@ else
 end;
 for ibase=1:2 % Try mi.basePath, then pwd   
     ourSuffix=suffix;
-    if ourSuffix(end)=='s'
+    if numel(ourSuffix)>0 && ourSuffix(end)=='s'
         iname=[mi.basePath ppath_sm mi.baseFilename 'm' ourSuffix '.mrc'];
         if exist(iname,'file')
         ok=true;

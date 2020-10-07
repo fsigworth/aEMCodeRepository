@@ -134,8 +134,11 @@ end;
             otherwise
                 error(['Unrecognized cell element class: ' cls]);
         end;
-        val=reshape(val,sz);
-        
+        if ne>0
+            val=reshape(val,sz);
+        else
+            val={};
+        end;
     end
 
     function val=ReadStructArray(level,sz,nf)
