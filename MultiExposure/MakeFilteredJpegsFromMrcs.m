@@ -7,24 +7,39 @@ clf;
 disp(['Converting mrc images to jpgs in base directory ' pwd]);
 allNames=f2FindInfoFiles;
 targetSize=960;
-suffix={'s' 'vs'};
+% targetSize=1024;
+% suffix={'s' 'vs'};
+suffix={'s'};
+readZTiff=0;
 jpegPath='jpeg_s/';
 clipThreshold=5;  % include SDs.
+
 doWrite=1;
-invCTF=0.5;
-invCTF=0;
+invCTF=0.3;
 finalLowpass=0.2;
+
+maxImages=inf;
+
 CheckAndMakeDir(jpegPath,1);
 
-for i=1:numel(allNames)
+ni=min(numel(allNames),maxImages);
+disp(['Working on ' num2str(ni) ' images.']);
+for i=1:ni
     mi=ReadMiFile(allNames{i});
     for j=1:numel(suffix) % read each row of the suffix array
-        [m, mergeFullName,ok]=meReadMergedImage(mi,0,suffix{j});
+if readZTiff
+    [m,pixA,ok]=ReadEMFile(['Merged/' mi.baseFilename 'mz.tif']);
+else
+            [m, mergeFullName,ok]=meReadMergedImage(mi,0,suffix{j});
+end;
+    if ~ok
+            continue;
+        end;
         imSize=size(m);
         n=size(m,1);
         ds0=n/targetSize;
         ds=round(ds0);
-        if abs(ds0-ds)>.2 % allowed tolerance in downsampling ratio
+        if abs(1-ds/ds0)>.2 % allowed tolerance in downsampling ratio
             disp(['Downsampling ratio discrepancy: ' num2str([ds0 ds]) '   ' num2str([n targetSize])]);
                 return
         end;
@@ -33,13 +48,20 @@ for i=1:numel(allNames)
         if invCTF
            mdf=meCTFInverseFilter(mdf,mi,invCTF);
         end;
-        [pa,baseName,ex]=fileparts(mergeFullName);
-        jpegName=[jpegPath baseName '.jpg'];
+        defStr=[num2str(mi.ctf(1).defocus,3) 'um'];
+        invStr=[num2str(invCTF,2) 'inv'];
+        extraString=['  ' defStr ' ' invStr];
+if readZTiff
+    baseName=mi.baseFilename;
+else
+     [pa,baseName,ex]=fileparts(mergeFullName);    
+end;
+
+    jpegName=[jpegPath baseName '_' defStr '_' invStr '.jpg'];
         msc=WriteJpeg(mdf,jpegName,clipThreshold,doWrite);
         imaga(msc);
-        title(jpegName,'interpreter','none');
+        title([num2str(i) '  ' jpegName],'interpreter','none');
         drawnow;
-%         imwrite(ms,[jpegPath basename '.jpg'],'jpg');
     end;
 end;
 disp('Done.');
