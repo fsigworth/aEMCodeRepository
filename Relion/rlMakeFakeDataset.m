@@ -1,5 +1,6 @@
 % rlMakeFakeDataset
 % Comparing our angle assignments with Relion's
+% Here is the result:
 % rl_rot = -phi = -angs(i,1)
 % rl_tilt=theta= angs(i,2)
 % rl_psi = -psi-90 = -angs(i,3)-90;

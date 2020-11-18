@@ -8,10 +8,10 @@ function WriteStarFileStruct(s,dataName,fileName,activeFlags)
 % file.  Leave it as an empty string '' if you don't need it.
 % The optional nLines x 1 boolean array activeFlags determines which lines
 % actually get written out rather than skipped.
-% 
+%
 % Give a file handle FID instead of fileName if you want to write several
 % structs to a single file.  In this case you'd call
-% FID=fopen('file.star','w'); WriteStarFileStruct(..,FID); fclose(FID);
+% FID=fopen('file.star','w'); WriteStarFileStruct(..,FID,...); fclose(FID);
 % dataName is the string written after 'data_' on the first line of the
 % file.
 
@@ -26,7 +26,7 @@ if nFields<1
 end;
 nLines=numel(s.(fnames{1}));
 
-if nargin<4
+if nargin<4 || numel(activeFlags)==0
     activeFlags=true(nLines,1);
 end;
 %%

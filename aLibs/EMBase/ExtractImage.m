@@ -8,7 +8,7 @@ function out=ExtractImage(in,cpoint,n,insertMode)
 % [(n+1)/2, (n+1)/2]  will correspond to cpoint.  If n is even, the point
 % [n/2+1 n/2+1] will correspond to cpoint.
 % If the optional argument insertMode=1, then the center of *in* will be
-% copied into the location cpoint of the *output* array.  This allows a
+% copied into the location cpoint of the *output* array. this allows a
 % smaller image to be padded into a larger image.
 % The output image is the same class (single, integer, etc.) as the input.
 
@@ -49,4 +49,9 @@ inu=inu-(rgu0-rgu);
 
 out=zeros(n,class(in));  % force the output to be the same class as input.
 %disp([inl inu rgl rgu]);
-out(rgl(1):rgu(1),rgl(2):rgu(2))=in(inl(1):inu(1),inl(2):inu(2));
+if insertMode<2
+    out(rgl(1):rgu(1),rgl(2):rgu(2))=in(inl(1):inu(1),inl(2):inu(2));
+else
+    out(rgl(1):rgu(1),rgl(2):rgu(2))=out(rgl(1):rgu(1),rgl(2):rgu(2)) ...
+        +in(inl(1):inu(1),inl(2):inu(2));
+end;
