@@ -32,8 +32,7 @@ imgSize=128;
 imgScale=.02; % 40 * 5e-4
 symmetry=4;
 
-amp=.015; % half amplitude
-shotSigma=2;
+shotSigma=3;
 iceSigma=2*[1 .1]; % filtered+const
 fcL=.05;
 % iceSigma=11.925 % noise makes unity variance (empirical)
@@ -59,19 +58,19 @@ for i=1:nMicrographs
     psis=360*rand(ppm,1);
     thetas=acosd(1-2*rand(ppm,1));
     phis=360/symmetry*rand(ppm,1);
-    templates=rlMakeTemplates([psis thetas phis],map);
+    templates=rlMakeTemplates([phis thetas psis],map);
     
     [xs,ys]=RandomTiling(ppm,micSize,minSpacing,micBorder);
-%     m=zeros(micSize,'single');
-%     for j=1:ppm
-%         m1=ExtractImage(templates(:,:,j),round([xs(j) ys(j)]),micSize,1);
-%         m=m+m1;
-%         % imags(m); drawnow;
-%     end;
-%     mics(:,:,i)=m; % store all the unfiltered micrographs
-%     imags(m);
-%     title(i);
-%     drawnow;
+    m=zeros(micSize,'single');
+    for j=1:ppm
+        m1=ExtractImage(templates(:,:,j),round([xs(j) ys(j)]),micSize,1);
+        m=m+m1;
+        % imags(m); drawnow;
+    end;
+    mics(:,:,i)=m; % store all the unfiltered micrographs
+    imags(m);
+    title(i);
+    drawnow;
     
     % picks star file
     pk=struct;
@@ -129,11 +128,12 @@ for i=1:nMicrographs
     nIce=randn(micSize);
     iceNoise=iceSigma(1)*LorentzFilt(nIce,fcL/pixA)+iceSigma(2)*nIce;
     shotNoise=shotSigma*randn(micSize);
+    m=mics(:,:,i);
     mc=real(ifftn(fftn(imgScale*m+iceNoise).*ifftshift(c)))+shotNoise;
     
     %     Write out the micrograph
     micName=[micDir micBaseName num2str(i,'%03d') '.mrc'];
-    imags(mc);
+    imags(GaussFilt(mc,.05/pixA));
     title(micName,'interpreter','none');
     drawnow;
     WriteMRC(mc,pixA,micName);
@@ -148,13 +148,13 @@ end;
 %%
 nim=numel(pts.rlnCoordinateX);
 
-% Create the fake stack
-stackName='fakeStack.mrcs';
-stk=zeros(16,16,nim,'single');
-   for k=1:nim
-        pts.rlnImageName{k,1}=[num2str(k,'%04d') '@' stackName];
-    end;
-WriteMRC(stk,pixA,stackName);
+% % Create the fake stack
+% stackName='fakeStack.mrcs';
+% stk=zeros(16,16,nim,'single');
+%    for k=1:nim
+%         pts.rlnImageName{k,1}=[num2str(k,'%04d') '@' stackName];
+%     end;
+% WriteMRC(stk,pixA,stackName);
 
 pts.rlnClassNumber(1:nim,1)=1;
 pts.rlnAnglePsi(1:nim,1)=-999;
@@ -163,6 +163,7 @@ pts.rlnOpticsGroup(1:nim,1)=1;
 
 partStarName='particles.star';
 fStar=fopen(partStarName,'wt');
+fprintf(fStar,'\n# version 30001\n');
 WriteStarFileStruct(opt,'optics',fStar);
 WriteStarFileStruct(pts,'particles',fStar);
 fclose(fStar);
