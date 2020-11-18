@@ -9,7 +9,7 @@ pin.psA=150;  % particle size in angstroms
 % symmetry=3;
 % refMapName='emd_7009_flat_0822A_304.mrc';
 pin.symmetry=4;
-pin.refMapName='emd_9024.map';
+pin.refMapName='emd_4997.map';
 
 
 % templateFilt=.05; % inverse angstroms
@@ -23,11 +23,11 @@ basePath='~/'; % on siggpu2
 %basePath='~/siggpu2/home/siggpu2/'; % mount on mini
 
 %cd /Volumes/D257/Yangyu/20200824/
-cd([basePath 'hd0/data/20200922/']);
+cd([basePath '/mnt/hd0/data/20191024']);
 disp(['Working directory: ' pwd]); 
 pin.starInPath='CtfFind/job009/';
 pin.mrcInPath='MotionCorr/job004/data/';
-pin.matOutPath='TemplatePicker5_1/';
+pin.matOutPath='TemplatePicker5/';
 disp(['mat output path = ' pin.matOutPath]);
 
 CheckAndMakeDir(pin.matOutPath,1);
