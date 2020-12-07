@@ -8,6 +8,8 @@ function WriteStarFileStruct(s,dataName,fileName,activeFlags)
 % file.  Leave it as an empty string '' if you don't need it.
 % The optional nLines x 1 boolean array activeFlags determines which lines
 % actually get written out rather than skipped.
+% Even if the struct fields have only one element, a _loop construct is
+% written out.
 %
 % Give a file handle FID instead of fileName if you want to write several
 % structs to a single file.  In this case you'd call
