@@ -11,20 +11,24 @@ pa=fileparts(which('arGetRefVolumes'));
 mapName=[pa '/KvMap.mat'];
 % Output files
 outDir=pwd; % Assume we're in the working directory
-micDir='Micrographs/';
+micDir='Micrographs2/';
+starDir='Stars2/';
 micBaseName='mic'
+
+CheckAndMakeDir(micDir,1);
+CheckAndMakeDir(starDir,1);
 
 BFactor=60;
 alpha=.05;
 Cs=2.7;
 kV=200;
 
-nMicrographs=4
-defRange=[1:2]
+nMicrographs=100
+defRange=[3 6]
 micSize=[4096 4096];
-micBorder=200
+micBorder=80
 minSpacing=100
-ppm=400 % particlesPerMicrograph
+ppm=500 % particlesPerMicrograph
 maxParticlesPerMicrograph=prod(micSize-2*micBorder)/minSpacing^2
 
 ds=1;
@@ -104,6 +108,9 @@ for i=1:nMicrographs
     
 end;
 
+save([micDir 'mics.mat'],'mics','-v7.3');
+
+%%
 % make the optics structure
 opt=struct;
 for i=1:2 % make 2 lines to force a star table.
@@ -115,11 +122,11 @@ for i=1:2 % make 2 lines to force a star table.
     opt.rlnAmplitudeContrast(i)=alpha;
     opt.rlnImagePixelSize(i)=pixA;
     opt.rlnImageSize(i)=imgSize;
-    opt.rlnImageDimensionality(i)=3;
+    opt.rlnImageDimensionality(i)=2;
 end;
 
 
-%% Filter and write the micrographs
+%Filter and write the micrographs
 rng(2); % init the random number generator again
 CheckAndMakeDir(micDir,1);
 for i=1:nMicrographs
@@ -161,15 +168,16 @@ pts.rlnAnglePsi(1:nim,1)=-999;
 pts.rlnAutopickFigureOfMerit(1:nim,1)=-999;
 pts.rlnOpticsGroup(1:nim,1)=1;
 
-partStarName='particles.star';
+partStarName=[starDir 'particles.star'];
 fStar=fopen(partStarName,'wt');
 fprintf(fStar,'\n# version 30001\n');
 WriteStarFileStruct(opt,'optics',fStar);
 WriteStarFileStruct(pts,'particles',fStar);
 fclose(fStar);
 
+WriteMRC(map,pixA,'KvRef.mrc');
 
-
+disp('Done.');
 
 return
 
