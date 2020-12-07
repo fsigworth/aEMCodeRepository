@@ -1,5 +1,7 @@
 % rlMakeFakeMicrographs.m
 % Derived from rlMakeFakeDataset
+% Test of making picker outputs. The most convenient is to make a
+% particles.star file 
 % Comparing our angle assignments with Relion's
 % Here is the result:
 % rl_rot = -phi = -angs(i,1)
