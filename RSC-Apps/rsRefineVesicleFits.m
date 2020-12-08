@@ -29,10 +29,13 @@ dpars.doPreSubtraction=1; % subtract all vesicles except the one being fitted
 dpars.listFits=1;  % print out each fit's parameters
 dpars.scaleOriginalAmplitudes=1; % multiply amplitudes by this value
 
-dpars.writeSmallMRC=1; % Write out downsampled image
 dpars.writeSubMRC=1; % Write out subtracted image <basename>mv.mrc
+
+dpars.writeSmallMRC=0; % Write out image downsampled to M4. Otherwise, we 
+% match the size of any existing small image e.g. Merged_sm/*ms.mrc when we
+% write a small sub mrc.
 dpars.writeSmallSubMRC=1; % Write out a downsampled subtracted image
-dpars.dsSmall=4; % downsampling factor
+dpars.dsSmall=4; % downsampling factor for small output images
 dpars.writeVesFiles=0;   % Write vesicle models into Temp/
 
 dpars.resetBasePath=1;   % update the basePath field of the mi file to the current directory.
@@ -330,15 +333,18 @@ for fileIndex=1:numel(miNames)
                 WriteMRC(m1-vs1,mi.pixA,outSubName);
                 disp([outSubName ' saved']);
             end;
+            smSize=round(size(m1)/pars.dsSmall);
             if pars.writeSmallMRC
-                outName=[procPath_sm mi.baseFilename 'ms.mrc'];
-                WriteMRC(m4,mi.pixA*M4(1,1),outName);
+                outSmallName=[procPath_sm mi.baseFilename 'ms.mrc'];
+                ms=Downsample(m1,smSize);
+                WriteMRC(ms,mi.pixA*pars.dsSmall,outSmallName);
                 disp([outName ' saved.']);
             end;
             if pars.writeSmallSubMRC
                 outSubName=[procPath_sm mi.baseFilename 'mvs.mrc'];
-                WriteMRC(m4-vs4,mi.pixA*M4(1,1),outSubName);
-                disp([outSubName ' saved, ' num2str(size(m4)) ' pixels']);
+                mvs=Downsample(m1-vs1,smSize);
+                WriteMRC(mvs,mi.pixA*pars.dsSmall,outSubName);
+                disp([outSubName ' saved, ' num2str(smSize) ' pixels']);
             end;
     else  % No vesicles have been found to refine
         if numel(mi.vesicle.x)<1

@@ -744,7 +744,7 @@ else
     %     scale it to reflect fractional image intensity
     fullImageName=[mi.imagePath mi.imageFilenames{1}];
     if exist(fullImageName,'file') ...
-            && isfield(mi,'imageNormScale') && mi.imageNormScale~=0;
+            && isfield(mi,'imageNormScale') && mi.imageNormScale~=0
         m=single(ReadEMFile(fullImageName));
         if ~isfield(mi,'imageMedian')
             mi.imageMedian=median(m(:));

@@ -26,13 +26,12 @@ dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
 % ! For Falcon3: cameraIndex=6, I think cpe=64.
 dpars.dose=60; % Approx total movie dose in e/A^2. We have to guess this
 % because MotionCor2 scaling doesn't allow the total dose to be calculated.
-dpars.estimateStatsFromImage=0; % 1: don't use the above, estimate from image spectrum
+dpars.estimateStatsFromNoise=0; % 1: don't use the above, estimate from image spectrum
 %dpars.nFrames=40;
-dpars.motionCorFrames=1; % 1, or the number of frames if using MotionCor2
+dpars.motionCorFrames=1; % either 1, or the number of frames if using MotionCor2
 dpars.BFactor=60; % Used by my CTF functions. Not critical.
 dpars.changeImagePath=0; % change from the path given in the star file
-dpars.imagePath='Micrographs/';
-dpars.defaultImageSize=[0 0]; % Value to insert if we can't read the
+dpars.imagePath='Micrographs/'; % ...new image path
 % mrc file to get header information. If zeros, Vesicle_finding_GUI will
 % assign this upon reading the image.
 % dpars.readMicrographForScale=false; % If true, uses micrograph statistics
@@ -40,15 +39,16 @@ dpars.defaultImageSize=[0 0]; % Value to insert if we can't read the
 dpars.skipMissingMrcs=true; % Skip over any absent micrographs
 dpars.writeMiFile=1; % Write out each mi.txt file.
 dpars.setProcImage=0; % Set proc path to image path (if not writing merged images)
-dpars.writeMergedImage=1;
+dpars.writeMergedImage=0;
 dpars.writeMergedSmall=1;
 dpars.writeJpeg=1;
 dpars.dsSmall=4; % downscaling for Small and jpeg
+dpars.disFc=.2;
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
 cd(pars.basePath);
 
-jpegPath='jpeg/';
+jpegPath='Jpeg/';
 
 if isa(starName,'cell') % Contains output from ReadStarFile()
     names=starName{1};
@@ -102,7 +102,6 @@ for i=1:nLines
         if pars.writeJpeg
             CheckAndMakeDir(jpegPath,1);
         end;
-        first=false;
     end;
     if pars.skipMissingMrcs % silently skip these lines.
         if ~micFound
@@ -114,34 +113,32 @@ for i=1:nLines
         end;
     end;
     
-    scaleMode=1+(pars.estimateStatsFromImage>0);
+    scaleMode=1+(pars.estimateStatsFromNoise>0);
     if micFound
-        [mi,m,origSize]=rlSetImageScale(mi,scaleMode,pars.motionCorFrames);
-        padSize=mi.imageSize;
-        
+        [mi,m]=rlSetImageScale(mi,scaleMode,pars.motionCorFrames);
+        if first
+            corr=mi.imageNormScale*mi.imageMedian;
+            disp(['The first image median is ' num2str(mi.imageMedian*[1 corr])]);
+        end;
         if pars.writeMergedImage
             micName=[mi.procPath mi.baseFilename 'm.mrc'];
             WriteMRC(m,mi.pixA,micName);
-        else % we'll use the original micrograph in subsequent programs
-            padSize=mi.imageSize;
-            mi.imageSize=origSize;
-        end;
+         end;
+        ms=Downsample(Crop(m,mi.padImageSize),mi.padImageSize/pars.dsSmall);
+        msDis=imscale(GaussFilt(ms,pars.disFc),256,1e-4);
         
         if pars.writeMergedSmall || pars.dwriteJpeg
             smallName=[mi.procPath_sm mi.baseFilename 'ms.mrc'];
             jpegName=[jpegPath mi.baseFilename 'ms.jpg'];
             
-            ms=Downsample(Crop(m,padSize),padSize/pars.dsSmall);
             if pars.writeMergedSmall
                 WriteMRC(ms,mi.pixA*pars.dsSmall,smallName);
             end;
             if pars.writeJpeg
-                WriteJpeg(ms,jpegName);
+                WriteJpeg(msDis,jpegName);
             end;
-        else
-            ms=BinImage(m,pars.dsSmall);
         end;
-        imags(ms);
+        imags(msDis);
         title([num2str(i),': ' mi.baseFilename],'interpreter','none');
         drawnow;
     else         % Do dead reckoning (mode 3) if micrograph is not available.
@@ -150,5 +147,6 @@ for i=1:nLines
     end;
     miName=WriteMiFile(mi);
     disp([num2str(i) ': ' miName]);
+    first=false;
 end;
 

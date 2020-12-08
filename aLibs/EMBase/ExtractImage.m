@@ -18,6 +18,9 @@ function out=ExtractImage(in,cpoint,n,insertMode)
 % input fs 9 March 08
 % Changed to allow output to be larger than input fs 24 Sep 11
 
+if nargin<4
+    insertMode=0;
+end;
 cpoint=cpoint(:)';  % Force a row vector
 n=double(n);  % it might be passed as an integer.
 if numel(n)<2
@@ -49,7 +52,7 @@ inu=inu-(rgu0-rgu);
 
 out=zeros(n,class(in));  % force the output to be the same class as input.
 %disp([inl inu rgl rgu]);
-if insertMode<2
+if insertMode
     out(rgl(1):rgu(1),rgl(2):rgu(2))=in(inl(1):inu(1),inl(2):inu(2));
 else
     out(rgl(1):rgu(1),rgl(2):rgu(2))=out(rgl(1):rgu(1),rgl(2):rgu(2)) ...

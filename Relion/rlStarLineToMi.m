@@ -89,12 +89,11 @@ mi.imagePath=imagePath;
 micName=[mi.imagePath mi.imageFilenames{1}];
 micFound=exist(micName,'file');
 
-if pars.writeMergedImage || pars.writeMergedSmall || ~pars.setProcImage
+if pars.writeMergedImage
     mi.procPath='Merged/';
+end;
+if pars.writeMergedSmall
     mi.procPath_sm='Merged_sm/';
-else
-    mi.procPath=imagePath; % look in the original images folder
-    mi.procPath_sm=imagePath;
 end;
 
 % pick up or calculate the pixel size

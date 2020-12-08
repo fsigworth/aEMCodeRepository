@@ -1,16 +1,23 @@
 function [mi,m,origImageSize]=rlSetImageScale(mi,mode,nFrames);
 % Set the size and scale parameters in the mi struct, possibly loading and
 % scaling the image m as well.
-% mi.imageSize is always set to the "nice" padded image size. If you are
+% mi.padImageSize is always set to the "nice" padded image size. If you are
 % going to use the original micrograph as the working image, you should 
-% change this to mi.imageSize=origImageSize.
+% use mi.imageSize.
 % There are three modes.
 % 1. Read the micrograph, pad the image to a nice size, convert to fractional contrast
 %   (this is our traditional method.) Set mi.imageSize and mi.imageMedian.
-%   Scale up by sqrt(nFrames), which should be >1 to fix MotionCor2's wrong
-%   dc scaling.
+%   Scale up both the median and the image by sqrt(nFrames), which should 
+%   be >1 to fix MotionCor2's wrong dc scaling.
+%   *** Set nFrames=1 for other motion correction programs.***
+%   If we need to get the fractional contrast micrograph from the original
+%   micrograph m0, do this:
+%   To get the fractional contrast image from the raw micrograph,
+%    mFrac=mi.imageNormScale*(m0-mi.imageMedian);
+
 % 2. Read the micrograph, insert its actual size as mi.imageSize, and
-%   compute mi.imageNormScale and mi.imageMedian.
+%   compute mi.imageNormScale and mi.imageMedian by looking at the noise
+%   spectrum.
 % 3. Estimate mi.imageNormScale from cpe,pixA, and mi.doses(1). 
 %     In modes 1 and 2, the returned image m is padded to the nice size and
 %     already normalized.
@@ -28,6 +35,9 @@ function [mi,m,origImageSize]=rlSetImageScale(mi,mode,nFrames);
 %     raw image m0 by 1/sqrt(est variance*pixelDose). In the end we'll get the
 %     scaled micrograph, after computing the median, by
 %     scaledImg = ( m0-median(m0(:)) )*mi.imageNormScale;
+
+minMedian=15; % This would be high for MotionCor2 data but low (=dose*cpe)
+% for correctly-scaled data. median<minMedian gives a warning.
 
     m0=0; % default returned value.
     m=0;
@@ -47,18 +57,34 @@ origImageSize=size(m0);
 if numel(origImageSize)<2
     origImageSize(2)=origImageSize(1);
 end;
+mi.imageSize=origImageSize;
 niceImageSize=NextNiceNumber(origImageSize,5,8);
-mi.imageSize=niceImageSize;
+mi.padImageSize=niceImageSize;
 mc=Crop(m0-med,niceImageSize);
 
 switch mode
     case 1 % We assume we know the DC component correctly, or else use the
         % correction for MotionCor2's error to scale up [should it be down?]
         % the DC value.
-        mi.imageNormScale=1/med*sqrt(nFrames);
-        mi.imageMedian=med;
-        m1=RemoveOutliers(mc);
-        m=m1*mi.imageNormScale;
+        if med~=0
+            mi.imageNormScale=sqrt(nFrames)/med;
+            mi.imageMedian=med; % Raw image median
+            m1=RemoveOutliers(mc);
+            m=m1*mi.imageNormScale;
+            if mi.imageMedian<minMedian
+                disp(['   Image median is low? ' num2str(mi.imageMedian)]);
+            end;
+        else
+            mi.imageMedian=0;
+            mi.imageNormScale=1;
+        end;
+        % To reconstruct the original micrograph scaling (in cpe) do this:
+        % mOrig=(m0*mi.imageNormScale)*mi.imageMedian; % The product of the
+        %   two factors should be 1 if we aren't doing the motioncor2
+        %   correction.
+        % To get the fractional contrast image from the raw micrograph,
+        % mFrac=mi.imageNormScale*(m0-mi.imageMedian);
+        
     case 2 % don't know scaling or the DC value, estimate from the image.
 %       Estimate shot noise from the mean power spectrum 0.3 ... 0.7 x Nyquist
         sds=floor(min(mi.imageSize)/256); % Downsampling factor for spectrum

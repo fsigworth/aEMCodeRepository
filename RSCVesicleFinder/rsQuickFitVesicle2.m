@@ -282,6 +282,9 @@ for iRad=1:nIters  % radius fitting
         boundsErr=1e3*sum( abs(p.vr(3:end))/p.vr(1) > p.rConstraints(3:end) );
     end;
     [vfit,a,t]=LLSFit(p); % Get the amplitude and translation fit
+    if any(isnan(vfit(:)))
+        break % skip fitting if we got an NaN
+    end;
     p.a=a;
     p.t=t;
     res=p.imgc(:)-vfit(:);
@@ -292,15 +295,23 @@ for iRad=1:nIters  % radius fitting
         break;
     end;
 end;
-% Find the centroid and do one more linear fit
-P1=Simplex('centroid');
-p.vr=Pack(P1,p.nTerms);
-[vFit,a,p.t]=LLSFit(p); % Get the translation one last time
-vR=p.vr;
-[vFit,s]=AmpFitNX(p);
-res=p.imgc(:)-vFit(:);
-lsErr=res'*res;
-t=p.t;
+if ~any(isnan(vfit(:)))
+    % Find the centroid and do one more linear fit
+    P1=Simplex('centroid');
+    p.vr=Pack(P1,p.nTerms);
+    [vFit,a,p.t]=LLSFit(p); % Get the translation one last time
+    [vFit,s]=AmpFitNX(p);
+    res=p.imgc(:)-vFit(:);
+    lsErr=res'*res;
+    t=p.t;
+    vR=p.vr;
+else
+    vR=p.vr;
+    [vFit,s]=AmpFitNX(p); % go ahead and get extra terms
+    s=0*s;
+    lsErr=p.imgc(:)'*p.imgc(:); % zero model fit.
+    vFit=0*vFit;
+end;
 end
 
 % ------------------------------------------------------------
