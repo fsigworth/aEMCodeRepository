@@ -26,9 +26,8 @@ dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
 % ! For Falcon3: cameraIndex=6, I think cpe=64.
 dpars.dose=60; % Approx total movie dose in e/A^2. We have to guess this
 % because MotionCor2 scaling doesn't allow the total dose to be calculated.
-dpars.estimateStatsFromNoise=0; % 1: don't use the above, estimate from image spectrum
-%dpars.nFrames=40;
-dpars.motionCorFrames=1; % either 1, or the number of frames if using MotionCor2
+dpars.estimateStatsFromNoise=0; % 1: don't use the above, estimate from image spectrum%dpars.nFrames=40;
+dpars.motionCorFrames=40; % either 1, or the number of frames if using MotionCor2
 dpars.BFactor=60; % Used by my CTF functions. Not critical.
 dpars.changeImagePath=0; % change from the path given in the star file
 dpars.imagePath='Micrographs/'; % ...new image path
