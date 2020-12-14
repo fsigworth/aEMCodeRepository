@@ -20,17 +20,18 @@ pathA='/Volumes/D257/Hideki/160909_spectrAnalysis/';
         pathB='/Volumes/D257/Hideki/200922/';
         shortPathB='200922';
         cd(pathB);
-        load DefSorted.mat
-        load AImageData.mat % pick this up from pathB!
+%         load DefSorted.mat
+        load foundMis_broken_graphene
+        load AImageData.mat % Data for Image A, but pick this up from pathB!
         
-        jpegDir='jpeg_spect/';
+%         jpegDir='jpeg_spect/';
         jpegDir='jpeg_test_spect/'; % test set
         CheckAndMakeDir(jpegDir,1);
 
 suffixes={'m.mrc' 'mv.mrc'};
 % for fileIndex=1:20 % graphene set
 %     for j=1:2
-for fileIndex=1 % test set
+for fileIndex=1:3 % test set
     for j=1
         % %     pathB='/Volumes/Drobo4/191228.1/';
         % %     shortPathB='191228.1';
@@ -60,7 +61,10 @@ for fileIndex=1 % test set
         %% Get the 200922 graphene comparison variables
         infoB=foundMis{fileIndex};
         baseNameB=infoB.baseFilename;
-        micB=ReadMRC([pathB 'Merged/' baseNameB suffixes{j}]);
+        mrcNameB=[pathB 'Merged/' baseNameB suffixes{j}];
+        disp(mrcNameB);
+        
+        micB=ReadMRC(mrcNameB);
         
         %%
         mag=infoB.pixA/infoA.pixA;

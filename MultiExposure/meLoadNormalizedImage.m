@@ -1,66 +1,103 @@
-function [mOut,M,ok,mIn]=meLoadNormalizedImage(mi,target,sufExts)
-% function [mOut,M,ok,mIn]=meLoadNormalizedImage(mi,targetSize,sufExts)
-% function [mOut,M,ok,mIn]=meLoadNormalizedImage(mi,maxPixA,sufExts)
-%  -targetSize is a two-element vector.
-%  -maxPixA is a scalar.
+function [mOut,M,ok]=meLoadNormalizedImage(mi,targetSize,imgType)
+% function [mOut,M,ok]=meLoadNormalizedImage(mi,targetSize,imgType)
+%  -targetSize is a two-element vector, giving the dimensions of the
+%  desired image, in pixels.
 %  -M is the affine transform of mOut's possible downsampling and shift,
-% Loads one of the variant merged image files, or the original micrograph
-% in the case that we have normalization information in the mi structure.
-% Return an image mOut that is cropped and downsampled to fit within
-% targetSize. Alternatively, a nice number output size is chosen 
-% to have a pixel size <= maxPixA and an integer downsampling factor.
-% The returned matrix M has the elements
+% Loads a merged image files, or the original micrograph
+% assuming that we have normalization information in the mi structure.
+% imgType is a string such as 'm' or 'mv', used to construct filenames like
+% xxxxmvs.mrc or xxxxmv.mrc
+% Return an image mOut that is cropped and downsampled to be at most
+% targetSize and have an integer downsampling factor from
+% the original micrograph.
+% The returned matrix M describes the coordinate transformation with
+% scaling and possible padding.
 %   M(1,1): downsampling factor from original micrograph to mOut
 %   -M(1:2,3): shift added to original micrograph before downsampling. Thus to
 %   determine a pixel coordinate in the the original micrograph, it is
 %   computed so:
 % origMicrographXY=M*[xOut;yOut;1];
-%  If desired, the full-size imported image is available as mIn.
+%  assuming zero-based coordinates.
 
-if nargin<3
-    sufExts={'s.mrc' 'z.tif' '.mrc'}; % default: prefer small or compressed files.
+maxScaleUp=1.1; % amount by which we'll allow a small image to be scaled up.
+if numel(targetSize)<2 || targetSize(1)==0
+    targetSize=mi.padImageSize;
 end;
-ok = false;
+if nargin<3
+    imgType='m'; % default: prefer small or compressed files.
+end;
+mergedImage=false;
+rawImage=false;
 M=zeros(3,3);
+mOut=[];
+ok=false;
 
-% Load the merged image. We assume it's already scaled to unit intensity but
-% with the mean (background) value subtracted. This means for image padding
-% we can use zeros.
-imageBasename=[mi.procPath mi.baseFilename 'm.mrc'];
-[fullMergedImageName,nameOk]=CheckForAltImage(imageBasename,sufExts);  % valid filename?  Load it
-
-if nameOk % the file exists, read it.
-    mIn=single(ReadEMFile(fullMergedImageName));
-    ok=true;
-else
-    % try for reading the raw micrograph. We then subtract the median and
-%     scale it to reflect fractional image intensity
-    fullImageName=[mi.imagePath mi.imageFilenames{1}];
-    if exist(fullImageName,'file') ...
-            && isfield(mi,'imageNormScale') && mi.imageNormScale~=0;
-        mIn=single(ReadEMFile(fullImageName));
-        if ~isfield(mi,'imageMedian')
-            mi.imageMedian=median(mIn(:));
+if any(targetSize<mi.padImageSize) % Look for an existing small image, in the two possible places.
+    paths=cell(1);
+    if isfield(mi,'procPath_sm') % First look here, if the directory exists
+        paths={mi.procPath_sm};
+    end;
+    paths=[paths {mi.procPath}]; % Old pattern, where *ms.mrc or *mvs.mrc
+%     files were stored.
+    
+    for iPath=1:numel(paths)
+        % Load a small image
+        name=[paths{iPath} mi.baseFilename imgType 's.mrc'];
+        if exist(name,'file')
+            m1=ReadEMFile(name);
+            nIn=size(m1);
+            if any(nIn*maxMag>=targetSize(1)) %% one dimension is big enough
+                mergedImage=true;
+            end;
         end;
-        mIn=(mIn-mi.imageMedian)*mi.imageNormScale;
-        ok=true;
+        
     end;
 end;
-if ok
-%     mIn=Crop(Downsample(mIn,mi.imageSize/2),mi.imageSize/2+4); %%%%%test code
-    %     Determine what downsampling might already have occurred
-    nIn=size(mIn); % we compare this with mi.imageSize
-    M1=meGetImageScaling(mi.imageSize,nIn);
-
-%     Determine our further downsampling
-if numel(target)>1 % it's a target image size
-        [M2,mOut]=GetImageScaling(mIn,target);
-else % it's a maximum pixel size
-        ds=floor(target/(M1(1,1)*mi.pixA)); % smallest integer downsampling that will work.
-        nOut=NextNiceNumber(ceil(nIn/ds));
-        [M2,mOut]=meGetImageScaling(mIn,nOut,ds);
-
+if ~mergedImage % try for a full-sized image
+    name=[mi.procPath_sm mi.baseFilename imgType '.mrc'];
+    if exist(name,'file')
+        m1=ReadEMFile(name);
+        nIn=size(m1);
+        mergedImage=true;
+    end;
 end;
-%  Combine the transformations.
-M=M1*M2;
+
+if ~mergedImage
+    % try for reading the raw micrograph. We then subtract the median and
+    %     scale it to reflect fractional image intensity
+    fullImageName=[mi.imagePath mi.imageFilenames{1}];
+    if exist(fullImageName,'file')
+        m0=single(ReadEMFile(fullImageName));
+        if ~all(size(m0)==mi.imageSize)
+            error(['Micrograph size doesn''t match mi: ' num2str(size(m0)) ' vs ' num2str(mi.imageSize)]);
+        end;
+        nIn=mi.padImageSize;
+        rawImage=true;
+    end;
+end;
+
+ok=rawImage || mergedImage; % we got something
+if ok
+    dsMin=min(ceil(mi.padImageSize/targetSize(2))); % large dimension can't be bigger than maxTargetSize.
+    dsMax=min(floor(mi.padImageSize/targetSize(1))); % large dimension can't be smaller than minTargetSize.
+    ds=dsMin;
+    for ds=dsMin:dsMax % no assignment if dsMin<1...
+        if all(mod(nIn,ds)==0) % it's an integal divisor of the original micrograph
+            break;
+        end;
+    end;
+    if ds>0 % all set to downsample
+        if rawImage % have to normalize and pad
+            [mOut,M]=meMakeScaledMicrograph(m0,mi,ds);
+        else
+            M=meMakeMicrographScaleMatrix([],ds);
+            nOut=mi.padImageSize/ds;
+            ds1=nIn/ds;
+            if any(mod(ds1,1)) % fractional downsampling
+                mOut=DownsampleGeneral(mIn,nOut,1/ds1);
+            else
+                mOut=Downsample(m1,nOut);
+            end;
+        end;
+    end;
 end;

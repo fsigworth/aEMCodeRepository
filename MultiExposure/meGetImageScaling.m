@@ -1,4 +1,4 @@
-function [M,mOut]=meGetImageScaling(nIn,nOut,ds);
+function [M,mOut]=meGetImageScaling(nIn,nOut,ds)
 % function M=meGetImageScaling(nIn,nOut,ds); or
 % function [M,mOut]=meGetImageScaling(mIn,nOut,ds);
 % Create an affine transformation matrix M for the operation of
