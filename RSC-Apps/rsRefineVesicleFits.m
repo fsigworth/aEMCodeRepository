@@ -190,6 +190,13 @@ for fileIndex=1:numel(miNames)
         end;
         
         % Read the image and normalize to fractional contrast
+        dsMin=pars.maxPixA/mi.pixA;
+        ds4=NextNiceNumber(dsMin); % Downsampling for good fits
+*(*************
+        disp(['First downsampling by ' num2str(ds4)]);
+        [m4,M4,ok]=meLoadNormalizedImage(mi,mi.padImageSize/ds4
+        
+        
         sufExts={'.mrc' 's.mrc' 'z.tif'}; % suffix and extension options for small, compressed or full files.
 %         ds0=floor(pars.maxPixA/(2*mi.pixA));  % downsampling for bigger images
 %         to yield pixA below maxPixA/2

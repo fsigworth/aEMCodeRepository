@@ -19,52 +19,52 @@ function [mOut,M,ok]=meLoadNormalizedImage(mi,targetSize,imgType)
 % origMicrographXY=M*[xOut;yOut;1];
 %  assuming zero-based coordinates.
 
-maxScaleUp=1.1; % amount by which we'll allow a small image to be scaled up.
+maxScaleUp=1.2; % amount by which we'll allow a small image to be scaled up.
 if numel(targetSize)<2 || targetSize(1)==0
     targetSize=mi.padImageSize;
 end;
 if nargin<3
     imgType='m'; % default: prefer small or compressed files.
 end;
-mergedImage=false;
-rawImage=false;
+ok=false;
 M=zeros(3,3);
 mOut=[];
-ok=false;
 
-if any(targetSize<mi.padImageSize) % Look for an existing small image, in the two possible places.
+if any(targetSize<mi.padImageSize) % Look for an existing small image *s.mrc,
+    %     in the two possible places.
     paths=cell(1);
     if isfield(mi,'procPath_sm') % First look here, if the directory exists
         paths={mi.procPath_sm};
     end;
     paths=[paths {mi.procPath}]; % Old pattern, where *ms.mrc or *mvs.mrc
-%     files were stored.
+    %     files were stored.
     
     for iPath=1:numel(paths)
         % Load a small image
         name=[paths{iPath} mi.baseFilename imgType 's.mrc'];
         if exist(name,'file')
-            m1=ReadEMFile(name);
-            nIn=size(m1);
-            if any(nIn*maxMag>=targetSize(1)) %% one dimension is big enough
-                mergedImage=true;
+            mIn=ReadEMFile(name);
+            nIn=size(mIn);
+            if all(nIn*maxScaleUp>=targetSize(1)) %% it's big enough
+                ok=true;
+                break;
             end;
         end;
         
     end;
 end;
-if ~mergedImage % try for a full-sized image
+if ~ok % try for a full-sized image in the procPath directory
     name=[mi.procPath_sm mi.baseFilename imgType '.mrc'];
     if exist(name,'file')
-        m1=ReadEMFile(name);
-        nIn=size(m1);
-        mergedImage=true;
+        mIn=ReadEMFile(name);
+        nIn=size(mIn);
+        ok=true;
     end;
 end;
 
-if ~mergedImage
+if ~ok
     % try for reading the raw micrograph. We then subtract the median and
-    %     scale it to reflect fractional image intensity
+    %     scale it to reflect fractional image intensity, and pad it.
     fullImageName=[mi.imagePath mi.imageFilenames{1}];
     if exist(fullImageName,'file')
         m0=single(ReadEMFile(fullImageName));
@@ -72,32 +72,18 @@ if ~mergedImage
             error(['Micrograph size doesn''t match mi: ' num2str(size(m0)) ' vs ' num2str(mi.imageSize)]);
         end;
         nIn=mi.padImageSize;
-        rawImage=true;
+        mIn=Crop(m0,mi.padImageSize);
+        ok=true;
     end;
 end;
 
-ok=rawImage || mergedImage; % we got something
 if ok
-    dsMin=min(ceil(mi.padImageSize/targetSize(2))); % large dimension can't be bigger than maxTargetSize.
-    dsMax=min(floor(mi.padImageSize/targetSize(1))); % large dimension can't be smaller than minTargetSize.
-    ds=dsMin;
-    for ds=dsMin:dsMax % no assignment if dsMin<1...
-        if all(mod(nIn,ds)==0) % it's an integal divisor of the original micrograph
-            break;
-        end;
-    end;
-    if ds>0 % all set to downsample
-        if rawImage % have to normalize and pad
-            [mOut,M]=meMakeScaledMicrograph(m0,mi,ds);
-        else
-            M=meMakeMicrographScaleMatrix([],ds);
-            nOut=mi.padImageSize/ds;
-            ds1=nIn/ds;
-            if any(mod(ds1,1)) % fractional downsampling
-                mOut=DownsampleGeneral(mIn,nOut,1/ds1);
-            else
-                mOut=Downsample(m1,nOut);
-            end;
-        end;
-    end;
+    ds1=max(mi.padImageSize./nIn);
+    M1=meMakeMicrographScaleMatrix(mi,ds1);  % matrix to produce the image
+%     we've got so far.
+    ds2=max(nIn./targetSize); % we pick the dimension best matched by the target.
+    mOut=DownsampleGeneral(mIn,targetSize,1/ds2);
+    shift=floor(nIn./ds2-targetSize)/2; % The shift from the crop operation
+    M2=[ds2 0 -shift(1); 0 ds2 -shift(2); 0 0 1];
+    M=M1*M2; % Composite matrix mapping output to original image
 end;
