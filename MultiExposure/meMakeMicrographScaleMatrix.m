@@ -15,7 +15,7 @@ function [M,nOut,mi]=meMakeMicrographScaleMatrix(mi,ds)
 %   0   ds  -ysh
 %   0   0    1 ]
 %  Where the positive values [xsh ysh] are the shift of the origin in the
-%  padded image.
+%  padded image, i.e. (mi.padImageSize-mi.imageSize)/2
 %  The transformation from downsampled coordinates to the original coordinates will be
 %  [x0; y0; 1]=M*[x; y; 1] or equivalently [x0 y0 1]=[x y 1]*M'
 %  Note this the case of zero-based coordinates.

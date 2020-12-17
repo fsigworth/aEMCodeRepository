@@ -26,9 +26,9 @@ set(hi,'HitTest','off');
 % GetClick('init');
 hold on;
 
-if dis.showGhosts > 1 % show vesicle rings 2, 3 = thin, thick lines
-    x0=mi.vesicle.x/dis.ds;
-    y0=mi.imageSize(2)/dis.ds-mi.vesicle.y/dis.ds;
+if dis.showGhosts > 1 % show vesicle rings: 2, 3 = thin; thick lines
+    x0=mi.vesicle.x/dis.ds+1;  % vector of all the vesicle coordinates.
+    y0=dis.size(2)-mi.vesicle.y/dis.ds+1;
     activeVes=all(mi.vesicle.ok(:,1:2),2);
     for i=1:numel(mi.vesicle.x)
         if activeVes(i)
@@ -112,7 +112,7 @@ if dis.showBoxes
                         end;
                     end;
                 end;
-                if dis.showBoxes==4 % show picker parameters too
+                if dis.showBoxes>2 % show picker parameters too
                     for ib=1:size(ourCoords,1)
                         if ourCoords(ib,5)>0 % if a mxCC value is given
                             %                    Show the particle amplitude on top

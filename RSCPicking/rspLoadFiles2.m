@@ -1,29 +1,52 @@
 function [dis, mi, rscc, rs, imgs, masks, rawMask,success]=rspLoadFiles2(dis,si)
-% Given the info file name and path (in the dis structure), load the mi, merged image and rscc
-% files.  If a vesicle file is also present load it, otherwise compute the
-% vesicles. This is version 2 where I have eliminated all code that doesn't
-% assume the existence of a modern rscc file.
+% Given the info file name and path (in the dis structure), load the mi and rscc
+% files.
+% 16-Dec-20: This is version 2 where I have eliminated code that doesn't
+% assume the existence of a modern rscc file and loads images from elsewhere.
+% I also include offsets for mi.useMicrographCoords. We add the cropOffset
+% here, and remove it in rspStorePicksInMi.
+
+% Default return values
+mi=[];
+rscc=[];
+rs=[];
+imgs=[];
+masks=[];
+rawMask=[];
+success=0;
 
 dis.basePath=AddSlash(pwd);
 disp(' ');
 if dis.miIndex
     disp(['file index: ' num2str(dis.miIndex)]);
 end;
-disp([dis.infoPath dis.infoName]);
 
+dis.miValid=0;
 if dis.miMode
-    mi=ReadMiFile([AddSlash(dis.infoPath) dis.infoName],1);  % get the mi structure
+    miName=[AddSlash(dis.infoPath) dis.infoName];
+    if exist(miName,'file')
+        mi=ReadMiFile(miName,1);  % get the mi structure
+        disp([miName ' loaded.']);
+        dis.miValid=1;
+    else
+        disp(['mi file not found: ' miName]);
+        return
+    end;
 else
     mi=si.mi{dis.miIndex};
+    dis.miValid=1;
 end;
 mi.basePath=dis.basePath;
 set(gcf,'name',[dis.infoName ' - loading...']);
-dis.miValid=1;
 
+% Deal with original micrograph coordinates, if we're using them.
+% This will allow us to do particle extraction using Relion.
 if ~isfield(mi,'padImageSize')
     mi.padImageSize=NextNiceNumber(mi.imageSize,5,8);
 end;
-
+if dis.forceMicrographCoords
+    mi.useMicrographCoords=1;
+end;
 if isfield(mi,'useMicrographCoords') && mi.useMicrographCoords
     %     We'll modify the particle and vesicle coordinates to account for the
     %     offset from padding
@@ -46,23 +69,19 @@ if sum(mi.weights)==0
     mi.weights=ones(numel(mi.ctf),1);
 end;
 
-% Default returned values
-rscc=struct;
-rs=struct;
-imgs=[];
-masks=[];
-rawMask=[];
-success=false;
+rawMask=~meGetMask(mi,dis.ndis);
 
 % ---------Pick up the rscc file and images---------
-if isfield(mi,'procPath_sm')
+if isfield(mi,'procPath_sm') % Look in this folder
     procPath_sm=mi.procPath_sm;
 else
     procPath_sm=mi.procPath;
 end;
+
 rsccName=[procPath_sm mi.baseFilename 'rscc.mat'];
 disp(rsccName);
 dis.rsMode=exist(rsccName,'file');
+
 if dis.rsMode
     rscc=load(rsccName);
     % ---------check and set the window size-------
@@ -86,14 +105,13 @@ else % set up for generic particle picking
     return
 end;
 
+% Now that display size has been established to match rscc images...
 dis.ds=mi.padImageSize(1)/dis.ndis(1); % downsampling factor from original micrograph
-dis.pixA=mi.pixA*ds;
+dis.pixA=mi.pixA*dis.ds;
 
 % pick up the raw and subtracted images from the rscc file.
-if isfield(rscc,'m0') % We can read the images directly
-    mc=rscc.m0;
-else
-    rscc=LoadImageFiles(mi,rscc);
+if ~isfield(rscc,'m0') % We can't read the images directly
+    rscc=LoadImageFiles(mi,rscc); % handle old-form files
 end;    
     % initialize the CC for autopicking
     if dis.useRawAmplitudes
@@ -185,11 +203,10 @@ end;
     rs.mCCU=rscc.mxCCU;
     rs.mVesInds=rscc.mxVesInds<1;
     
-    if ~isfield(mi.vesicle,'ok')
-        mi.vesicle.ok=[];
-    end;
-    
-    pixA=mi.pixA*dis.ds; % pixel size of displayed images
+%     if ~isfield(mi.vesicle,'ok')
+%         mi.vesicle.ok=[];
+%     end;
+%     
     
     rawMask=~meGetMask(mi,dis.ndis);
     
@@ -199,14 +216,15 @@ end;
     
     
     % Copy image and vesicle model into rscc
+    rscc.mVes=rscc.m0-rscc.m1;
     mVesGood=rscc.mVes;
     mVesBad=0*mVesGood;
     
     % Compute local variance
-    fc1=pixA/200;  % lowpass
-    fc2=pixA/1000; % baseline
-    fc3=pixA/300;  % var averaging
-    dev=GaussFilt(m0-mVes,fc1)-GaussFilt(m0-mVes,fc2);
+    fc1=dis.pixA/200;  % lowpass
+    fc2=dis.pixA/1000; % baseline
+    fc3=dis.pixA/300;  % var averaging
+    dev=GaussFilt(rscc.m0-rscc.mVes,fc1)-GaussFilt(rscc.m0-rscc.mVes,fc2);
     if dis.rsMode
         rscc.mxVars=1000*sqrt(GaussFilt(dev.^2,fc3));
     end;
@@ -223,24 +241,16 @@ end;
     imgs(:,:,8)=dis.mulr*rscc.mVes+dis.addr;
     imgs(:,:,9)=0;  % to receive overlap mask
     dis.imgLabels= ...
-{'';
-'Vesicles subtracted';
-'Model particles';
-'Image-model';
-'CC map';
-'Template indices';
-'Local variance';
-'Vesicle model';
-'Blank'}
-%     dis.imgLabels{1}={'';
-%     dis.imgLabels{2}='Vesicles subtracted';
-%     dis.imgLabels{3}='Model particles';
-%     dis.imgLabels{4}='Image-model';
-%     dis.imgLabels{5}='CC map';
-%     dis.imgLabels{6}='Template indices';
-%     dis.imgLabels{7}='Local variance';
-%     dis.imgLabels{8}='Vesicle model';
-%     dis.imgLabels{9}='Blank';
+        {'';
+        'Vesicles subtracted';
+        'Model particles';
+        'Image-model';
+        'CC map';
+        'Template indices';
+        'Local variance';
+        'Vesicle model';
+        'Blank'};
+
 %     
     % masks are:  1: good vesicle ghosts;  2: bad vesicle ghosts;
     %             3: variance above thresh 4: blank region
@@ -258,7 +268,11 @@ end;
     dis.mode=min(2,dis.mode);
     dis.jpegCounter=1;
     success=true;
-end
+end % -------------------Main----------------
+
+
+
+
 
     function dis=ChangeTheWindowSize(dis,rscc)
         rsz=size(rscc.mxCC);
@@ -285,6 +299,8 @@ end
         end;
     end
 
+    
+    
     function rscc=LoadImageFiles(mi,rscc)
 %     Code for getting image and subtracted image for old-style rscc files
         %sufExts={'s.mrc' 'z.tif' '.mrc'}; % suffix and extension options for small, compressed or full files.

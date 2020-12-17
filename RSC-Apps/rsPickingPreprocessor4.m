@@ -505,8 +505,16 @@ nves=numVesicles;
         disp(['Total vesicle entries: ' num2str(nves)]);
         maskPadding=ceil(maskPaddingA/pixA);
         
+%             Correction for padded ms.mrc images
+        if isfield(mi,'useMicrographCoords') && mi.useMicrographCoords
+            cropOffset=floor((mi.padImageSize-mi.imageSize)/2);
+        else
+            cropOffset=[0 0];
+        end;
+        
+        
         for i=1:numVesicles  % loop over all possible vesicles
-            ctr=round([mic.vesicle.x(i) mic.vesicle.y(i)]/ds+1);  % shift to 1-based coords
+            ctr=round(([mic.vesicle.x(i) mic.vesicle.y(i)]+cropOffset)/ds+1);  % shift to 1-based coords
             xDist=Radius(n,ctr)-mic.vesicle.r(i)/ds;  % Get the distance map, distance from mbn center
             qDist=xDist<mxDist;
             

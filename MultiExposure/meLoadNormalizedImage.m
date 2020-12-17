@@ -1,10 +1,13 @@
-function [mOut,M,ok]=meLoadNormalizedImage(mi,targetSize,imgType)
+function [mOut,M,ok,rawImg]=meLoadNormalizedImage(mi,targetSize,imgType)
 % function [mOut,M,ok]=meLoadNormalizedImage(mi,targetSize,imgType)
 %  -targetSize is a two-element vector, giving the dimensions of the
 %  desired image, in pixels.
 %  -M is the affine transform of mOut's possible downsampling and shift,
 % Loads a merged image files, or the original micrograph
 % assuming that we have normalization information in the mi structure.
+% rawImg=true if we loaded the raw micrograph, false if we loaded some sort
+% of merged (i.e. padded) image.
+% 
 % imgType is a string such as 'm' or 'mv', used to construct filenames like
 % xxxxmvs.mrc or xxxxmv.mrc
 % Return an image mOut that is cropped and downsampled to be at most
@@ -27,7 +30,12 @@ if nargin<3
     imgType='m'; % default: prefer small or compressed files.
 end;
 ok=false;
+rawImg=false;
 M=zeros(3,3);
+
+M1=eye(3); % identity transformation
+M1(1:2,3)=-floor((mi.padImageSize-mi.imageSize)/2);
+
 mOut=[];
 
 if any(targetSize<mi.padImageSize) % Look for an existing small image *s.mrc,
@@ -57,7 +65,6 @@ if ~ok % try for a full-sized image in the procPath directory
     name=[mi.procPath_sm mi.baseFilename imgType '.mrc'];
     if exist(name,'file')
         mIn=ReadEMFile(name);
-        nIn=size(mIn);
         ok=true;
     end;
 end;
@@ -71,19 +78,18 @@ if ~ok
         if ~all(size(m0)==mi.imageSize)
             error(['Micrograph size doesn''t match mi: ' num2str(size(m0)) ' vs ' num2str(mi.imageSize)]);
         end;
-        nIn=mi.padImageSize;
-        mIn=Crop(m0,mi.padImageSize);
+        mIn=Crop((m0-mi.imageMedian)*mi.imageNormScale,mi.padImageSize);
+        rawImg=true;
         ok=true;
     end;
 end;
 
+
 if ok
-    ds1=max(mi.padImageSize./nIn);
-    M1=meMakeMicrographScaleMatrix(mi,ds1);  % matrix to produce the image
-%     we've got so far.
-    ds2=max(nIn./targetSize); % we pick the dimension best matched by the target.
-    mOut=DownsampleGeneral(mIn,targetSize,1/ds2);
-    shift=floor(nIn./ds2-targetSize)/2; % The shift from the crop operation
-    M2=[ds2 0 -shift(1); 0 ds2 -shift(2); 0 0 1];
-    M=M1*M2; % Composite matrix mapping output to original image
+%     Fill in the scaling of the image we read in.
+    ds=mi.padImageSize./size(mIn); % downsampling factor of image we're given.
+    M1(1,1)=1/ds(1);
+    M1(2,2)=1/ds(2);
+    
+    [mOut,M]=meDownsampleImage(mIn,M1,targetSize);
 end;

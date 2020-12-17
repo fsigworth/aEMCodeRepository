@@ -1,4 +1,4 @@
-function mi=rspStorePicksInMi(mi,picks,ptrs,doDisplay)
+function mi=rspStorePicksInMi(mi,picks,ptrs,doDisplay,dis)
 if nargin<4
     doDisplay=1;
 end;
@@ -16,6 +16,15 @@ end;
 % We  store all non-null entries in mi.particle.picks
 % We also mark mi.vesicle.ok(:,4) according to bad vesicles.
 
+if isfield(mi,'useMicrographCoords') && mi.useMicrographCoords
+%     We'll modify the particle and vesicle coordinates.
+    cropOffset=floor((mi.padImageSize-mi.imageSize)/2);
+    mi.vesicle.x=dis.origVesicle.x; % We had modified these coords in rspLoadFiles.
+    mi.vesicle.y=dis.origVesicle.y;
+else
+    cropOffset=[0 0];
+end;
+
 q=picks(:,:,3)>0;  % Find all the nontrivial entries, with type ~=0.
 nk=sum(q(:));      % number of nontrivial entries
 ne=size(picks,3);  % Number of elements in each row of picks (9?)
@@ -28,6 +37,7 @@ for j=1:numel(ptrs)  % There are 7 elements of ptrs, 7 classes of picks
         c=c(:)';  % make into a row vector
         if c(3)>0 % nontrivial entry
             k=k+1;
+            c(1:2)=c(1:2)-cropOffset;
             mi.particle.picks(k,:)=c;
             if c(3)==3 % bad vesicle
                 mi.vesicle.ok(c(4),4)=false;
