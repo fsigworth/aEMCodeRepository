@@ -4,9 +4,9 @@
 figure(1);
 clf;
 disp(['Converting mrc images to jpgs in directory ' pwd]);
-ds=1;
+ds=4;
 d=dir;
-jpegPath='../jpeg_s/';
+jpegPath='jpeg_s/';
 CheckAndMakeDir(jpegPath,1);
 
 for i=3:numel(d)
@@ -16,11 +16,13 @@ for i=3:numel(d)
         [m, s]=ReadMRC(d(i).name);
         pixelsize=s.rez/s.nx;
         imSize=size(m);
+            padSize=NextNiceNumber(imSize);
+            m=Crop(m-median(m(:)),padSize);
 %         m=RemoveOutliers(single(m),4);
         n=size(m,1);
         if ds>1
 %             m=BinImage(m,decimation);
-            m=Downsample(m,size(m,1)/ds);
+            m=Downsample(m,n/ds);
         end;
         WriteJpeg(m,[jpegPath basename '.jpg']);
 %         ms=uint8(imscale(m));
