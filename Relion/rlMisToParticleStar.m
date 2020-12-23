@@ -1,4 +1,4 @@
-% rlInfosToParticleStar.m
+% rlMisToParticleStar.m
 
 infoDir='Info/';
 starDir='';
