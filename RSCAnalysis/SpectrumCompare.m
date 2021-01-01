@@ -15,22 +15,60 @@ pathA='/Volumes/D257/Hideki/160909_spectrAnalysis/';
 % return
 % load([pathA 'AImageData.mat']);
 
-%% 
-%% 200922 Graphene
-        pathB='/Volumes/D257/Hideki/200922/';
-        shortPathB='200922';
-        cd(pathB);
-        load DefSorted.mat
-        load AImageData.mat % pick this up from pathB!
-        
-        jpegDir='jpeg_spect/';
-        jpegDir='jpeg_test_spect/'; % test set
-        CheckAndMakeDir(jpegDir,1);
+%%
+% %% -------200922 Graphene
+% pathB='/Volumes/D257/Hideki/200922/';
+% shortPathB='200922';
+% cd(pathB);
+% %         load DefSorted.mat
+% load foundMis_broken_graphene
+% load AImageData.mat % Data for Image A, but pick this up from pathB!
+% 
+% %         jpegDir='jpeg_spect/';
+% jpegDir='jpeg_test_spect/'; % test set
+% CheckAndMakeDir(jpegDir,1);
+% suffixes={'m.mrc' 'mv.mrc'};
+% useMergedImage=true;
+% 
+% %% -------20201201 Graphene
+% pathA2='/Volumes/D257/Hideki/200922/';
+% cd(pathA2);
+% %         load DefSorted.mat
+% load AImageData.mat % Data for Image A, but pick this up from pathB!
+% 
+% pathB='~/EMWork/20201201/';
+% shortPathB='20201201';
+% jpegDir='jpeg_test_spect/'; % test set
+% CheckAndMakeDir(jpegDir,1);
+% cd(pathB);
+% load DefSorted.mat
+% favorites=[4 8 14];
+% favorites=[1 5 9 16]; % 2nd dataset
+% useMergedImage=true;
+% 
 
-suffixes={'m.mrc' 'mv.mrc'};
+%% --------20201203 Graphene
+pathA2='/Volumes/D257/Hideki/200922/';
+cd(pathA2);
+%         load DefSorted.mat
+load AImageData.mat % Data for Image A, but pick this up from pathB!
+
+pathB='~/EMWork/20201203/';
+shortPathB='20201201';
+jpegDir='jpeg_test_spect/'; % test set
+CheckAndMakeDir(jpegDir,1);
+cd(pathB);
+load DefSorted.mat
+favorites=[1 2 7 12];
+useMergedImage=false;
+%%
+
+CheckAndMakeDir(jpegDir,1);
 % for fileIndex=1:20 % graphene set
 %     for j=1:2
-for fileIndex=1 % test set
+% for fileIndex=1:3 % test set
+for fileIndex=favorites % test set
+    
     for j=1
         % %     pathB='/Volumes/Drobo4/191228.1/';
         % %     shortPathB='191228.1';
@@ -47,20 +85,31 @@ for fileIndex=1 % test set
         %     baseNameB=mi.baseFilename;
         %     % baseNameB='2020-08-17_06_39_41_02505_1_162-5_0002_1-3'; % My favorite image
         
-%% using the MotionCor version of file A, to whiten it.
-% pathB=pathA;
-% shortPathB='motioncorr';
-% infoB=infoA;
-% micBPath='MotionCorr/job007/movie_frames/';
-% baseNameB='Sep09_19_26_19';
-% micB=ReadMRC([pathB micBPath baseNameB '.mrc']);
-% % micB=micB/mean(micB(:))-1; % normalize
-% mic=micB-mean(micB(:));
-
+        %% using the MotionCor version of file A, to whiten it.
+        % pathB=pathA;
+        % shortPathB='motioncorr';
+        % infoB=infoA;
+        % micBPath='MotionCorr/job007/movie_frames/';
+        % baseNameB='Sep09_19_26_19';
+        % micB=ReadMRC([pathB micBPath baseNameB '.mrc']);
+        % % micB=micB/mean(micB(:))-1; % normalize
+        % mic=micB-mean(micB(:));
+        
         %% Get the 200922 graphene comparison variables
         infoB=foundMis{fileIndex};
-        baseNameB=infoB.baseFilename;
-        micB=ReadMRC([pathB 'Merged/' baseNameB suffixes{j}]);
+        if useMergedImage
+            baseNameB=infoB.baseFilename;
+            mrcNameB=[pathB 'Merged/' baseNameB suffixes{j}];
+            micB=ReadMRC(mrcNameB);
+            sz=size(micB);
+            micBCrop(micB-median(micB(:)),NextNiceNumber(sz));
+        else
+            baseNameB=infoB.imageFilenames{1};
+            mrcNameB=[pathB infoB.imagePath baseNameB];
+            micB=ReadMRC(mrcNameB);
+        end;
+        disp(mrcNameB);
+        
         
         %%
         mag=infoB.pixA/infoA.pixA;
@@ -82,30 +131,30 @@ for fileIndex=1 % test set
         
         spB=RadialPowerSpectrum(mscB);
         mysubplot(224);
-
-        % Define frequencies and fit point xpos, which are where 
-%         n=f^2*lambda*def, i.e. zeros of the ctf
+        
+        % Define frequencies and fit point xpos, which are where
+        %         n=f^2*lambda*def, i.e. zeros of the ctf
         fmax=1/(2*pixA);
         maxN=fmax.^2*22600*.025;
         lambda=EWavelength(200);
         def=infoA.ctf(1).defocus*1e4;
-        xpos=sqrt((1:maxN)'/(lambda*def))*npix*pixA;       
+        xpos=sqrt((1:maxN)'/(lambda*def))*npix*pixA;
         freq=Radius(npix);
         freq1=(0:1023)';
         
         %% Manual fit
-
-%         a1=2;
-%         a2=2.5;
-%         a3=1.5;
-%         a4=3;
-%         
-%         spBf=11000*spB.*( (1-a1*1e-4*freq1).*(1+freq1.^2*a2*1e-7) ...
-%             .*(1+freq1.^3*a3*1e-10).*(1+freq1.^4*a4*1e-13) ).^2;
-%         semilogy(min(200,[spBf spA]));
-%         hold on;
-%         plot(xpos,spBf(round(xpos)),'k.','markersize',10);
-%         hold off;
+        
+        %         a1=2;
+        %         a2=2.5;
+        %         a3=1.5;
+        %         a4=3;
+        %
+        %         spBf=11000*spB.*( (1-a1*1e-4*freq1).*(1+freq1.^2*a2*1e-7) ...
+        %             .*(1+freq1.^3*a3*1e-10).*(1+freq1.^4*a4*1e-13) ).^2;
+        %         semilogy(min(200,[spBf spA]));
+        %         hold on;
+        %         plot(xpos,spBf(round(xpos)),'k.','markersize',10);
+        %         hold off;
         
         
         %% Simplex fit to minima of spectra
@@ -175,7 +224,11 @@ for fileIndex=1 % test set
         semilogy(freq1/(npix*pixA),min(1000,[yB spA]),'-');
         legend(shortPathB,'160909');
         
-        jName=[pathB jpegDir baseNameB suffixes{j}(1:2) 'sp.jpg'];
+        if useMergedImage
+            jName=[pathB jpegDir baseNameB suffixes{j}(1:2) 'sp.jpg'];
+        else
+            jName=[jpegDir num2str(fileIndex,'%02dd') baseNameB 'sp.jpg'];
+        end;
         print('-djpeg',jName);
         
     end;

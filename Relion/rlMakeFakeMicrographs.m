@@ -1,9 +1,10 @@
 % rlMakeFakeMicrographs.m
 % Derived from rlMakeFakeDataset
 % Test of making picker outputs. The most convenient is to make a
-% particles.star file 
-% Comparing our angle assignments with Relion's
-% Here is the result:
+% particles.star file for Relion extraction.
+% 
+% Meanwhile, comparing our angle assignments with Relion's,
+% here is the result:
 % rl_rot = -phi = -angs(i,1)
 % rl_tilt=theta= angs(i,2)
 % rl_psi = -psi-90 = -angs(i,3)-90;
@@ -115,7 +116,7 @@ save([micDir 'mics.mat'],'mics','-v7.3');
 %%
 % make the optics structure
 opt=struct;
-for i=1:2 % make 2 lines to force a star table.
+for i=1 % I thought we had to make 2 lines to force a star table, but no.
     opt.rlnOpticsGroupName{i}=['opticsGroup' num2str(i)];
     opt.rlnOpticsGroup(i)=i;
     opt.rlnMicrographOriginalPixelSize(i)=pixA;
@@ -123,7 +124,7 @@ for i=1:2 % make 2 lines to force a star table.
     opt.rlnSphericalAberration(i)=Cs;
     opt.rlnAmplitudeContrast(i)=alpha;
     opt.rlnImagePixelSize(i)=pixA;
-    opt.rlnImageSize(i)=imgSize;
+    opt.rlnImageSize(i)=imgSize; % we're setting the particle image size.
     opt.rlnImageDimensionality(i)=2;
 end;
 
@@ -165,6 +166,13 @@ nim=numel(pts.rlnCoordinateX);
 %     end;
 % WriteMRC(stk,pixA,stackName);
 
+% -----Make the particles.star file for Relion extraction
+% We've set up the optics struct.
+% And we have already set these fields:
+% pts.rlnMicrographName
+% pts.rlnCoordinateX
+% pts.rlnCoordinateY
+% now for the rest:
 pts.rlnClassNumber(1:nim,1)=1;
 pts.rlnAnglePsi(1:nim,1)=-999;
 pts.rlnAutopickFigureOfMerit(1:nim,1)=-999;

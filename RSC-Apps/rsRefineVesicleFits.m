@@ -36,7 +36,7 @@ dpars.writeSmallMRC=0; % Write out image downsampled to M4. Otherwise, we
 % write a small sub mrc.
 dpars.writeSmallSubMRC=1; % Write out a downsampled subtracted image
 dpars.dsSmall=4; % downsampling factor for small output images
-dpars.writeVesFiles=0;   % Write vesicle models into Temp/
+% dpars.writeVesFiles=0;   % Write vesicle models into Temp/
 
 dpars.resetBasePath=1;   % update the basePath field of the mi file to the current directory.
 dpars.modifiedAlpha=0;  % Good alpha value for lipids.
@@ -189,23 +189,42 @@ for fileIndex=1:numel(miNames)
             vm=mi;
         end;
         
-        % Read the image and normalize to fractional contrast
-        sufExts={'.mrc' 's.mrc' 'z.tif'}; % suffix and extension options for small, compressed or full files.
-%         ds0=floor(pars.maxPixA/(2*mi.pixA));  % downsampling for bigger images
-%         to yield pixA below maxPixA/2
-        [m4,M4,ok,m1]=meLoadNormalizedImage(mi,pars.maxPixA,sufExts);
-        [M,m8]=meGetImageScaling(m4,size(m4)/2,2); % get a twofold further downsampling
-        M8=M4*M;
+% ----------Read the image and normalize to fractional contrast----------
+%         The final coordinates will all be with respect to the original
+%         raw image, regardless of whether we are working from a merged
+%         image or not. We mark this so:
+        mi.useMicrographCoords=1;
+%         Otherwise the coordinates would be, as before, with respect to
+%         the padded "merged" image.
+
+%           Load the full-sized, padded and scaled image, with M1
+%           indicating the shift wrt the original micrograph.
+        [m1,M1,ok,isRawImg]=meLoadNormalizedImage(mi,mi.padImageSize,'m');
         if ~ok
             disp(['No image found for ' mi.baseFilename]);
             numErr=numErr+1;
             if numErr>maxErr
                 break;
             else
-                continue;
+                continue; % Go on to the next file index.
             end;
         end;
-% % %         pixAWork=pars.scl.ds0*mi.pixA;
+%           Make downsampled copies for fitting. m4 is taken to be "full
+%           size" for amplitude fitting. maxPixA ~ 3A.
+        dsMin=pars.maxPixA/mi.pixA;
+        ds4=NextNiceNumber(dsMin,5,1); % Downsampling for good fits
+%         some possible values: 1, 2, 3, 4, 5, 6, 8, ....
+%         ds4 is typically 2 or 3.
+        disp(['First downsampling is by ' num2str(ds4)]);
+        n4=round(mi.padImageSize/ds4);
+        [m4,M4]=meDownsampleImage(m1,M1,n4);
+        ds8=2*ds4;
+%        The second downsampling is twice that. Images used for radius
+%        fitting.
+        n8=round(mi.padImageSize/ds8);
+        [m8,M8]=meDownsampleImage(m4,M4,n8);
+
+        % % %         pixAWork=pars.scl.ds0*mi.pixA;
         
 %        % [m0, mergePath]=meReadMergedImage(mi);
 %         [mergedName,ok]=CheckForAltImage([mi.procPath mi.baseFilename 'm.mrc'],sufExts);
@@ -276,7 +295,8 @@ for fileIndex=1:numel(miNames)
             end;
             
             
-            %% Outputting
+            %% ---------------Outputting------------------
+%             Write the mi file.
             outName='';
             mi.ctf(1).alpha=originalAlpha;
             if writeMiFile
@@ -298,6 +318,7 @@ for fileIndex=1:numel(miNames)
                 drawnow;
             end;
             
+%             We'll make the vesicles at the m4 size and scale up.
             scl4=struct;
             scl4.n=size(m4);
             scl4.M=M4;
@@ -311,17 +332,17 @@ for fileIndex=1:numel(miNames)
                 drawnow;
             end;
             
-            
-            if pars.writeVesFiles  % Write .mrc and .jpg files.
-                outVesName=[mi.tempPath mi.baseFilename 'v'];
-                %             WriteMRC(vsm,pixA0,[outVesName '.mrc']);
-                %             WriteJpeg(vsm,outVesName);
-                WriteMRC(vs4,pixAModel,[outVesName '.mrc']);
-                WriteJpeg(vs4,outVesName,0);
-                %             imwrite(uint8(imscale(rot90(vs1),256,0)),[outVesName '.jpg']);
-                disp([outVesName ' saved']);
-            end;
-            
+%             
+%             if pars.writeVesFiles  % Write .mrc and .jpg files.
+%                 outVesName=[mi.tempPath mi.baseFilename 'v'];
+%                 %             WriteMRC(vsm,pixA0,[outVesName '.mrc']);
+%                 %             WriteJpeg(vsm,outVesName);
+%                 WriteMRC(vs4,pixAModel,[outVesName '.mrc']);
+%                 WriteJpeg(vs4,outVesName,0);
+%                 %             imwrite(uint8(imscale(rot90(vs1),256,0)),[outVesName '.jpg']);
+%                 disp([outVesName ' saved']);
+%             end;
+%             
             if ~isfield(mi,'procPath_sm')
                 procPath_sm=mi.procPath;
             else
@@ -329,10 +350,17 @@ for fileIndex=1:numel(miNames)
             end;
             
             if pars.writeSubMRC  % write an MRC file
-                outSubName=[mi.procPath mi.baseFilename 'mv.mrc'];
-                WriteMRC(m1-vs1,mi.pixA,outSubName);
+                if isRawImg % our input is a raw micrograph, make the output the same size.
+                    mSub=Crop(m1-vs1,mi.imageSize);
+                    outSubName=[mi.procPath mi.baseFilename '_v.mrc'];
+                else
+                    mSub=m1-vs1;
+                    outSubName=[mi.procPath mi.baseFilename 'mv.mrc'];
+                end;
+                WriteMRC(mSub,mi.pixA,outSubName);
                 disp([outSubName ' saved']);
             end;
+
             smSize=round(size(m1)/pars.dsSmall);
             if pars.writeSmallMRC
                 outSmallName=[procPath_sm mi.baseFilename 'ms.mrc'];
@@ -346,6 +374,7 @@ for fileIndex=1:numel(miNames)
                 WriteMRC(mvs,mi.pixA*pars.dsSmall,outSubName);
                 disp([outSubName ' saved, ' num2str(smSize) ' pixels']);
             end;
+            
     else  % No vesicles have been found to refine
         if numel(mi.vesicle.x)<1
             disp('  ...no vesicles');

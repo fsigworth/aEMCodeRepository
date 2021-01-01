@@ -380,9 +380,9 @@ end
 function togglebutton_RoboFit_Callback(hObject, eventdata, h)
 active=get(hObject,'value');
 if active
-%     h.sav.fileIndex=h.sav.fileIndex+1;
-%     [h,ok]=LoadAFile(h);
-ok=true;
+    %     h.sav.fileIndex=h.sav.fileIndex+1;
+    %     [h,ok]=LoadAFile(h);
+    ok=true;
     if ok
         doRobofit(hObject,h);
         guidata(hObject,h);
@@ -408,7 +408,7 @@ while h.imageLoaded && get(h.togglebutton_RoboFit,'value')
     h=guidata(hObject);
     pause(0.1);
     DoFind(h.pushbutton_Find, 0, h, 1);
-%     pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
+    %     pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
     h=guidata(hObject);
     pause(0.1);
     %         Make a new automask
@@ -425,7 +425,7 @@ while h.imageLoaded && get(h.togglebutton_RoboFit,'value')
     h=guidata(hObject);
     pause(0.1);
     DoFind(h.pushbutton_Find, 0, h, 1);
-
+    
     %     pushbutton_FindMore_Callback(h.pushbutton_FindMore,0,h);
     
     %     %         Make a new automask
@@ -730,61 +730,66 @@ if size(mi.vesicle.ok,2)<4 && nv>0
     mi.vesicle.ok(nv,4)=false;  % extend the array
 end;
 
+% Now set h.displaySize to the nearest nice numbers to the target display size
+sz=zeros(2,2);
+sz(1,:)=NextNiceNumber(h.targetDisplaySize,5,4)-h.targetDisplaySize;
+sz(2,:)=NextNiceNumber(h.targetDisplaySize,5,-4)-h.targetDisplaySize;
+[~,best]=min(sum(sz.^2,2));
+h.displaySize=sz(best,:)+h.targetDisplaySize;
+
 
 % Load the merged image
-imageBasename=[mi.procPath mi.baseFilename 'm.mrc'];
-sufExts={'s.mrc' 'z.tif' '.mrc'};
-[fullMergedImageName,ok]=CheckForAltImage(imageBasename,sufExts);  % valid filename?  Load it
-
-if ok % Try for reading the raw micrograph
-    m=single(ReadEMFile(fullMergedImageName));
-    disp([fullMergedImageName ' loaded.']);
-else
-    % try for reading the raw micrograph. We then subtract the median and
-    %     scale it to reflect fractional image intensity
-    fullImageName=[mi.imagePath mi.imageFilenames{1}];
-    if exist(fullImageName,'file') ...
-            && isfield(mi,'imageNormScale') && mi.imageNormScale~=0
-        m=single(ReadEMFile(fullImageName));
-        if ~isfield(mi,'imageMedian')
-            mi.imageMedian=median(m(:));
-        end;
-        m=(m-mi.imageMedian)*mi.imageNormScale;
-        ok=true;
-        disp([fullImageName ' (micrograph) loaded.']);
-        disp(['  imageNormScale = ' num2str(mi.imageNormScale)]);
-    elseif ~isfield(mi,'imageNormScale') || mi.imageNormScale==0
-        disp([fullImageName ' (micrograph) was found...']);
-        disp('  but mi.imageNormScale isn''t present.');
-    end;
-end;
+sz=max(h.displaySize);
+targetSizes=[2/3*sz sz];
+[h.origImage,M,ok]=meLoadNormalizedImage(mi,h.displaySize,'m');
 if ok
-    %     Determine what downsampling might already have occurred
-    szm=size(m);
-    % estimate the downsampling factor and origin shift from the micrograph to
-    % our image.
-    if any(mi.imageSize==0) % No image size given, we'll assume this is the 
-%         original micrograph size.
-        mi.imageSize=size(m);
-        disp(['mi.imageSize assigned to be ' num2str(mi.imageSize)]);
-    end;
-        
-    dsMicrograph=round(max(mi.imageSize./szm)); % we assume that any cropping
-    %                                               or padding is small.
-    h.M0=meGetImageScaling(mi.imageSize,szm,dsMicrograph);
+    % imageBasename=[mi.procPath mi.baseFilename 'm.mrc'];
+    % sufExts={'s.mrc' 'z.tif' '.mrc'};
+    % [fullMergedImageName,ok]=CheckForAltImage(imageBasename,sufExts);  % valid filename?  Load it
     %
-    % Now set h.displaySize to the nearest nice numbers to the target display size
-    sz=zeros(2,2);
-    sz(1,:)=NextNiceNumber(h.targetDisplaySize,5,4)-h.targetDisplaySize;
-    sz(2,:)=NextNiceNumber(h.targetDisplaySize,5,-4)-h.targetDisplaySize;
-    [~,best]=min(sum(sz.^2,2));
-    h.displaySize=sz(best,:)+h.targetDisplaySize;
+    % if ok % Read the merged image
+    %     m=single(ReadEMFile(fullMergedImageName));
+    %     disp([fullMergedImageName ' loaded.']);
+    % else
+    %     % try for reading the raw micrograph. We then subtract the median and
+    %     %     scale it to reflect fractional image intensity
+    %     fullImageName=[mi.imagePath mi.imageFilenames{1}];
+    %     if exist(fullImageName,'file') ...
+    %             && isfield(mi,'imageNormScale') && mi.imageNormScale~=0
+    %         m=single(ReadEMFile(fullImageName));
+    %         if ~isfield(mi,'imageMedian')
+    %             mi.imageMedian=median(m(:));
+    %         end;
+    %         m=(m-mi.imageMedian)*mi.imageNormScale;
+    %         ok=true;
+    %         disp([fullImageName ' (micrograph) loaded.']);
+    %         disp(['  imageNormScale = ' num2str(mi.imageNormScale)]);
+    %     elseif ~isfield(mi,'imageNormScale') || mi.imageNormScale==0
+    %         disp([fullImageName ' (micrograph) was found...']);
+    %         disp('  but mi.imageNormScale isn''t present.');
+    %     end;
+    % end;
+    % if ok
+    %     %     Determine what downsampling might already have occurred
+    %     szm=size(m);
+    %     % estimate the downsampling factor and origin shift from the micrograph to
+    %     % our image.
+    %     if any(mi.imageSize==0) % No image size given, we'll assume this is the
+    % %         original micrograph size.
+    %         mi.imageSize=size(m);
+    %         disp(['mi.imageSize assigned to be ' num2str(mi.imageSize)]);
+    %     end;
+    %
+    %     dsMicrograph=round(max(mi.imageSize./szm)); % we assume that any cropping
+    %     %                                               or padding is small.
+    %     h.M0=meGetImageScaling(mi.imageSize,szm,dsMicrograph);
+    %     %
     
     %         Get our working "origImage" of size h.displaySize, and the
     %         affine matrix from its coordinates to the micrograph
     %         coordinates.
-    [M1,h.origImage]=meGetImageScaling(m,h.displaySize);
-    h.M2=h.M0*M1; % Overall image scaling matrix
+    %     [M1,h.origImage]=meGetImageScaling(m,h.displaySize);
+    h.M2=M; % Overall image scaling matrix
     h.ds0=h.M2(1,1); % Overall downsampling factor
     %     h.ds0Shift=-h.M2(1:2,3)'; % Shift in micrograph coordinates
     %     micrographXY = M2*localXY (assuming zero-origin arrays) or
@@ -1740,7 +1745,7 @@ while mins>minAmp
     %     Make the scatterplot of vesicle radii and amplitudes.
     
     %%     This scatterplot should be its own function...
-%     Make a rectangle to show the selected range of radius and amplitude values
+    %     Make a rectangle to show the selected range of radius and amplitude values
     xs1=rPars(1);
     xs2=rPars(2);
     xs=[xs1    xs1    xs2    xs2    xs1];
@@ -1884,25 +1889,25 @@ end
 
 
 function WindowButtonMotionFcn(hObject, eventdata)
-        h=guidata(hObject);
-        if h.axes1ButtonDown && h.manualMaskActive && h.manualMaskDiameter>0
-            pt=get(h.axes1,'currentpoint');
-            h.manualMaskCoords(end+1,:)=pt(1,1:2);
-            %         if numel(h.theImage)>0
-            %             n=size(h.theImage);
-            %             msk=(1-uint8(disc(n,50,pt(1,:))))';
-            %             h.theImage(:,:,1)=h.theImage(:,:,1).*msk;
-            %                 axes(h.axes1);
-            %             imshow(h.theImage,'InitialMagnification',100);
-            %         end;
-            set(h.axes1,'nextplot','add');
-            plot(h.axes1,pt(1,1),pt(1,2),'o','markersize',h.manualMaskDiameter,'markerfacecolor','b');
-            set(h.axes1,'nextplot','add');
-
-            %         pt=get(h.axes3,'currentpoint');
-            %         disp(pt);
-            guidata(hObject,h);
-        end
+h=guidata(hObject);
+if h.axes1ButtonDown && h.manualMaskActive && h.manualMaskDiameter>0
+    pt=get(h.axes1,'currentpoint');
+    h.manualMaskCoords(end+1,:)=pt(1,1:2);
+    %         if numel(h.theImage)>0
+    %             n=size(h.theImage);
+    %             msk=(1-uint8(disc(n,50,pt(1,:))))';
+    %             h.theImage(:,:,1)=h.theImage(:,:,1).*msk;
+    %                 axes(h.axes1);
+    %             imshow(h.theImage,'InitialMagnification',100);
+    %         end;
+    set(h.axes1,'nextplot','add');
+    plot(h.axes1,pt(1,1),pt(1,2),'o','markersize',h.manualMaskDiameter,'markerfacecolor','b');
+    set(h.axes1,'nextplot','add');
+    
+    %         pt=get(h.axes3,'currentpoint');
+    %         disp(pt);
+    guidata(hObject,h);
+end
 end
 
 function WindowButtonUpFcn(hObject, eventdata)

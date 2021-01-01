@@ -5,7 +5,8 @@ function [out,means,vars]=NormalizeImages(m,varNormalize,applyMask,globalNorm)
 % Defaults are varNormalize=1 and applyMask=1; globalNorm=0.
 % We use an annulus for estimating variance and mean value.  We normalize
 % it so that the annulus mean is zero and variance is unity.  If mask=1 a
-% circular mask is also applied, 95% of max radius. if globalNorm then the
+% circular mask is also applied to the returned images, 
+% 95% of max radius. if globalNorm then the
 % norm is computed for the entire stack, not individual images.
 
 if nargin<4
@@ -17,7 +18,7 @@ end;
 if nargin<2
     varNormalize=1;
 end;
-OutR=0.5;  % Outer radius
+OutR=0.6;  % Outer radius
 InR=0.4;   % Inner radius
 Rise=0.05;   % Feathering of masks
 

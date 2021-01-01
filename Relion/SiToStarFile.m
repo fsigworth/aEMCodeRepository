@@ -1,4 +1,4 @@
-% SiToStarFile
+!% SiToStarFile
 % Create .star and .mrcs files from our si.mat and stack.mrc files.
 batchMode=0;
 % in which case siPath and siName must be defined.

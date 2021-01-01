@@ -1,7 +1,8 @@
 function names=f2FindInfoFiles(infoDir,blanksOnly,namesOnly)
-% Searches the infoDir directory for *mi.txt files, and collects the names
-% (infoDir path included) into the cell array names.  The infoDir argument
-% is optional, in which case it is assumed to be Info/
+% function names=f2FindInfoFiles(infoDir,blanksOnly,namesOnly)
+% Searches the infoDir directory for *mi.txt files, and collects the cell
+% array of chars, names (infoDir path included) into the cell array names.
+% The infoDir argument is optional, in which case it is assumed to be Info/
 % if blanksOnly=1, we get the names only of files having no log entries.
 % if namesOnly=1, we get names, not with infoDir prepended.
 if nargin<1

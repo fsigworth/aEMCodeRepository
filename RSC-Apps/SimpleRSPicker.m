@@ -120,6 +120,7 @@ if ~disOk
     dis.goodClasses=1;
     dis.classParticlesMode=0;
     dis.miMode=0;
+    dis.miIndex=0;
     newDis=1;
 end;
 %%
@@ -159,7 +160,9 @@ if ~ok
     dis.miValid=0;
 end;
 dis.jpegCounter=0;  % zero until a file is successfully loaded. Incremented by 'T' option.
-
+if ~isfield(dis,'forceMicrographCoords')
+    dis.forceMicrographCoords=0;
+end;
 %     dis.ndis=[512 512]; %%  Initial display size
 dis.maxSize=[960 960];
 dis.size=dis.maxSize;
@@ -174,6 +177,9 @@ dis.ndis=dis.maxSize;
 % Set the first command
 if (dis.finished || newDis || ~dis.miValid) % We need to open a new file
     b='O';  % ask for a new file
+    if dis.miIndex>1
+        dis.miIndex=dis.miIndex-1; % back up to past file.
+    end;
 else
     b='V';  % 'revert' to latest file.
 end;
@@ -324,7 +330,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             end;
         case {'l' 'L'} % toggle box labels
             dis.showBoxes=dis.showBoxes+1;
-            if dis.showBoxes>4
+            if dis.showBoxes>3
                 if b=='l'
                     dis.showBoxes=2;
                 else
@@ -463,7 +469,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     if dis.readOnlyMode || dis.classParticlesMode
                         disp(['Read-only mode. ' num2str(sum(rspCountParticles(picks))) ' particles.']);
                     else
-                        mi=rspStorePicksInMi(mi,picks,ptrs);
+                        mi=rspStorePicksInMi(mi,picks,ptrs,1,dis);
                         mi.particle.autopickPars=dis.pars;
                         WriteMiFile(mi,[dis.infoPath dis.infoName]);  % store the mi structure
                         disp([dis.infoName ' written.']);
@@ -617,7 +623,7 @@ end;
 
 
 
-                [dis, mi, rscc, rs, imgs, masks, rawMask,fileOk]=rspLoadFiles(dis,si);
+                [dis, mi, rscc, rs, imgs, masks, rawMask,fileOk]=rspLoadFiles2(dis,si);
                 if fileOk  % successfully loaded a file
                     mi.basePath=AddSlash(pwd);
                     % Load the previous picks from the mi file.
@@ -641,7 +647,8 @@ end;
                         set(gcf,'name',['(' num2str(dis.miIndex) ') ' mi.baseFilename]);
                     end;
                 else
-                    warning(['File couldn''t be loaded']);
+%                     disp('File couldn''t be loaded']);
+                    disp('Use ''n'' to go to next, or ''O'' to start over.');
                     dis.miValid=0;
                     dis.roboFitStep=min(dis.roboFitStep,1); % skip fitting.
                 end;
@@ -680,7 +687,7 @@ end;
             %             dis.spectrumScale=MyInput('Spectrum scale-up ',dis.spectrumScale);
             dis.zeroPreviousPicks=MyInput('Zero out previous picks ',dis.zeroPreviousPicks);
             dis.autosaveJpegs=MyInput('Automatically save jpegs ', dis.autosaveJpegs);
-            
+            dis.forceMicrographCoords=MyInput('Force micrograph coords ', dis.forceMicrographCoords);
             %             dis.tFactor=MyInput('Amp threshold step',dis.tFactor);
             %             dis.TFactor=MyInput('Spect threshold step',dis.TFactor);
             if dis.readOnlyMode
@@ -756,7 +763,7 @@ end;
             %                     disp(['Read-only mode. ' num2str(sum(rspCountParticles(picks))) ' particles.']);
             %                 else
             %                     disp('Saving mi file');
-            %                     mi=rspStorePicksInMi(mi,picks,ptrs);
+            %                     mi=rspStorePicksInMi(mi,picks,ptrs,1,dis);
             %                     WriteMiFile(mi,[dis.infoPath dis.infoName]);  % store the mi structure
             %                     disp(dis.infoName);
             %                     save(dis.datName,'dis');
@@ -866,7 +873,8 @@ end;
             disp('v: mark a bad vesicle good, for re-processing');
             disp(' ');
     end;  %switch
-    % -----get the next click or keypress----
+    
+    % ----------get the next click or keypress----------
     
     oldB=b(1);  % store the previous key
     if dis.roboFitStep==0 % not doing automatic fitting, wait for key
@@ -903,7 +911,7 @@ end;  % while b~='q'
 hold off;
 
 
-mi=rspStorePicksInMi(mi,picks,ptrs);
+mi=rspStorePicksInMi(mi,picks,ptrs,1,dis);
 mi.particle.autopickPars=dis.pars;
 
 if numel(dis.infoName)>3 && dis.miValid
