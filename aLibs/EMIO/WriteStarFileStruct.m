@@ -16,7 +16,9 @@ function WriteStarFileStruct(s,dataName,fileName,activeFlags)
 % FID=fopen('file.star','w'); WriteStarFileStruct(..,FID,...); fclose(FID);
 % dataName is the string written after 'data_' on the first line of the
 % file.
+%
 
+% Put together a block
 if ~isa(s,'struct')
     error('Input is not a struct.');
 end;
@@ -31,16 +33,20 @@ nLines=numel(s.(fnames{1}));
 if nargin<4 || numel(activeFlags)==0
     activeFlags=true(nLines,1);
 end;
-%%
 
+% Open the file
 if isnumeric(fileName)
     fi=fileName;
 else
     fi=fopen(fileName,'w');
 end;
 
+%%
+if ~strncmp(dataName,'data_',5) % Does it already have data_ prefix?
+    dataName=['data_' dataName];
+end;
 fprintf(fi,'\n');
-fprintf(fi,'data_%s\n',dataName);
+fprintf(fi,'%s\n',dataName);
 fprintf(fi,'\n');
 
 fprintf(fi,'loop_\n');

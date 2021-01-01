@@ -1,10 +1,12 @@
 function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay)
 % function [blockNames,blockData,ok]=ReadStarFile(name)
 % Read a Relion .star file and put its contents into two cell arrays.
-% blockNames is a cell array of the blockNames.  For example here are
+% blockNames is a cell array of the blockNames.  For example below are
 % values from reading a post_run.star file. doDisplay (default 0) enables
 % listing of progress.
-% Sped up by pre-allocating fieldVals
+% - Sped up by pre-allocating fieldVals
+% - Changed to always return strings as cells of char arrays, even if there
+% is only one line in a _loop block.
 
 % >> blockNames{1} =
 %   1×12 char array
@@ -22,10 +24,6 @@ function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay)
 %             rlnResolutionSquared: [51×1 double]
 %         rlnLogAmplitudesOriginal: [51×1 double]
 %                  rlnParticleName: [51×1 cell] % cell array of strings
-
-% cd('/Users/fred/EMWork/relion13_tutorial/betagal/PrecalculatedResults/Refine3D')
-% 
-% name='post_run1.star';
 
 if nargin<2
     doDisplay=0;
@@ -188,11 +186,11 @@ while P<=numel(C) % loop through all the entries
         if numeric
             q.(fn)=numericFVs;
         else
-            if nRows==1
-                q.(fn)=fieldVals{1,i}; % field is a string
-            else
-                q.(fn)=fieldVals(:,i); % field is a cell array
-            end;
+%             if nRows==1
+%                 q.(fn)=fieldVals{1,i}; % field is a string
+%             else
+                q.(fn)=fieldVals(:,i); % string field stored as a cell array
+%             end;
         end;
     end;
     blockData{nBlocks,1}=q;

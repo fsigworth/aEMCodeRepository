@@ -62,14 +62,14 @@ if any(targetSize<mi.padImageSize) % Look for an existing small image *s.mrc,
     end;
 end;
 if ~ok % try for a full-sized image in the procPath directory
-    name=[mi.procPath_sm mi.baseFilename imgType '.mrc'];
+    name=[mi.procPath mi.baseFilename imgType '.mrc'];
     if exist(name,'file')
         mIn=ReadEMFile(name);
         ok=true;
     end;
 end;
 
-if ~ok
+if ~ok && ~any(imgType=='v')
     % try for reading the raw micrograph. We then subtract the median and
     %     scale it to reflect fractional image intensity, and pad it.
     fullImageName=[mi.imagePath mi.imageFilenames{1}];
