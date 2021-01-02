@@ -77,12 +77,14 @@ first=true;
 skipCount=0;
 oldImageName='';
 for i=1:nLines
+%     Check to see if we have a unique micrograph
     newName=dat{end}.rlnMicrographName{i};
     if strcmp(newName,oldImageName)
         continue;
     else
         oldImageName=newName;
     end;
+%     Pick up the mi fields
     [readOk,micFound,mi]=rlStarLineToMi(names,dat,i,pars);
     if ~readOk
         error(['Error reading star file data at line ' num2str(i)]);

@@ -88,8 +88,8 @@ end;
 if ok
 %     Fill in the scaling of the image we read in.
     ds=mi.padImageSize./size(mIn); % downsampling factor of image we're given.
-    M1(1,1)=1/ds(1);
-    M1(2,2)=1/ds(2);
+    M1(1,1)=ds(1);
+    M1(2,2)=ds(2);
     
     [mOut,M]=meDownsampleImage(mIn,M1,targetSize);
 end;

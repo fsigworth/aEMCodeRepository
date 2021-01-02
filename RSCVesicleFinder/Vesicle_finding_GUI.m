@@ -740,7 +740,7 @@ h.displaySize=sz(best,:)+h.targetDisplaySize;
 
 % Load the merged image
 sz=max(h.displaySize);
-targetSizes=[2/3*sz sz];
+% targetSizes=[2/3*sz sz];
 [h.origImage,M,ok]=meLoadNormalizedImage(mi,h.displaySize,'m');
 if ok
     % imageBasename=[mi.procPath mi.baseFilename 'm.mrc'];
