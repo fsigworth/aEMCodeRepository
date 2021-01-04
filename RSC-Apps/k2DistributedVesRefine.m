@@ -10,7 +10,9 @@ refineVesicleAmpsOnly=0;
 maxSkipAge=1;  % if the corresponding log entry has a date stamp < maxAge
 % days before the present we dont process it.
 
-workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20201203/'
+% workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20201203/'
+workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/201228/025036_1_1/';
+
 logDir='~/';
 
 pars=struct;
@@ -20,12 +22,14 @@ pars.rTerms=[100 150 200 300  inf];
 
 pars.dsSmall=4; % downsampling of 'small' merged image
 
-pars.loadFilenames=1; % pick up allNames.mat in base directory
+pars.loadFilenames=0; % pick up allNames.mat in base directory
 pars.cpe=0;  % 0 means no change.
     pars.modelMiName='~/data/MembraneRef/160909_sq02_1_01mi.txt';
 
 
 doSimulateBatch=0;  % for simulating batch on local machine
+CheckAndMakeDir([workingDir 'Merged/'],1);
+
 
 % Figure out who we are
 host=getenv('HOSTNAME')
