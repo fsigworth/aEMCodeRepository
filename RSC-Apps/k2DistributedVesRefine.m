@@ -1,6 +1,7 @@
 % k2DistributedVesRefine.m
 % Run the processing pipeline for rsRefineVesicleFits
 % (This is a simplified version of k2DistributedPipeline)
+
 progName='k2DistributedVesRefine.m';
 
 doRefineVesicles      =1;
