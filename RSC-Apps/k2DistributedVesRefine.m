@@ -2,6 +2,7 @@
 % Run the processing pipeline for rsRefineVesicleFits
 % (This is a simplified version of k2DistributedPipeline)
 
+progName='k2DistributedVesRefine.m';
 
 doRefineVesicles      =1;
 forceRefineVesicles   =0;
@@ -10,8 +11,10 @@ refineVesicleAmpsOnly=0;
 maxSkipAge=1;  % if the corresponding log entry has a date stamp < maxAge
 % days before the present we dont process it.
 
-workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20201203/'
-logDir='~/';
+% workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20201203/'
+workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/201228/025035_1_1/';
+infoDir='Info_3_vesFinding/';
+logDir='~/Logs/';
 
 pars=struct;
 
@@ -20,12 +23,14 @@ pars.rTerms=[100 150 200 300  inf];
 
 pars.dsSmall=4; % downsampling of 'small' merged image
 
-pars.loadFilenames=1; % pick up allNames.mat in base directory
+pars.loadFilenames=0; % pick up allNames.mat in base directory
 pars.cpe=0;  % 0 means no change.
     pars.modelMiName='~/data/MembraneRef/160909_sq02_1_01mi.txt';
 
 
 doSimulateBatch=0;  % for simulating batch on local machine
+CheckAndMakeDir([workingDir 'Merged/'],1);
+
 
 % Figure out who we are
 host=getenv('HOSTNAME')
@@ -65,8 +70,8 @@ else
     cd(localWorkingDir)
 end;
 
-% Set up the log file
-CheckAndMakeDir('Log',1);
+% Set up the log directory
+CheckAndMakeDir(logDir,1);
 
 % Create a log file.
 logName=[logDir sprintf('%02d',jobIndex) 'log.txt'];
@@ -78,6 +83,7 @@ pars.logs=logs;
 mdisp(pars.logs,' ');
 mdisp(pars.logs,'======================================================================-');
 mprintf(pars.logs.handles,'%s%s%d\n',datestr(now),' Startup: group ',jobIndex);
+mdisp(pars.logs.handles,progName);
 mdisp(pars.logs,pwd);
 
 if pars.loadFilenames
@@ -85,7 +91,7 @@ if pars.loadFilenames
     load allNames.mat
 else
     disp('Finding the mi files');
-    allNames=f2FindInfoFiles;
+    allNames=f2FindInfoFiles(infoDir);
 end;
     nNames=numel(allNames);
     disp([num2str(nNames) ' files total']);
@@ -112,8 +118,8 @@ if numJobNames<1  % nothing to do
 end;
 iName=1;
 while iName<=numJobNames
-    disp(['Working on image ' num2str(iName) ' of ' num2str(numJobNames)]);
-
+%     disp(['Working on image ' num2str(iName) ' of ' num2str(numJobNames)]);
+    mprintf(pars.logs.handles,'Working on image %4d of %4d\n',iName,numJobNames);
     ourName=jobNames(iName);
         disp(ourName{1});
         mi=ReadMiFile(ourName{1});
@@ -137,8 +143,11 @@ while iName<=numJobNames
         
         rsRefineVesicleFits(ourName,rpars);
     elseif ~forceRefineVesicles
-        disp(' --skipped (recently done)');
+        mprintf(pars.logs.handles,' --skipped (recently done)\n');
     end;
     
     iName=iName+1;
 end;
+mdisp(pars.logs.handles,['Finished. ' datestr(now)]);
+fclose(logFile);
+

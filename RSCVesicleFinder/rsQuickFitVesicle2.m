@@ -53,8 +53,8 @@ nRounds=size(pars.nTerms,1);  % number of simplex rounds
 
 nIters=(1:nRounds)*nRoundIters;
 
-sigmaT=2;  % SD of prior for shifts
-n=size(img,1);
+sigmaT=4;  % SD of prior for shifts
+% n=size(img,1);
 ds=pars.M(1,1);
 
 % Get the vesicle coordinates in the downsampled image
@@ -157,7 +157,7 @@ p.vr0=vr0;  % full radius vector as read from mi file, to fill in missing vr ele
 p.effCTF=effCTF;
 p.mask0=mask1;
 p.ccMask=ccMask;
-p.logPScaled=logP*pars.hfVar/vs;  % scale up to match ccf
+p.logPScaled=logP*pars.hfVar/max(abs(vs),pars.hfVar);  % scale up to match ccf
 p.convCriterion=convCriterion;
 p.displayOn=displayOn;
 %     ----------------rounds of simplex fitting ----------------
