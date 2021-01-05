@@ -1710,6 +1710,7 @@ if ~findMore
     mi1.vesicle.r=[];
     mi1.vesicle.s=[];
     mi1.vesicle.ok=[];
+    mi1.vesicle.err=[];
     if isfield(mi1,'mask')
         mi1.mask=mi1.mask(1:h.maskIndex); % collapse the mask array
     end;
@@ -1845,7 +1846,7 @@ end;
 guidata(hObject,h);
 set(hObject,'string','Find');
 set(h.figure1,'pointer','arrow');
-disp('Done finding.');
+hdisp('Done finding.');
 end
 
 
