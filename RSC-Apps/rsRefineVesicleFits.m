@@ -107,7 +107,7 @@ if ~(exist('miNames','var') && numel(miNames)>0)
     [rootPath, infoPath]=ParsePath(pa);
     cd(rootPath);
 else
-    infoPath='';  % We assume that names include path
+        infoPath='';  % We assume that names include path
     rootPath=AddSlash(pwd);
 end;
 if ~iscell(miNames)
