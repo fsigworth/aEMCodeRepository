@@ -1,5 +1,5 @@
 % MiLoadAll.m
-% Use the file selector to choose a set of mi files, or look in the 
+% Use the file selector to choose a set of mi files, or look in the
 % current directory.  Load all of them into
 % a single cell array, and store all their names too.
 
@@ -44,16 +44,17 @@ if ~getNamesOnly
     disp([outPath 'allMis.mat saved.']);
 end;
 
-return
 
 %% Make histogram of defocus values
+nNames=numel(allNames);
 defs=zeros(nNames,1);
 for i=1:nNames
     defs(i)=allMis{i}.ctf(1).defocus;
 end;
 
 hist(defs,50);
-
+xlabel('Defocus, \mum');
+ylabel('Frequency');
 return
 
 %% Find the files with defocus closest to the target value. Put the micrographs into
@@ -74,18 +75,25 @@ numToLoad=20;
 jpegDir='jpeg/';
 fc=.2;
 nsds=4;
-doWrite=0;
+doWrite=1;
 % CheckAndMakeDir(jpegDir,1);
 
 copyRemoteMrcs=0;
 copyRemoteMicrographs=1;
 processMsFiles=0;
+selected=[1 7 9 11 18];
+
 copyJpegs=0;
+if copyJpegs
+    selected=1:numToLoad;
+end;
 
 if copyRemoteMrcs
-    remotePath='/Volumes/Drobo4/200922/Merged/';
-    % localPath='/Volumes/D257/Hideki/200922/Merged/';
-    remotePath='/Volumes/Drobo4/Yangyu/20201203/Merged/';
+    %     remotePath='/Volumes/Drobo4/200922/Merged/';
+    %     % localPath='/Volumes/D257/Hideki/200922/Merged/';
+    %     remotePath='/Volumes/Drobo4/Yangyu/20201203/Merged/';
+    %     remotePath=[remoteBasePath 'MotionCorr/job009/Movies/'];
+    
     
     localPath='Merged/';
     CheckAndMakeDir(localPath,1);
@@ -94,7 +102,9 @@ if copyRemoteMrcs
 end
 
 if copyRemoteMicrographs
-    remoteBasePath='/Volumes/Drobo4/Yangyu/20201203/';
+    % remoteBasePath='/Volumes/Drobo4/201228/025036_1_1/';
+    remoteBasePath='/Volumes/Drobo4/201228/025035_1_1/';
+    %     remoteBasePath='/Volumes/Drobo4/Yangyu/20201203/';
     h=fopen('CopyMics.sh','w');
 end;
 if copyJpegs
@@ -107,34 +117,33 @@ suffixFull={'m' 'mv'};
 
 ms=[];
 
-for i=1:numToLoad
-% for i=[1 5 9 16]
+for i=selected
     mi=foundMis{i};
     for j=1:1
         if copyRemoteMrcs
             
             fileName=[mi.baseFilename suffixFull{j} '.mrc'];
-%             disp(['get ' fileName]);
-%             disp(' ');
+            %             disp(['get ' fileName]);
+            %             disp(' ');
             
             
             str=['cp ' remotePath fileName ' ' localPath fileName];
-             disp(str);
+            disp(str);
             fprintf(h,'%s\n',str);
-%             
+            %
         elseif copyRemoteMicrographs
             
             fileName=[mi.imagePath mi.imageFilenames{1}];
             CheckAndMakeDir(mi.imagePath);
             str=['cp ' remoteBasePath fileName ' ' fileName];
-             disp(str);
+            disp(str);
             fprintf(h,'%s\n',str);
-
+            
             
             
             
         elseif processMsFiles  % read the 'ms' files locally, create the ms image array
-%             and make jpegs
+            %             and make jpegs
             [m, mergeFullName,ok]=meReadMergedImage(mi,0,suffix{j});
             disp(mergeFullName);
             if ~ok
@@ -159,25 +168,33 @@ for i=1:numToLoad
                 system(str);;
             end;
             disp(str);
-       end;
-    end
-end;
-if copyRemoteMrcs
+        end;
+    end;
+end
+
+if copyRemoteMrcs || copyRemoteMicrographs
     fclose(h);
 end;
-     save DefSorted.mat foundDefs foundMis foundNames ms
-return
 %%
+if copyRemoteMicrographs && doWrite
+    !chmod a+x CopyMics.sh
+    system('./CopyMics.sh');
+    
+end;
+save DefSorted.mat foundDefs foundMis foundNames ms
+return
+%%  Write out micrographs in order.
 doWrite=1;
-for i=[3 4 6 8]
+% for i=[3 4 6 8]
+for i=1:numToLoad
     mi=foundMis{i};
-            mName=[mi.baseFilename 'm.mrc'];
-            str=['cp ' mName ' ' sprintf('%02dd',i) mName];
-            if doWrite
-                system(str);
-            end;
-            disp(str);
+    mName=[mi.procPath mi.baseFilename 'm.mrc'];
+    str=['cp ' mName ' ' sprintf('%02dd',i) mName];
+    if doWrite
+        system(str);
+    end;
+    disp(str);
 end;
 
- 
+
 

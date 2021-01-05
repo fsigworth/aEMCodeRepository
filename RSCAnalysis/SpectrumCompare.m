@@ -13,7 +13,8 @@ pathA='/Volumes/D257/Hideki/160909_spectrAnalysis/';
 % save AImageData.mat pathA baseNameA infoA micA
 % save([pathA 'AImageData.mat'],'pathA', 'baseNameA', 'infoA', 'micA');
 % return
-% load([pathA 'AImageData.mat']);
+load([pathA 'AImageData.mat']);
+suffixes={'m.mrc' 'mv.mrc'};
 
 %%
 % %% -------200922 Graphene
@@ -48,20 +49,39 @@ pathA='/Volumes/D257/Hideki/160909_spectrAnalysis/';
 % 
 
 %% --------20201203 Graphene
-pathA2='/Volumes/D257/Hideki/200922/';
-cd(pathA2);
-%         load DefSorted.mat
-load AImageData.mat % Data for Image A, but pick this up from pathB!
+% pathA2='/Volumes/D257/Hideki/200922/';
+% cd(pathA2);
+% %         load DefSorted.mat
+% load AImageData.mat % Data for Image A, but pick this up from pathB!
+% 
+% pathB='~/EMWork/20201203/';
+% shortPathB='20201201';
+% jpegDir='jpeg_test_spect/'; % test set
+% CheckAndMakeDir(jpegDir,1);
+% cd(pathB);
+% load DefSorted.mat
+% favorites=[1 2 7 12];
+% useMergedImage=false;
+%% -------20201228 06 Carbon
+% pathB='/Volumes/D257/Hideki/201228/06_1_1/';
+% shortPathB='201228/06/';
+% jpegDir='Jpeg_test_spect/'; % test set
+% CheckAndMakeDir(jpegDir,1);
+% cd(pathB);
+% load DefSorted.mat
+% useMergedImage=false;
+% favorites=[1 3 7 9 15 16];
 
-pathB='~/EMWork/20201203/';
-shortPathB='20201201';
-jpegDir='jpeg_test_spect/'; % test set
+% --------20201338 05 Graphene
+pathB='/Volumes/D257/Hideki/201228/05_1_1/'; % we assume we're in this directory
+shortPathB='201228/05/';
+jpegDir='Jpeg_test_spect/'; % test set
 CheckAndMakeDir(jpegDir,1);
 cd(pathB);
 load DefSorted.mat
-favorites=[1 2 7 12];
 useMergedImage=false;
-%%
+favorites=[1 7 9 11 18];
+%
 
 CheckAndMakeDir(jpegDir,1);
 % for fileIndex=1:20 % graphene set
@@ -174,7 +194,9 @@ for fileIndex=favorites % test set
             end;
             yB=h.^2.*spB(xpts)*p(5)*1e4;
             if mod(iter,10)==1
-                semilogy(xpos,min(10000,[yB y16]),'-.');
+                ys=[yB y16];
+                ys(ys<0)=nan;
+                semilogy(xpos,min(10000,ys),'-.');
                 drawnow;
             end;
             err=(log(yB)-log(y16))./(xpos+400);
