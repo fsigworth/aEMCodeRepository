@@ -6,13 +6,18 @@ function [mOut,M,ok,rawImg]=meLoadNormalizedImage(mi,targetSize,imgType)
 % Loads a merged image files, or the original micrograph
 % assuming that we have normalization information in the mi structure.
 % rawImg=true if we loaded the raw micrograph, false if we loaded some sort
-% of merged (i.e. padded) image.
+% of merged (i.e. padded) image, even though we convert it to a padded
+% image anyway.
+% We assume that the size of any 'small' merged image we read will be a submultiple
+% of mi.padImageSize, i.e. has an integer downsampling factor.
 % 
 % imgType is a string such as 'm' or 'mv', used to construct filenames like
 % xxxxmvs.mrc or xxxxmv.mrc
-% Return an image mOut that is cropped and downsampled to be at most
+% Return an image mOut that is cropped and downsampled to be
 % targetSize and have an integer downsampling factor from
-% the original micrograph.
+% the original micrograph. So if the original image is rectangular but
+% targetSize is square, a square output image is provided, but with
+% appropriate offsets put into M.
 % The returned matrix M describes the coordinate transformation with
 % scaling and possible padding.
 %   M(1,1): downsampling factor from original micrograph to mOut
@@ -20,21 +25,22 @@ function [mOut,M,ok,rawImg]=meLoadNormalizedImage(mi,targetSize,imgType)
 %   determine a pixel coordinate in the the original micrograph, it is
 %   computed so:
 % origMicrographXY=M*[xOut;yOut;1];
-%  assuming zero-based coordinates.
+% [xOut;yOut;1]=M\[origX origY 1];
+%  assuming zero-based coordinates in each case.
 
 maxScaleUp=1.2; % amount by which we'll allow a small image to be scaled up.
-if numel(targetSize)<2 || targetSize(1)==0
+if nargin<2
     targetSize=mi.padImageSize;
+elseif numel(targetSize)<2
+    targetSize=targetSize*[1 1];
 end;
 if nargin<3
     imgType='m'; % default: prefer small or compressed files.
 end;
 ok=false;
 rawImg=false;
-M=zeros(3,3);
-
-M1=eye(3); % identity transformation
-M1(1:2,3)=-floor((mi.padImageSize-mi.imageSize)/2);
+M=eye(3); % default is an identity transformation
+origOffset=-floor((mi.padImageSize-mi.imageSize)/2);
 
 mOut=[];
 
@@ -84,12 +90,12 @@ if ~ok && ~any(imgType=='v')
     end;
 end;
 
-
 if ok
 %     Fill in the scaling of the image we read in.
-    ds=mi.padImageSize./size(mIn); % downsampling factor of image we're given.
-    M1(1,1)=ds(1);
-    M1(2,2)=ds(2);
-    
-    [mOut,M]=meDownsampleImage(mIn,M1,targetSize);
+    ds=floor(min(mi.padImageSize./targetSize)); % desured overall downsampling factor.
+    M(1:2,3)=(origOffset-floor((ds*targetSize-mi.padImageSize)/2))';
+    M(1,1)=ds;
+    M(2,2)=ds;
+    ds1=min(mi.padImageSize./size(mIn)); % initial downsampling
+    mOut=DownsampleGeneral(mIn,targetSize,ds/ds1); % additional downsampling
 end;

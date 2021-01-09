@@ -1,6 +1,6 @@
-function [ampImg, mxInds, mxNCCImg, ampVImg, mxRso, localVar]=rsVesicleCorrelation6(m,mi,vesIndex,mbnOffset,maskRadii,angleInds,eigenSet)
+function [ampImg, mxInds, mxNCCImg, ampVImg, mxRso, localVar]=rsVesicleCorrelation6(m,mi,vesIndex,ctr,mbnOffset,maskRadii,angleInds,eigenSet)
 % function [ampImg mxInds mxNCCImg  ampVImg  mxRso  localVar]
-%       =rsVesicleCorrelation(m,mi,vesIndex,mbnOffset,maskRadii,angleInds,eigenSet)
+%       =rsVesicleCorrelation(m,mi,vesIndex,M,mbnOffset,maskRadii,angleInds,eigenSet)
 % Given an image m and mi structure, search for particles within the
 % vesicle pointed to by vesIndex.  mbnOffset is the z-offset of the center
 % of the membrane from the center of the original 3D model, in pixels with
@@ -42,8 +42,8 @@ nio=2;
 nRefs=nio*nHemi*nGamma;  % number of references to try at each pixel position
 % nHemi is equal to 2.
 
-ds=mi.imageSize(1)/size(m,1);  % downsampling factor
-ctr=[mi.vesicle.x(vesIndex) mi.vesicle.y(vesIndex)]/ds+1; % orig coords are 0-based.
+ds=mi.padImageSize(1)/size(m,1);  % downsampling factor
+% ctr=[mi.vesicle.x(vesIndex) mi.vesicle.y(vesIndex)]/ds+1; % orig coords are 0-based.
 r=mi.vesicle.r(vesIndex)/ds;
 
 % Determine nt, the size of the local cc function

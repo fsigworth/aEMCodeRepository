@@ -137,7 +137,7 @@ if exist(dis.basePath,'dir')
     cd(dis.basePath);
     ok=true;
     if dis.miIndex
-        disp('Loading the file Info/miNames.mat');
+        disp('Loading the file miNames.mat');
         try
             ls;
         catch
@@ -145,7 +145,7 @@ if exist(dis.basePath,'dir')
         end;
         if ok
         try
-            load('Info/miNames.mat');
+            load('miNames.mat');
         catch
             disp('...not found.');
             dis.miIndex=0;
@@ -471,7 +471,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     else
                         mi=rspStorePicksInMi(mi,picks,ptrs,1,dis);
                         mi.particle.autopickPars=dis.pars;
-                        WriteMiFile(mi,[dis.infoPath dis.infoName]);  % store the mi structure
+                        WriteMiFile(mi,[dis.infoName]);  % store the mi structure
                         disp([dis.infoName ' written.']);
                         if dis.autosaveJpegs
                             CheckAndMakeDir('Picker_jpegs',1);
@@ -494,11 +494,11 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             end;
             
             if b=='O' % get a new file
-                if dis.miIndex && numel(miNames)>0
+                dis.miIndex=min(dis.miIndex,numel(miNames));
+                if dis.miIndex>0
                     dis.miIndex=min(MyInput('File index ',dis.miIndex+1),numel(miNames));
                     if dis.miIndex>0
                         dis.infoName=miNames{dis.miIndex};
-                        dis.infoPath='Info/';
                     end;
                 end;
                 if dis.miIndex==0 % no files available.
@@ -509,11 +509,12 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
 %                         dis.infoPath=AddSlash(dis.infoPath);
                         [dis.basePath,dis.infoPath]=ParsePath(dis.infoPath);
                         cd(dis.basePath);
+                        dis.infoName=[AddSlash(dis.infoPath) dis.infoName];
 %                         Make and save the mi file list
-                        miNames=f2FindInfoFiles(dis.infoPath,0,1);
+                        miNames=f2FindInfoFiles(dis.infoPath);
                         dis.miIndex=find(strcmp(dis.infoName,miNames),1);
-                        disp(['Saving ' dis.infoPath 'miNames.mat']);
-                        save([dis.infoPath 'miNames.mat'],'miNames');
+                        disp(['Saving miNames.mat']);
+                        save(['miNames.mat'],'miNames');
       
                         if numel(dis.miIndex)<1 || dis.miIndex>numel(miNames)
                             disp('Setting the file index to 1.');
@@ -918,7 +919,7 @@ if numel(dis.infoName)>3 && dis.miValid
     if dis.readOnlyMode
         disp(['Read-only mode. ' num2str(sum(rspCountParticles(picks))) ' particles.']);
     else
-        WriteMiFile(mi,[dis.infoPath dis.infoName]);  % store the mi structure
+        WriteMiFile(mi,[dis.infoName]);  % store the mi structure
         disp([dis.infoName ' written']);
     end;
 end;

@@ -23,7 +23,8 @@ end;
 
 dis.miValid=0;
 if dis.miMode
-    miName=[AddSlash(dis.infoPath) dis.infoName];
+%     miName=[AddSlash(dis.infoPath) dis.infoName];
+    miName=[dis.infoName];
     if exist(miName,'file')
         mi=ReadMiFile(miName,1);  % get the mi structure
         disp([miName ' loaded.']);
