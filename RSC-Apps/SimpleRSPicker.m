@@ -148,8 +148,6 @@ if exist(dis.basePath,'dir')
             load('miNames.mat');
         catch
             disp('...not found.');
-            dis.miIndex=0;
-            dis.miValid=0;
             ok=false;
         end;
         end;
