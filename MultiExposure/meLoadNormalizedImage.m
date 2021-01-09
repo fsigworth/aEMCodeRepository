@@ -97,5 +97,5 @@ if ok
     M(1,1)=ds;
     M(2,2)=ds;
     ds1=min(mi.padImageSize./size(mIn)); % initial downsampling
-    mOut=DownsampleGeneral(mIn,targetSize,ds/ds1); % additional downsampling
+    mOut=DownsampleGeneral(mIn,targetSize,ds1/ds); % additional downsampling
 end;
