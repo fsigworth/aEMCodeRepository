@@ -492,6 +492,9 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             end;
             
             if b=='O' % get a new file
+                if ~exist('miNames','var')
+                    miNames=cell(0,1);
+                end;
                 dis.miIndex=min(dis.miIndex,numel(miNames));
                 if dis.miIndex>0
                     dis.miIndex=min(MyInput('File index ',dis.miIndex+1),numel(miNames));
