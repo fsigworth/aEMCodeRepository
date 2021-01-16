@@ -844,8 +844,7 @@ if ok
     %         set(h.togglebutton_Automask,'value',true);
     %     end;
 else
-    disp(['Can''t find either ' fullMergedImageName]);
-    disp(['  or ' fullImageName]);
+    disp('Couldn''t find the image file.');
 end
 end
 
@@ -1575,25 +1574,27 @@ end
 
 function h=UpdateAutomaskBeam(h,active)
 % The beam mask always goes in index 2.
-if nargin>1
-    h.automaskBeamOn=active;
-end;
-if h.automaskBeamOn
-    if ~isfield(h.mi,'mask')
-        h.mi.mask=struct('merge',[],'encoding',[],'data',[]);
-    end;
-    h.mi.mask(2).merge='AND';
-    h.mi.mask(2).encoding='RIM';
-    h.mi.mask(2).data=h.sav.beamPars/100;
-    h.miChanged=1;
-    %             return
-    %
-    %             %%%%%%%%%%
     h=ShowImage(h);
-else
-    h.mi.mask(2).merge=[];
-    h=ShowImage(h);
-end;
+% 
+% if nargin>1
+%     h.automaskBeamOn=active;
+% end;
+% if h.automaskBeamOn
+%     if ~isfield(h.mi,'mask')
+%         h.mi.mask=struct('merge',[],'encoding',[],'data',[]);
+%     end;
+%     h.mi.mask(2).merge='AND';
+%     h.mi.mask(2).encoding='RIM';
+%     h.mi.mask(2).data=h.sav.beamPars/100;
+%     h.miChanged=1;
+%     %             return
+%     %
+%     %             %%%%%%%%%%
+%     h=ShowImage(h);
+% else
+%     h.mi.mask(2).merge=[];
+%     h=ShowImage(h);
+% end;
 end
 
 function togglebutton_Beam_Callback(hObject, eventdata, h)
@@ -1846,7 +1847,7 @@ end;
 guidata(hObject,h);
 set(hObject,'string','Find');
 set(h.figure1,'pointer','arrow');
-hdisp('Done finding.');
+disp('Done finding.');
 end
 
 

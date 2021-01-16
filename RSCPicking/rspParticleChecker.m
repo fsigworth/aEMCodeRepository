@@ -1,11 +1,14 @@
 function [coords,mxCC2,flags,vals,labels]=rspParticleChecker(amp,inCoords,mi,rscc,dis)
 % Checks the values and geometry of the putative particle at micrograph-scaled
 % inCoords having amp=rxcc.mxCC(ix,iy)
-% Returns the coords = [ micX micY flag iv amp template rsoFlag sval ampU 0  xVals  ]
-%                         1  2  3    4   5    6        7      8    9  10  11-14
+% Returns the coords = [ micX micY flag iv amp template rsoFlag sval ampU mSpc mAmp) xVals  ]
+%                         1  2  3    4   5    6        7      8    9  10  11    12
 % where flag=0 (not found) or 32 (particle has been found).
+% % mSp is multiplier of spectrum threshold (higher is less constrictive)
+%   mAmp is multiplies of particle amplitude threshold (lower is lest
+%   constrictive.
 % 
-% Returns calculated values and corresponding flags; if all(flags), a particle is marked as auto-picked.
+% This function returns calculated values and corresponding flags; if all(flags), a particle is marked as auto-picked.
 % The elements of vals and flags are identified by text in labels.
 np=5; % Size of the patch mask
 patchCtr=ceil((np+1)/2);
@@ -16,7 +19,7 @@ pars=dis.pars;
 % minAmp=max(1e-6,pars(1)+dis.defSlope*(mi.ctf(1).defocus-2))*pars(12);
 minAmp=pars(1);
 % maxAmp=pars(2)*pars(12);
-maxAmp=pars(2)*pars(12);
+maxAmp=pars(2)*pars(12); %--------------
 maxVar=pars(3);
 rsoOffset=pars(4)/mi.pixA;  % offset of particle center from tip (for RSO selection)
 partRadius=pars(5)/mi.pixA; % blanking radius around particle, in A
@@ -24,10 +27,11 @@ partRadius=pars(5)/mi.pixA; % blanking radius around particle, in A
 maxBob=pars(7)/mi.pixA; % maximum distance of particle center outside the vesicle.
 border=pars(8)/mi.pixA;   % border in A
 % Get the spectrum threshold (max value)
+sThresh=pars(10)*pars(11);  % Spect threshold %-------------
 % pars(11) is tFactor, the defocus-dependent factor modifying the spectrum
 % threshold.
+%  So the picking parameters maxAmp
 % sThresh=pars(10)*pars(11);  % threshold * threshFactor.
-sThresh=pars(10);  % threshold
 
 % n=size(rscc.mxCC);
 % ds1=n0(1)/n(1);  % downsampling of micrograph to our images 

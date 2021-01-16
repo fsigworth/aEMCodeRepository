@@ -25,8 +25,9 @@ else
     outPath=infoPath;
 end;
 %%
-allMis=cell(0);
+
 nNames=numel(names);
+allMis=cell(nNames,1);
 disp([num2str(nNames) ' mi files.']);
 allNames=cell(nNames,1);
 for i=1:nNames

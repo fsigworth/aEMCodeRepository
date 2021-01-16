@@ -5,7 +5,7 @@
 % Modified so that 'j' and 'k' have the max amp track the min amp
 si=struct;
 
-version=101;
+version=102;
 disOk=0;
 
 % Retrieve parameters from a file in the program directory
@@ -66,7 +66,7 @@ if ~disOk
     
     % initial display
     dis.ndis=[960 960]; %%  Initial display size
-    dis.ndis=[512 523]; %%  Initial display size
+    dis.ndis=[768 768]; %%  Initial display size
     dis.maxSize=[960 960];
     %     dis.maxSize=dis.ndis;
     %     dis.size=min(dis.size,dis.ndis); % Force the display to be no bigger than the image
@@ -105,16 +105,9 @@ if ~disOk
     dis.tFactor=1.03;  % threshold step factor
     dis.TFactor=1.1;
     dis.readAutopickPars=0;  % read stored autopick parameters from file
-    dis.useSpectrumCorrectionTable=0;
-    dis.useAmpCorrectionTable=0;
-    %     Tables(:,1) are defocus, (:,2) are factors to multiply spect and amp
-    %     values in autopicking.
-    dis.spectTable=[.7  9 ; 1 10 ; 1.2 11 ; 1.5 12 ; 1.7 15 ; 1.9 16 ; 2.5 17
-        3  18 ; 3.5 20 ];
-    dis.spectTable(:,2)=dis.spectTable(:,2)/16;  % use nominal value at 2um
-    dis.ampTable=[1  2.0; 2 2.1; 3.5 2.6; 4 2.6; 6 2.7];
-    dis.ampTable(:,2)=dis.ampTable(:,2)/2.5;
-    
+    dis.spectrumCorrectionCoeffs=0;
+    dis.ampCorrectionCoeffs=0;
+      
     dis.finished=0;
     dis.miValid=0;
     dis.goodClasses=1;
@@ -682,8 +675,8 @@ end;
 %                     dis.miIndex=0;
 %                 end;
 %             end;
-            dis.useAmpCorrectionTable=MyInput('Use amp correction tables ',dis.useAmpCorrectionTable);
-            dis.useSpectrumCorrectionTable=dis.useAmpCorrectionTable;
+            dis.ampCorrectionCoeffs=MyInput('Amp correction coeffs ',dis.ampCorrectionCoeffs);
+            dis.spectrumCorrectionCoeffs=MyInput('Spect correction coeffs ',dis.spectrumCorrectionCoeffs);
             dis.showSpectrumInfo=MyInput('Show spectrum info ',dis.showSpectrumInfo);
             dis.spectrumMaskRadiusA=MyInput('Spectrum mask radius, A ',dis.spectrumMaskRadiusA);
             %             dis.spectrumScale=MyInput('Spectrum scale-up ',dis.spectrumScale);

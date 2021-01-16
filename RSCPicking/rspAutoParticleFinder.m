@@ -1,5 +1,4 @@
 function [coords, ovMask, mxCC2]=rspAutoParticleFinder(mi,rscc,dis,mask)
-% %
 % % We search for peaks in rscc.mxCC and check rscc.mxVars for excessive
 % % variance, geometry, etc.
 % % msub is rscc.m0-rscc.mVes, the subtracted raw image.

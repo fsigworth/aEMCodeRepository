@@ -1,4 +1,5 @@
 function mi=meInsertMask(msk,mi,index,mode)
+% function mi=meInsertMask(msk,mi,index,mode)
 % Given a binary image msk (masked points are zeros), encode it and insert
 % it into the mi structure as mi.mask(index).
 % This information is decoded by meGetMask.
