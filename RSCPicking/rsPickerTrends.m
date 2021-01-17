@@ -27,27 +27,60 @@ for i=1:nmi
     defs(i)=mi.ctf(1).defocus;
 end;
 
-amp=pars(miDatOk,1);
-amp(amp<0.1)=NaN;
-amp(amp>1)=NaN;
 
-spect=pars(miDatOk,10);
-spect(spect>.45)=NaN;
 def=defs(miDatOk);
+amps=pars(miDatOk,1);
+spect=pars(miDatOk,10);
+figure(1);
+plot([amps spect def]);
 
-figure(1)
-clf;
-plot([def amp spect]);
-legend('defocus','amp','spect/5');
+ampsOk=amps>.25;
+amps=amps(ampsOk);
+ampDefs=def(ampsOk);
+
+% amp(amp>1)=NaN;
+
+spectOk=spect<.37;
+spects=spect(spectOk);
+spectDefs=def(spectOk);
+
+% Do least squares on amps
+d0=ampDefs*0+1;
+d1=ampDefs-2;
+d2=d1.^2;
+
+F=[d0 d1 d2];
+ampA=LinLeastSquares(F,amps);
+ac=ampA(2:end)/ampA(1)
+fitA=F*ampA;
+ac=MyInput('Amp coeffs ',ac')';
+modFitA=F*(ampA(1)*[1 ac']');
 
 figure(2);
 subplot(2,1,1);
-plot(def,amp,'o');
+plot(ampDefs,amps,'o');
+hold on; plot(ampDefs,[fitA modFitA],'.');
+hold off;
 xlabel('Defocus');
 ylabel('Particle amp');
 
+
+d0=spectDefs*0+1;
+d1=(spectDefs-2);
+d2=d1.^2;
+
+F=[d0 d1 d2];
+spectA=LinLeastSquares(F,spects);
+sc=spectA(2:end)/spectA(1)
+fitS=F*spectA;
+sc=MyInput('Spect coeffs ',sc')';
+modFitS=F*(fitS(1)*[1 sc']');
+
 subplot(2,1,2);
-plot(def,spect,'o');
+plot(spectDefs,spects,'o');
+hold on
+plot(spectDefs,[fitS modFitS],'.');
+hold off;
 xlabel('Defocus');
 ylabel('Spectrum')
 

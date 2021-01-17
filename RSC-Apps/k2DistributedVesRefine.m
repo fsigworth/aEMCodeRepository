@@ -4,6 +4,7 @@
 
 progName='k2DistributedVesRefine.m';
 
+doFindVesicles = 1;
 doRefineVesicles      =1;
 forceRefineVesicles   =0;
 refineVesicleAmpsOnly=0;
@@ -13,8 +14,8 @@ maxSkipAge=1;  % if the corresponding log entry has a date stamp < maxAge
 
 % workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20201203/'
 workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/201228/025035_1_1/';
-infoDir='Info_3_vesFinding/';
-logDir='~/Logs/';
+infoDir='Info_6/';
+logDir='~/Logs_6/';
 
 pars=struct;
 
@@ -116,6 +117,15 @@ numJobNames=numel(jobNames);
 if numJobNames<1  % nothing to do
     error(['No mi files found: ' pwd]);
 end;
+
+if doFindVesicles
+    disp('------Finding Vesicles------');
+    Vesicle_finding_GUI(jobNames);
+end;
+
+disp(' ');
+disp('------Refining vesicles------');
+disp(' ');
 iName=1;
 while iName<=numJobNames
 %     disp(['Working on image ' num2str(iName) ' of ' num2str(numJobNames)]);
