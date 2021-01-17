@@ -13,8 +13,8 @@ maxSkipAge=1;  % if the corresponding log entry has a date stamp < maxAge
 
 % workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20201203/'
 workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/201228/025035_1_1/';
-infoDir='Info_3_vesFinding/';
-logDir='~/Logs/';
+infoDir='Info_6/';
+logDir='~/Log_6/';
 
 pars=struct;
 
