@@ -9,9 +9,10 @@
 getNamesOnly=0;
 batchMode=1;
 if batchMode
-    outPath='';
+    outPath='Info_6_AllMis/';
     infoPath='Info/';
     names=f2FindInfoFiles(infoPath);
+    CheckAndMakeDir(infoPath,1);
 else
     [names, pathName]=uigetfile({'*mi.txt';'*mi.mat'},'Select mi files','multiselect','on');
     if isnumeric(pathName) % File selection was cancelled
@@ -57,6 +58,10 @@ hist(defs,50);
 xlabel('Defocus, \mum');
 ylabel('Frequency');
 return
+
+
+
+
 
 %% Find the files with defocus closest to the target value. Put the micrographs into
 %% an array of images, or else copy the mrc files from a remote place.

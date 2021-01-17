@@ -17,9 +17,9 @@ zeroCC=1e-3;
 pars=dis.pars;
 % pars(12) is tFactor, the factor modifying the amplitude threshold
 % minAmp=max(1e-6,pars(1)+dis.defSlope*(mi.ctf(1).defocus-2))*pars(12);
-minAmp=pars(1);
+minAmp=pars(1)*pars(12); % modify by amp factor
 % maxAmp=pars(2)*pars(12);
-maxAmp=pars(2)*pars(12); %--------------
+maxAmp=pars(2)*pars(12); % modify by amp factor
 maxVar=pars(3);
 rsoOffset=pars(4)/mi.pixA;  % offset of particle center from tip (for RSO selection)
 partRadius=pars(5)/mi.pixA; % blanking radius around particle, in A
@@ -27,7 +27,7 @@ partRadius=pars(5)/mi.pixA; % blanking radius around particle, in A
 maxBob=pars(7)/mi.pixA; % maximum distance of particle center outside the vesicle.
 border=pars(8)/mi.pixA;   % border in A
 % Get the spectrum threshold (max value)
-sThresh=pars(10)*pars(11);  % Spect threshold %-------------
+sThresh=pars(10)*pars(11);  % Spect threshold, scaled by spectFactor pars(11)
 % pars(11) is tFactor, the defocus-dependent factor modifying the spectrum
 % threshold.
 %  So the picking parameters maxAmp

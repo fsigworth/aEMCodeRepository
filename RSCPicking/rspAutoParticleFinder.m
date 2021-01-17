@@ -28,8 +28,9 @@ function [coords, ovMask, mxCC2]=rspAutoParticleFinder(mi,rscc,dis,mask)
 % defocus=mi.ctf(1).defocus;
 % pars=dis.pars;
 % % pars(12) is tFactor, the factor modifying the amplitude threshold
+%   pars(11) is the sFactor, multiplies the spectrum threshold
 % minAmp=max(1e-6,pars(1)+defSlope*(defocus-2))*pars(12);
-minAmp=max(1e-6,dis.pars(1));
+minAmp=max(1e-6,dis.pars(1)*dis.pars(12)); % pars(12) is the amp scaleup factor.
 % maxAmp=pars(2)*pars(12);
 % maxAmp=pars(2);
 % maxVar=pars(3);
@@ -89,7 +90,7 @@ mxCC2=mxCC2.*(~mask);
 [amp, ix, iy]=max2d(mxCC2);
 rscc.mxCC2=mxCC2; % this is how it's passed to the particle checker
 coords=[];
-while amp>minAmp
+while amp>minAmp*aFactor
     inXY=([ix iy]-1)*dsc+1; % convert to micrograph coordinates
      [coord1,rscc.mxCC2,flags]=rspParticleChecker(amp,inXY,mi,rscc,dis);
 %     [coord1,rscc.mxCC2,flags,vals,labels]=rspParticleChecker(amp,inXY,mi,rscc,dis);

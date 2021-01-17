@@ -1,5 +1,11 @@
 % HoleEdgeMasker.m
 
+allMisName='Info_0_allMis/allMis.mat';
+disp(['Loading ' allMisName]);
+load(allMisName);
+nmi=numel(allMis)
+
+%%
 fHP=0;
 k=.001;
 priorAmp=40;
@@ -7,12 +13,9 @@ runStr='_hole_all_amp20py4msk';
 outMiPath=['Info' runStr '/'];
 CheckAndMakeDir(outMiPath,1);
 for i=1:6
-    outJPaths{i}=sprintf('%s%s%s%1d/','jpeg',runStr,'shot',i);
+    outJPaths{i}=sprintf('%s%s%s%1d/','jpeg',runStr,'_shot',i);
     CheckAndMakeDir(outJPaths{i},1);
 end;
-
-CheckAndMakeDir(outJPath);
-load allMis.mat
 
 dds=8;
 r=1;
@@ -29,17 +32,19 @@ priorPos=[350 380 219 264 507 545
 priorSigma=50;
 % priorAmp=40;
 % priorAmp=60;
+%
 nHoles=1;
-locs=zeros(3000,2,5,'single');
-%%
+locs=zeros(ceil(nmi/6),2,6,'single');
+%
 update2DFreq=5000
 figure(1);
-iStart=6904
+iStart=1
 for i=iStart:numel(allMis)
     mi=allMis{i};
-    imgName=['Merged_sm_all/' mi.baseFilename 'ms.mrc'];
+    imgName=['Merged_sm/' mi.baseFilename 'ms.mrc'];
     disp([imgName '  ' num2str([nHoles i])]);
     if ~exist(imgName,'file')
+        disp(' no image.');
         continue;
     end;
     iShot=str2double (mi.baseFilename(end))+1;
