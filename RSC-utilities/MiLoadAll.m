@@ -9,10 +9,10 @@
 getNamesOnly=0;
 batchMode=1;
 if batchMode
-    outPath='Info_6_AllMis/';
-    infoPath='Info/';
+    outPath='Info_6_picked/';
+    infoPath='Info_6/';
     names=f2FindInfoFiles(infoPath);
-    CheckAndMakeDir(infoPath,1);
+    CheckAndMakeDir(outPath,1);
 else
     [names, pathName]=uigetfile({'*mi.txt';'*mi.mat'},'Select mi files','multiselect','on');
     if isnumeric(pathName) % File selection was cancelled
