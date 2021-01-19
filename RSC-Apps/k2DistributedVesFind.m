@@ -1,13 +1,14 @@
-% k2DistributedVesRefine.m
-% Run the processing pipeline for rsRefineVesicleFits
+% k2DistributedVesFind.m
+% Run the processing pipeline for Vesicle_finding_GUI and rsRefineVesicleFits
 % (This is a simplified version of k2DistributedPipeline)
 
-progName='k2DistributedVesRefine.m';
+progName='k2DistributedVesFind.m';
 
-doFindVesicles = 1;
-doRefineVesicles      =1;
+doFindVesicles = 0;
+doRefineVesicles      =0;
 forceRefineVesicles   =0;
 refineVesicleAmpsOnly=0;
+doPickingPreprocessing =1;
 
 maxSkipAge=1;  % if the corresponding log entry has a date stamp < maxAge
 % days before the present we dont process it.
@@ -24,7 +25,7 @@ pars.rTerms=[100 150 200 300  inf];
 
 pars.dsSmall=4; % downsampling of 'small' merged image
 
-pars.loadFilenames=0; % pick up allNames.mat in base directory
+pars.loadFilenames=1; % pick up allNames.mat in base directory
 pars.cpe=0;  % 0 means no change.
     pars.modelMiName='~/data/MembraneRef/160909_sq02_1_01mi.txt';
 
@@ -123,41 +124,49 @@ if doFindVesicles
     Vesicle_finding_GUI(jobNames);
 end;
 
-disp(' ');
-disp('------Refining vesicles------');
-disp(' ');
-iName=1;
-while iName<=numJobNames
-%     disp(['Working on image ' num2str(iName) ' of ' num2str(numJobNames)]);
-    mprintf(pars.logs.handles,'Working on image %4d of %4d\n',iName,numJobNames);
-    ourName=jobNames(iName);
+if doRefineVesicles
+    disp(' ');
+    disp('------Refining vesicles------');
+    disp(' ');
+    iName=1;
+    while iName<=numJobNames
+        %     disp(['Working on image ' num2str(iName) ' of ' num2str(numJobNames)]);
+        mprintf(pars.logs.handles,'Working on image %4d of %4d\n',iName,numJobNames);
+        ourName=jobNames(iName);
         disp(ourName{1});
         mi=ReadMiFile(ourName{1});
         [logSequence,dates]=miDecodeLog(mi);
-   
-    % refine vesicles (sequence 5)
-    if forceRefineVesicles ...
-            || (doRefineVesicles && ( now-dates(5)>maxSkipAge))
-        rpars=pars;
-        if refineVesicleAmpsOnly
-            rpars.fitModes={'LinOnly'};
-            rpars.fractionStartingTerms=1; % total terms to use in each round
-            rpars.fractionAmpTerms=1;
-            % Extra peaks in the scattering profile
-            rpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
-            rpars.targetPixA=10;  % downsampled image resolution for radius fitting
+        
+        % refine vesicles (sequence 5)
+        if forceRefineVesicles || (now-dates(5)>maxSkipAge)
+            rpars=pars;
+            if refineVesicleAmpsOnly
+                rpars.fitModes={'LinOnly'};
+                rpars.fractionStartingTerms=1; % total terms to use in each round
+                rpars.fractionAmpTerms=1;
+                % Extra peaks in the scattering profile
+                rpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
+                rpars.targetPixA=10;  % downsampled image resolution for radius fitting
+                
+                rpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
+                %     The following must have at least as many elements as dpars.fitModes!
+            end;
             
-            rpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
-            %     The following must have at least as many elements as dpars.fitModes!
+            rsRefineVesicleFits(ourName,rpars);
+        elseif ~forceRefineVesicles
+            mprintf(pars.logs.handles,' --skipped (recently done)\n');
         end;
         
-        rsRefineVesicleFits(ourName,rpars);
-    elseif ~forceRefineVesicles
-        mprintf(pars.logs.handles,' --skipped (recently done)\n');
+        iName=iName+1;
     end;
-    
-    iName=iName+1;
 end;
+
+if doPickingPreprocessing
+    disp(' ');
+    disp('----------Picking Preprocessing--------');
+    rsPickingPreprocessor4(jobNames);
+end;
+
 mdisp(pars.logs.handles,['Finished. ' datestr(now)]);
 fclose(logFile);
 

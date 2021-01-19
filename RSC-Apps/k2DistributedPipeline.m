@@ -9,15 +9,17 @@ serialMode    =1;   % go through all the steps before moving to next micrograph
 %checkLogs     =0;  % not yet in use.
 
 maxAge=5;         % Runs the operation if the previous one is older than this number of days.
+findUnfinished=0; % Don't process data, just make a new allNamesUnf.mat file.
+% This option makes sense only if nJobs=1, serialMode is used.
 
 doFindJump    =0;
 doTrack       =0;  % do movie alignment
 doMerge       =0;
 forceMerging  =0;
-doDownsampleMergedImages=0; 
+doDownsampleMergedImages=0;
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =0;
+doFindVesicles        =1;
 %*** special multiple VesicleFinder runs ****
 doMultiFindVesicles   = 0;
 % findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
@@ -31,18 +33,19 @@ refineVesicleAmpsOnly=0;
 minRefineVesiclesSequence=0;  % 0 if don't consider.
 % minRefineVesiclesSequence=inf ;    % inf forces refinement
 doInverseFilter       =0;
-forceInverseFilter=1;
+forceInverseFilter=0;
 minAge=.04;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
 
-doPickingPreprocessor =0;
+doPickingPreprocessor =1;
 
 
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/200707/';
 workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/200816/025015_1_1/';
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/AcrB/Lipo_data/'
+workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/201228/025035_1_1';
 
 compressedDir=[workingDir 'Compressed/'];
 localWorkingDir=workingDir;
@@ -75,7 +78,7 @@ pars.weights=1;
 pars.mcDS=1;
 pars.mergeMode=3;  %%% no phase flip!
 %pars.mergeMode=1;   %%% normal
-pars.mapMode='Kv'; 
+pars.mapMode='Kv';
 
 pars.UsePWFilter=doPrelimInverseFilter;
 
@@ -90,7 +93,7 @@ pars.cpe=0;  % 0 means no change.
 % pars.modelMiName='~/scratch60/170417/KvLipo134_4/sq02w11/Info/sq02_1_0001_Apr18_15.11.43mi.txt';
 %pars.modelMiName='~/scratch60/170609/KvLipo135_1/Info/sq02_1_0001_Jun09_17.25.06mi.txt';
 % pars.modelMiName='/ysm-gpfs/scratch60/fjs2/170814/KvLipo125_3a/Info/sq05_1_0001_Aug14_14.58.28mi.txt';
-    pars.modelMiName='~/data/MembraneRef/160909_sq02_1_01mi.txt';
+pars.modelMiName='~/data/MembraneRef/160909_sq02_1_01mi.txt';
 
 
 doSimulateBatch=0;  % for simulating batch on local machine
@@ -168,8 +171,8 @@ else
     disp('Finding the mi files');
     allNames=f2FindInfoFiles;
 end;
-    nNames=numel(allNames);
-    disp([num2str(nNames) ' files total']);
+nNames=numel(allNames);
+disp([num2str(nNames) ' files total']);
 
 if nNames<1
     msg=['No mi files found in ' pwd '/Info/'];
@@ -186,6 +189,9 @@ ourBlockStart=round((jobIndex-1)*blockSize)+1+ngx*(jobIndex>1);
 ourBlockEnd=min(nNames,round(jobIndex*blockSize)+ngx);
 mprintf(pars.logs.handles,'files %d to %d\n',ourBlockStart,ourBlockEnd);
 
+allNamesUnf=cell(0,1); % unfinished files
+nUnfinished=0;
+
 jobNames=allNames(ourBlockStart:ourBlockEnd);
 numJobNames=numel(jobNames);
 if numJobNames<1  % nothing to do
@@ -196,12 +202,14 @@ if serialMode
     nNames=1;
 else
     nNames=numJobNames;
+    findUnfinished=0; % can do this only in serial Mode
 end;
-iName=1:nNames;
+iName=(1:nNames);
 while iName(end)<=numJobNames
     disp(['Working on images ' num2str(iName(1)) ' to ' num2str(iName(end)) ...
         ' of ' num2str(numJobNames)]);
-
+    unfinished=0;
+    
     ourNames=jobNames(iName);
     if serialMode
         disp(ourNames{1});
@@ -210,47 +218,69 @@ while iName(end)<=numJobNames
     else
         logSequence=true(1,10);
     end;
-   
+    
     % find jump (sequence 1)
     if doFindJump && ~f2Mode
-        k2FindDefocusJump(ourNames,pars);
+        if findUnfinished
+            unfinished=1 | unfinished;
+        else
+            k2FindDefocusJump(ourNames,pars);
+        end;
     end;
-   
+    
     % drift tracker (sequence 2)
     if doTrack
-        if f2Mode
-            f2DriftTracker(ourNames,pars);
+        if findUnfinished
+            unfinished=1 | unfinished;
         else
-            k2DriftTracker(ourNames,pars);
+            if f2Mode
+                f2DriftTracker(ourNames,pars);
+            else
+                k2DriftTracker(ourNames,pars);
+            end;
         end;
     end;
     % merge images (sequence 3)
     if doMerge
-        if ~logSequence(3) || forceMerging || now-dates(3)>minAge           
-            MergeImages(ourNames,pars);
+        if ~logSequence(3) || forceMerging || now-dates(3)>minAge
+            if findUnfinished
+                unfinished=1 | unfinished;
+            else
+                MergeImages(ourNames,pars);
+            end;
         else
             disp('Merging skipped.');
         end;
     end;
-
-    doCompressMovies=doCompressMovies && f2Mode;  % can't do this with k2 movies.
-    if doCompressMovies || doCompressMicrographs
-        f2CompressMovies(ourNames,compressedDir,doCompressMovies,doCompressMicrographs);
-    end;
-    if doDownsampleMergedImages
-        DownsampleMergedImages(ourNames);
+    
+    if ~ findUnfinished
+        doCompressMovies=doCompressMovies && f2Mode;  % can't do this with k2 movies.
+        if doCompressMovies || doCompressMicrographs
+            f2CompressMovies(ourNames,compressedDir,doCompressMovies,doCompressMicrographs);
+        end;
+        if doDownsampleMergedImages
+            DownsampleMergedImages(ourNames);
+        end;
     end;
     % inverse filter (sequence 6)
     if doPrelimInverseFilter && logSequence(6)<=logSequence(3)
         fpars=struct;
         fpars.useUnsubImage=1;
-        meInverseFilterAuto(ourNames,fpars);
+        if findUnfinished
+            unfinished=1 | unfinished;
+        else
+            meInverseFilterAuto(ourNames,fpars);
+        end;
     end;
     % find vesicles (sequence 4) *****************
     if doFindVesicles && (logSequence(4)<=logSequence(3) || now-dates(4)>maxAge)
-%            VesicleFinder(ourNames);
+        if findUnfinished
+            unfinished=1 | unfinished;
+        else
+            %            VesicleFinder(ourNames);
             Vesicle_finding_GUI(ourNames);
-    elseif doMultiFindVesicles
+        end;
+    elseif doMultiFindVesicles && ~findUnfinished
         for i=1:numel(findVesicleAmps)
             vfpars.sav.vesicleAmps=[findVesicleAmps(i) 2e-3 0];
             cd('..');
@@ -264,39 +294,63 @@ while iName(end)<=numJobNames
             || (doRefineVesicles && (logSequence(5)<logSequence(4) ...
             || logSequence (5)< minRefineVesiclesSequence || now-dates(5)>maxAge))
         rpars=pars;
-        if refineVesicleAmpsOnly
-            rpars.fitModes={'LinOnly'};
-            rpars.fractionStartingTerms=1; % total terms to use in each round
-            rpars.fractionAmpTerms=1;
-            % Extra peaks in the scattering profile
-            rpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
-            rpars.targetPixA=10;  % downsampled image resolution for radius fitting
+        if findUnfinished
+            unfinished=1 | unfinished;
+        else
+            if refineVesicleAmpsOnly
+                rpars.fitModes={'LinOnly'};
+                rpars.fractionStartingTerms=1; % total terms to use in each round
+                rpars.fractionAmpTerms=1;
+                % Extra peaks in the scattering profile
+                rpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
+                rpars.targetPixA=10;  % downsampled image resolution for radius fitting
+                
+                rpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
+                %     The following must have at least as many elements as dpars.fitModes!
+            end;
             
-            rpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
-            %     The following must have at least as many elements as dpars.fitModes!
+            rsRefineVesicleFits(ourNames,rpars);
+            if serialMode  % update the log sequence
+                mi=ReadMiFile(ourNames{1});
+                [logSequence,dates]=miDecodeLog(mi);
+            end;
         end;
-        
-        rsRefineVesicleFits(ourNames,rpars);
-        if serialMode  % update the log sequence
-            mi=ReadMiFile(ourNames{1});
-            [logSequence,dates]=miDecodeLog(mi);
-        end;
-    elseif doRefineVesicles
+    elseif doRefineVesicles && ~findUnfinished
         disp('  Refine Vesicles skipped.');
     end;
     % inverse filter (sequence 6)
     if doInverseFilter && (logSequence(6) <= logSequence(5) ...
             || now-dates(6)>maxAge)
-        meInverseFilterAuto(ourNames);
+        if findUnfinished
+            unfinished=1 | unfinished;
+        else
+            meInverseFilterAuto(ourNames);
+        end;
     elseif doInverseFilter
         disp('  Inverse Filter skipped.');
     end;
     % picking preprocessor (sequence 8)
     if doPickingPreprocessor && (logSequence(8) <= logSequence(6) || ...
             now-dates(8)>maxAge)
-        % no picking after latest vesicle refinement? Then run it.
-       rsPickingPreprocessor4(ourNames,pars);
+        if findUnfinished
+            unfinished=1 | unfinished;
+        else
+            % no picking after latest vesicle refinement? Then run it.
+            rsPickingPreprocessor4(ourNames,pars);
+        end;
     end;
     
+    if findUnfinished && unfinished
+        nUnfinished=nUnfinished+1;
+        disp(['-----unfinished ' num2str(nUnfinished)]);
+        allNamesUnf(nUnfinished,1)=ourNames;
+    end;
     iName=iName+nNames;
 end;
+
+if findUnfinished
+    disp(['Saving ' num2str(nUnfinished) ' unfinished file names']);
+    allNames=allNamesUnf;
+    save allNamesUnf.mat allNames ;
+end;
+
