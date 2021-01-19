@@ -9,14 +9,9 @@ function [coords, ovMask, mxCC2]=rspAutoParticleFinder(mi,rscc,dis,mask)
 % rsoOffset (=pars(4) is how far (in angstroms) the particle center may lie
 % inside the membrane center and still be counted as a bona fide right side
 % out particle.   rsoOffset=0
-% indicates that we take both rso and
+% indicates that we take both rso and iso
+% mask=1 where we reject particles in the field.
 
-% % Trends from rsPickerTrends analysis
-% % defSlope=-.41;
-% % spectSlope=3.6;
-% defSlope=0;
-% spectSlope=0;
-% doCheckVesicleNumbers=0;
 % 
 % np=5;
 % patchMask=logical(fuzzymask(np,2,np/2,0));
@@ -90,7 +85,7 @@ mxCC2=mxCC2.*(~mask);
 [amp, ix, iy]=max2d(mxCC2);
 rscc.mxCC2=mxCC2; % this is how it's passed to the particle checker
 coords=[];
-while amp>minAmp*aFactor
+while amp>minAmp
     inXY=([ix iy]-1)*dsc+1; % convert to micrograph coordinates
      [coord1,rscc.mxCC2,flags]=rspParticleChecker(amp,inXY,mi,rscc,dis);
 %     [coord1,rscc.mxCC2,flags,vals,labels]=rspParticleChecker(amp,inXY,mi,rscc,dis);
