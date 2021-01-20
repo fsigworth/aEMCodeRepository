@@ -209,6 +209,7 @@ refreshReconstruct=0;  % flag to update the reconstruction display
 previousDisMode=1;
 axes3On=false;
 dis.roboFitStep=0;
+dis.roboFitEndIndex=inf;
 roboChar='naa';
 
 % Automatic scanning, a variant of RoboFit.
@@ -458,6 +459,12 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             %             First, store the present results
             if b~='V'
                 if numel(dis.infoName)>3 && dis.miValid && exist('mi','var')
+                        if dis.autosaveJpegs % we save jpegs even in read-only mode.
+                            CheckAndMakeDir('Picker_jpegs',1);
+                            fullJpegName=['Picker_jpegs/' mi.baseFilename '_i' num2str(dis.currentFileIndex) '.jpg'];
+                            print('-djpeg','-r0',fullJpegName);
+                            disp(['Wrote ' fullJpegName]);
+                        end;
                     if dis.readOnlyMode || dis.classParticlesMode
                         disp(['Read-only mode. ' num2str(sum(rspCountParticles(picks))) ' particles.']);
                     else
@@ -465,12 +472,6 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                         mi.particle.autopickPars=dis.pars;
                         WriteMiFile(mi,[dis.infoName]);  % store the mi structure
                         disp([dis.infoName ' written.']);
-                        if dis.autosaveJpegs
-                            CheckAndMakeDir('Picker_jpegs',1);
-                            fullJpegName=['Picker_jpegs/' mi.baseFilename '_i' num2str(dis.currentFileIndex) '.jpg'];
-                            print('-djpeg','-r0',fullJpegName);
-                            disp(['Wrote ' fullJpegName]);
-                        end;
                     end;
                     tax1=dis.ax1;
                     tax2=dis.ax2;
@@ -508,6 +509,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
 %                         Make and save the mi file list
                         miNames=f2FindInfoFiles(dis.infoPath);
                         dis.miIndex=find(strcmp(dis.infoName,miNames),1);
+                        dis.roboFitEndIndex=numel(miNames);
                         disp(['Saving miNames.mat']);
                         save(['miNames.mat'],'miNames');
       
@@ -531,10 +533,13 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
             if b=='n'
                 %                     disp('Get next file');
                 dis.miIndex=dis.miIndex+1;
-                if dis.miIndex>numel(miNames)
-                    dis.miIndex=numel(miNames);
+                if dis.miIndex>numel(miNames) || ...
+                        (dis.roboFitStep>0 && dis.miIndex>dis.roboFitEndIndex)
+                    if dis.miIndex>numel(miNames)
+                        dis.miIndex=numel(miNames); % we're at the end.
+                        disp('No more files!');
+                    end;
                     beep;
-                    disp('No more files!');
                     dis.roboFitStep=0;  % turn off robo fitting
                 else
                     dis.infoName=miNames{dis.miIndex};
@@ -684,6 +689,7 @@ end;
             dis.zeroPreviousPicks=MyInput('Zero out previous picks ',dis.zeroPreviousPicks);
             dis.autosaveJpegs=MyInput('Automatically save jpegs ', dis.autosaveJpegs);
             dis.forceMicrographCoords=MyInput('Force micrograph coords ', dis.forceMicrographCoords);
+            dis.roboFitEndIndex=MyInput('Robofit end file index ',dis.roboFitEndIndex);
             %             dis.tFactor=MyInput('Amp threshold step',dis.tFactor);
             %             dis.TFactor=MyInput('Spect threshold step',dis.TFactor);
             if dis.readOnlyMode
