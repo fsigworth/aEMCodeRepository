@@ -84,7 +84,7 @@ if ~disOk
     dis.miIndex=0; % if nonzero, use this as an index into the name list.
     dis.listParticleInfo=1;
     dis.contrast=[4 4]; % Black, white threshold re median of normalized image
-    dis.varThresh=40;
+    dis.varThresh=1000;
     %     dis.pars=[.4 .63 1000 150 ...
     %                 150 100 70 200 50 20];
     dis.pars=[ 3.6   6   100  0  150  0   70  100   50   12 1 1];
@@ -304,6 +304,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     %                     Auto-picking
                     [coords, ovMask, rscc.mxCC2]=rspAutoParticleFinder(mi,rscc,...
                         dis,masks(:,:,3));
+%                     No picking where masks(:,:,3)==1.
                     imgs(:,:,7)=150*(ovMask-.5);
                     masks(:,:,5)=ovMask>1.5;
                     imgs(:,:,8)=imscale(rscc.mxCC2,256);

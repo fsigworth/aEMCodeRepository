@@ -172,34 +172,34 @@ end;
         disp([num2str(npars) ' autopick parameters set.']);
     end;
        
-    % Set up the spectFactor value for this micrograph, depending on defocus
-    sFactor=1;
-    defocus=mi.ctf(1).defocus;
-    if dis.useSpectrumCorrectionTable % let it depend on defocus
-        if defocus<dis.spectTable(1,1)
-            sFactor=dis.spectTable(1,1);
-        elseif defocus>dis.spectTable(end,1);
-            sFactor=dis.spectTable(end,1);
-        else
-            sFactor=interp1(dis.spectTable(:,1),dis.spectTable(:,2),defocus);
-        end;
-        %     disp(['sFactor: ' num2str(sFactor)]);
+    % Set up the spectFactor and ampFactor values for this micrograph,
+    %     depending on defocus
+    def=mi.ctf(1).defocus-2; % displacement from 2um
+    spectFactor=1;
+    nc=numel(dis.spectrumCorrectionCoeffs);
+%     spectFactor = 1 + c1*d + c2*d^2 + ...
+%     where d =defocus/2um
+    x=1;
+    for i=1:nc
+        x=x*def;
+        spectFactor=spectFactor+dis.spectrumCorrectionCoeffs(i)*x;
     end;
-    dis.pars(11)=sFactor;
+    dis.pars(11)=spectFactor;
     
     ampFactor=1;
-    if dis.useAmpCorrectionTable % let it depend on defocus
-        if defocus<dis.ampTable(1,1)
-            ampFactor=dis.ampTable(1,1);
-        elseif defocus>dis.ampTable(end,1);
-            ampFactor=dis.ampTable(end,1);
-        else
-            ampFactor=interp1(dis.ampTable(:,1),dis.ampTable(:,2),defocus);
-        end;
+    nc=numel(dis.ampCorrectionCoeffs);
+%     ampFactor = 1 + c1*d + c2*d^2 + ...
+%     where d =defocus/2um
+    x=1;
+    for i=1:nc
+        x=x*def;
+        ampFactor=ampFactor+dis.ampCorrectionCoeffs(i)*x;
     end;
     dis.pars(12)=ampFactor;
-    
-    rs.blanks=rscc.mxVars==0;
+ampFactor
+
+%        rs.blanks=rscc.mxVars==0;
+       rs.blanks=~BinaryConvolve(rscc.mxVesInds>0,ones(3,3));
     % rs.blanks=DownsampleNearest(rscc.mxVars==0,dis.ndis);
     rs.mCCU=rscc.mxCCU;
     rs.mVesInds=rscc.mxVesInds<1;
@@ -263,7 +263,10 @@ end;
     else
         masks(:,:,2)=0;
     end;
-        masks(:,:,3)=((rs.mxVars>dis.pars(3)) | rawMask);
+dis.pars(3)=100;
+         masks(:,:,3)=((rs.mxVars>dis.pars(3)) | rawMask);
+         masks(:,:,3)= (rs.mVesInds~=0) | rawMask;
+         masks(:,:,3)=rawMask;
         masks(:,:,4)=rs.blanks;
     dis.org=[0 0];
     dis.mode=min(2,dis.mode);
