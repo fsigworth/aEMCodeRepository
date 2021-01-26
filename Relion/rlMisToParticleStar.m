@@ -147,7 +147,6 @@ end;
 pts.rlnClassNumber(1:nTotal,1)=1;
 pts.rlnAnglePsi(1:nTotal,1)=-999;
 pts.rlnAutopickFigureOfMerit(1:nTotal,1)=-999;
-pts.rlnOpticsGroup(1:nTotal,1)=1;
 
 % Write the particles star file
 partStarName=[outStarDir outStarName];

@@ -1,7 +1,7 @@
 % PickingJpegChecker
 
 jpegDir='Picker_jpegs/';
-
+%  assume we've loaded fracs, to look at fractional overlaps.
 % load allMis.mat
 nmi=numel(allMis);
 
@@ -9,7 +9,8 @@ figure(1);
 set(1,'color',[.4 .4 .4]);
 set(1,'menu','none');
 set(1,'toolbar','none');
-inds=find(rej);
+% inds=find(rej);
+inds=1:numel(fracs);
 nin=numel(inds);
 disp([num2str(nin) ' indices']);
 iptr=1;
@@ -19,8 +20,9 @@ while iptr<nin
     mi=allMis{ind};
     allMis{ind}.active=true;
     jpegName=[jpegDir mi.baseFilename '_i0.jpg'];
-        tstr=sprintf('%04d file: %05d   def: %5.2f   res: %6.2f   FOM: %6.3f',...
-            iptr,ind,mi.ctf.defocus, mi.ctf.resLimit,mi.ctf.ccc);
+        tstr=sprintf('%04d %6.3f',iptr,fracs(iptr));
+%         tstr=sprintf('%04d file: %05d   def: %5.2f   res: %6.2f   FOM: %6.3f',...
+%             iptr,ind,mi.ctf.defocus, mi.ctf.resLimit,mi.ctf.ccc);
     if exist(jpegName,'file')
         im=imread(jpegName);
         image(im);

@@ -129,9 +129,6 @@ W1=zeros(n2,1,'single');
 % rD2d=reshape(rDeriv,n1);
 % rNom2d=reshape(rNom,n1);
 if doCrossSection
-    
-    
-    
     for i=2:nm
         r0=rNomSm+(i-mctr-.5)*thkFactor;  % corrected radius as a fcn of theta.
         b=model(i-1)-model(i);
