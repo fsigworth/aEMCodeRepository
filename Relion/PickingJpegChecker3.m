@@ -46,7 +46,7 @@ while iptr<nin
     %     end;
     pcs=zeros(2,npc);
     spcs=pcs;
-    micName=[imagePath mi.imageFilenames{1}];
+    micName=[mi.00imagePath mi.imageFilenames{1}];
     if exist(micName,'file')
         m0=ReadMRC(micName);
         n0=mi.padImageSize;
