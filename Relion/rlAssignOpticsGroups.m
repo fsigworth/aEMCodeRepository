@@ -5,14 +5,18 @@
 % We detect this 6-character string by searching for the last 'X' in the name.
 %
 inStarName='movies.star';
-outStarName='movies_optics.star';
+inStarName='corrected_micrographs.star';
+inStarName='micrographs_sub_ctf.star';
+[pa,nm,ex]=fileparts(inStarName);
+outStarName=[nm '_optics' ex];
 
 
 [nm,da]=ReadStarFile(inStarName);
 d=da{2};
 
 % find the last X in each name
-names=d.rlnMicrographMovieName;
+% names=d.rlnMicrographMovieName;
+names=d.rlnMicrographName;
 startInds=strfind(names,'X');
 nl=numel(names);
 % pick up the 6-character position strings
@@ -31,10 +35,11 @@ d.rlnOpticsGroup=uGroups;
 op=da{1};
 fNames=fieldnames(op);
 op1=struct;
-gpNames=cell(ng,1);
-for i=1:ng
-    gpNames{i}=sprintf('OpticsGroup%02d',i);
-end;
+% gpNames=cell(ng,1);
+% for i=1:ng
+%     gpNames{i}=sprintf('OpticsGroup%02d',i);
+% end;
+gpNames=uStrings;
 
 for i=1:numel(fNames)
     field=fNames{i};
@@ -48,5 +53,6 @@ for i=1:numel(fNames)
 end;
 da{1}=op1;
 da{2}=d;
+disp(['Writing ' outStarName]);
 WriteStarFile(nm,da,outStarName);
 

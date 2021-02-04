@@ -7,16 +7,22 @@
 % just enough information to be used by Relion.
 % At present we assume direct usage of the raw micrograph coordinates; that
 % is, we don't use coordinates in padded micrographs.
-allMisName='allMis8_sel.mat';
-micStarName='CtfFind/job026/micrographs_ctf.star';
-subMicStarName='CtfFind/job026/micrographs_sub_ctf.star';
+
+% allMisName='Picking_9/allMis.mat';
+allMisName='Picking_9/allMis82.mat';
+
+micStarName='CtfFind/job029/micrographs_ctf.star';
+subMicStarName='CtfFind/job029/micrographs_sub_ctf.star';
+writeSubMicrographsStar=0; % don't write a new one.
+
 % infoDir='Info/';
 outStarDir='';  % Place to put our star files
-outStarName='particleAllSubMicNames.star';
-outStarName='particleAllMicNames.star';
+% outStarName='RSC/particleAllSub9.star';
+% outStarName='RSC/particleAll9.star';
+outStarName='RSC/particleAll9_82.star';
 
 useRawMicrograph=1; % Read unpadded images
-useSubtractedMicrograph=0; % Use the subtracted micrograph name in the particles file.
+useSubtractedMicrograph=1; % Use the subtracted micrograph name in the particles file.
 % Also create the subtracted micrograph star file.
 
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
@@ -84,6 +90,7 @@ for i=1:ni
         nParts=sum(active);
         xs=mi.particle.picks(active,1);
         ys=mi.particle.picks(active,2);
+        amps=mi.particle.picks(active,5);
         subMicName=[mi.procPath mi.baseFilename subMicrographSuffix];
         if useSubtractedMicrograph
             micName=subMicName;
@@ -105,6 +112,8 @@ for i=1:ni
         pts.rlnMicrographName(istart:iend,1)={micName};
         pts.rlnCoordinateX(istart:iend,1)=xs;
         pts.rlnCoordinateY(istart:iend,1)=ys;
+        pts.rlnAutopickFigureOfMerit(istart:iend,1)=amps;
+
         pts.rlnGroupName(istart:iend,1)={['group_' num2str(groupIndex)]};
         groupParts=groupParts+nParts;
         %  disp([groupParts groupIndex]);
@@ -114,7 +123,7 @@ for i=1:ni
             groupIndex=groupIndex+1;
         end;
         
-        % This is how we got the mi.ctf parameters from the original star files:
+        % For reference, this is how we got the mi.ctf parameters from the original star files:
         % mi.ctf.defocus=(mic.rlnDefocusU(iLine)+mic.rlnDefocusV(iLine))/2e4;
         % mi.ctf.deltadef=(mic.rlnDefocusU(iLine)-mic.rlnDefocusV(iLine))/2e4;
         % mi.ctf.theta=mic.rlnDefocusAngle(iLine)*pi/180;
@@ -146,7 +155,6 @@ end;
 % Fill in the constant fields
 pts.rlnClassNumber(1:nTotal,1)=1;
 pts.rlnAnglePsi(1:nTotal,1)=-999;
-pts.rlnAutopickFigureOfMerit(1:nTotal,1)=-999;
 
 % Write the particles star file
 partStarName=[outStarDir outStarName];
@@ -158,7 +166,7 @@ WriteStarFileStruct(pts,'particles',fStar);
 fclose(fStar);
 %
 %%
-if useSubtractedMicrograph
+if useSubtractedMicrograph && writeSubMicrographsStar
     % ----Write the sub micrographs star file----
     fullSubMicName=[outStarDir subMicStarName];
     disp(['Writing ' fullSubMicName]);

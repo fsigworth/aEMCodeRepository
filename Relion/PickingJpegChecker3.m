@@ -2,6 +2,7 @@
 % Assign peak intensities to mi.ok(2:6)
 % being percentiles x/10 to x, with x=10^y, y=[-3 -2.5 -2 -1.5 -1]
 jpegDir='Picker_jpegs/';
+outMisName='Picking_
 ds1=8;
 ds2=16;
 pcExponents=[-3 -2.5 -2 -1.5 -1];
