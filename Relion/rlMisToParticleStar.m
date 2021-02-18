@@ -9,7 +9,8 @@
 % is, we don't use coordinates in padded micrographs.
 
 % allMisName='Picking_9/allMis.mat';
-allMisName='Picking_9/allMis82.mat';
+% allMisName='Picking_9/allMis82.mat';
+allMisName='Picking_9/allMis9_intens+frac_7505.mat';
 
 micStarName='CtfFind/job029/micrographs_ctf.star';
 subMicStarName='CtfFind/job029/micrographs_sub_ctf.star';
@@ -19,7 +20,7 @@ writeSubMicrographsStar=0; % don't write a new one.
 outStarDir='';  % Place to put our star files
 % outStarName='RSC/particleAllSub9.star';
 % outStarName='RSC/particleAll9.star';
-outStarName='RSC/particleAll9_82.star';
+outStarName='RSC/particleAll9_intens+frac_7505.star';
 
 useRawMicrograph=1; % Read unpadded images
 useSubtractedMicrograph=1; % Use the subtracted micrograph name in the particles file.
@@ -27,7 +28,7 @@ useSubtractedMicrograph=1; % Use the subtracted micrograph name in the particles
 
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
 doPrint=1;
-minGroupParts=100; % minimun number of particles in a group
+minGroupParts=200; % minimun number of particles in a group
 
 
 if useRawMicrograph
