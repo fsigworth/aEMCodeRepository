@@ -9,8 +9,8 @@
 getNamesOnly=0;
 batchMode=1;
 if batchMode
-    outPath='Info_6_picked/';
-    infoPath='Info_6/';
+    outPath='PIcking_9/';
+    infoPath='Info_9_lax_picking/';
     names=f2FindInfoFiles(infoPath);
     CheckAndMakeDir(outPath,1);
 else
@@ -32,7 +32,7 @@ allMis=cell(nNames,1);
 disp([num2str(nNames) ' mi files.']);
 allNames=cell(nNames,1);
 for i=1:nNames
-    disp(names{i});
+    disp([num2str(i) '  ' names{i}]);
     %     allNames{i}=[infoPath names{i}];
     allNames{i}=names{i};
     if ~getNamesOnly
