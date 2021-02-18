@@ -172,7 +172,11 @@ if isnumeric(m)  % we are initializing the finder.
         t.ccs(:,:,i)=rScale/t.powers(i)*...
             real(ifftn(t.fms.*conj(t.frefs(:,:,i))));
 % %         t.nccs(:,:,i)=t.ccs(:,:,i)./t.localSD(:,:,i)*t.rads(i)^-rExponent;
-        t.spccs(:,:,i)=real(ifftn(t.fms.*conj(t.fsph(:,:,i))))/t.spowers(i); % sphere CC
+if useSpheres
+    t.spccs(:,:,i)=real(ifftn(t.fms.*conj(t.fsph(:,:,i))))/t.spowers(i); % sphere CC
+else
+    t.spccs(:,:,i)=-ones(nsx);
+end;
     end;
     [t.ccsmx, t.ccsmi]=max(t.ccs,[],3);
     t.radScalings=((t.rads/t.rMin).^-rExponent);  % undo scaling of references
@@ -259,6 +263,7 @@ else % m is a string, 'next' or 'end'
 %                   disp([num2str(t.nfound+1) '  ' num2str(ampi) '  spcc:' num2str(spcc) '  r:' num2str(refri)...
 %                       '  fracMasked:' num2str(fracMasked) '  msk:' num2str(t.mask(jx,jy))...
 %                       '  rDecay:' rDecay]);
+                disp([ampi spcc]);
                         % We found something. Now set a flag
                         flag=single((fracMasked<maxGoodFracMasked)...
                             && (refri>=radiusThresh*t.rMin)...

@@ -3,8 +3,16 @@ function [m,frac]=FractionOverlaps(mi);
     minRadius=100;
     maxRadius=400;
     ds=8;  % downsampling from original image
-    nv=numel(mi.vesicle.x);
+    
     n=mi.padImageSize/ds;
+% Set the default return values
+    frac=0;
+    m=zeros(n,'single');
+    
+    nv=numel(mi.vesicle.x);
+    if nv<1
+        return
+    end;
     
      mi.vesicle.ok(:,2)=mi.vesicle.ok(:,2) & ...
          mi.vesicle.s(:,1)>0.5*median(mi.vesicle.s(:,1)) & ...

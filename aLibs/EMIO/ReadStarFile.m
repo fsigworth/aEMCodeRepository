@@ -98,8 +98,8 @@ while P<=numel(C) % loop through all the entries
         nBlocks=nBlocks+1;
         blockNames{nBlocks,1}=C{P}{1}{1};  % whole string data_xxx
     else
-        disp(C{P}{1}{1});
-        warning(['''data_'' expected at line ' num2str(nLines) ' . Returning.'])
+        disp(C{P}');
+        warning(['''data_'' expected at line ' num2str(P) ' . Returning.'])
         return
     end;
     

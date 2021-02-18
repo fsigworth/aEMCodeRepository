@@ -4,7 +4,7 @@
 figure(1);
 clf;
 disp(['Converting mrc images to jpgs in directory ' pwd]);
-ds=4;
+ds=1;
 d=dir;
 jpegPath='jpeg_s/';
 CheckAndMakeDir(jpegPath,1);

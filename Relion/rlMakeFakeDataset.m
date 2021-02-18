@@ -8,165 +8,237 @@
 % The star file written out here corresponds to the data.star file produced in
 % 3DRefine.
 
-mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
+% We make nAmps cycles through all the angles, but with different amplitude
+% values given by the amps vector.
+
+
+% mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
+p=struct;
+p.baseName='SimStack14';
+
 pa=fileparts(which('arGetRefVolumes'));
-mapName=[pa '/KvMap.mat'];
-outDir='/Users/fred/EMWork/Simulations/Relion/';
-outDir='/home/siggpu/data/relion_sim/';
-% stackName='SimStack03deg2.mrcs';
-stackName='SimStack3amp15ang6.mrcs';
-% starName='SimStack03deg2.star';
-starName='SimStack3amp15ang6.star';
-refName='Ref3Damp15.mrc';
+p.mapName=[pa '/KvMap.mat'];
 
 
-amp=.015; % half amplitude
-% % amp=.03 % particle signal
+p.outDir='/Users/fred/EMWork/Simulations/Relion/';
+stackName=[p.baseName '.mrcs'];
+starName=[p.baseName '.star'];
+logName=[p.baseName 'Log.txt'];
+refName=[p.baseName 'Ref.mrc'];
+p.amps=[.01];
+nAmps=numel(p.amps);
+p.defMin=3;  % Assign min, max defocus
+p.defMax=5;
+p.imgsPerMicrograph=200;
+p.kV=300;
 
-useWhiteNoise=0; % Lorentzian noise
-sigma=11.925 % noise makes unity variance (empirical)
+p.imgSize=256;
+ds=1;
+p.useWhiteNoise=1; % Lorentzian noise
+p.sigma=11.925; % noise makes unity variance (empirical)
+p.sigma=1;
+p.useUniqueNoise=1;
 
-B=60       % ctf B factor
+p.B=60;       % ctf B factor
 
-% makeProjections=~exist('templates','var');
-makeProjections=true;
+dotCount=200;
 
-if makeProjections % do this if templates haven't already been calculated.
-    
-    s=load(mapName);  % gets s.map, s.pixA; map is 108^3 in size.
+disp('MakeFakeDataset:');
+
+
+    s=load(p.mapName);  % gets s.map, s.pixA; map is 108^3 in size.
     % ShowSections(s.map);
+        
+    m=DownsampleGeneral(s.map,p.imgSize,1/ds);
+    p.pixA=s.pixA*ds;
     
-    ds=1;
-    imgSize=128;
-
-    m=DownsampleGeneral(s.map,imgSize,1/ds);
-    pixA=s.pixA*ds;
+    p.symmetry=4;
+    p.angStep=2;
+    %     angStep=6; %%%
+    p.psiStep=90; % all angles are in degrees
+    p.shiftMag=1;
     
-    symmetry=4;
-    angStep=4;
-%     angStep=6; %%%
-    psiStep=90; % all angles are in degrees
-    shiftMag=4;
-    
-    nTheta=round(180/angStep)+1
-    dTheta=180/(nTheta-1);
-    nPsi=ceil(360/psiStep)
-    dPsi=360/nPsi;
+    p.nTheta=round(180/p.angStep)+1;
+    dTheta=180/(p.nTheta-1);
+    p.nPsi=ceil(360/p.psiStep);
+    dPsi=360/p.nPsi;
     psis=(0:dPsi:360-dPsi)';
-    maxNPhi=ceil(360/(angStep*symmetry))
+    p.maxNPhi=ceil(360/(p.angStep*p.symmetry))';
     
     nAngs=0;
     angs=zeros(0,3);
-    for i=1:nTheta
+    for i=1:p.nTheta
         theta=(i-1)*dTheta;
-        nPhi=ceil(sind(theta)*maxNPhi); % Sample phi sparsely when sin(theta) is small.
-        dPhi=360/(nPhi*symmetry);
+        nPhi=ceil(sind(theta)*p.maxNPhi); % Sample phi sparsely when sin(theta) is small.
+        dPhi=360/(nPhi*p.symmetry);
         for j=1:nPhi
             phi=(j-1)*dPhi;
-            angs(nAngs+1:nAngs+nPsi,:)=[phi*ones(nPsi,1) theta*ones(nPsi,1) psis];
-            nAngs=nAngs+nPsi;
+            angs(nAngs+1:nAngs+p.nPsi,:)=[phi*ones(p.nPsi,1) theta*ones(p.nPsi,1) psis];
+            nAngs=nAngs+p.nPsi;
         end;
     end;
     
     nAngs=size(angs,1);
-    nAngs
-  
-    shiftVector=zeros(nPsi,2);
-    for i=1:nPsi
-        shiftVector(i,:)=round(shiftMag*RotMatrix2((i-1)*2*pi/nPsi)*[1;0]); % shift along with psi
+    p.nAngs=nAngs;
+    disp(p);
+    
+    shiftVector=zeros(p.nPsi,2);
+    for i=1:p.nPsi
+        shiftVector(i,:)=round(p.shiftMag*RotMatrix2((i-1)*2*pi/p.nPsi)*[1;0]); % shift along with psi
     end;
-    shifts=repmat(shiftVector,nAngs/nPsi,1);
+    shifts=repmat(shiftVector,nAngs/p.nPsi,1);
+    disp(p);
     
-    templates=rlMakeTemplates(angs,m);
+makeProjections=~(exist('templates','var') && all(size(templates)==[p.imgSize p.imgSize nAngs]));
     
+if makeProjections % do this if templates haven't already been calculated.
+    fprintf(' making %d projections %d x %d\n',nAngs,p.imgSize,p.imgSize);
+    templates=rlMakeTemplates(angs,m,dotCount);
+    save('templates.mat','templates','p','-v7.3');
+else
+    disp('Using the existing templates.');
 end; % if makeProjections
+
 %%
 
-imgsPerMicrograph=200;
-kV=300;
-
-nMicrographs=ceil(nAngs/imgsPerMicrograph)
-defMin=1.5;  % Assign min, max defocus
-defMax=3;
-defStep=(defMax-defMin)/(nMicrographs-1);
-ctfs=zeros(imgSize,imgSize,nMicrographs,'single');
-lambda=EWavelength(kV);
+disp(' computing ctfs...');
+nAmpMicrographs=ceil(nAngs/p.imgsPerMicrograph);
+defStep=(p.defMax-p.defMin)/(nAmpMicrographs-1);
+ctfs=zeros(p.imgSize,p.imgSize,nAmpMicrographs,'single');
+lambda=EWavelength(p.kV);
 Cs=2.7;
 alpha=.02; % alpha for simulation
-defs=zeros(nMicrographs,1);
-for j=1:nMicrographs
-    defs(j)=defMin+(j-1)*defStep;
-    ctfs(:,:,j)=CTF(imgSize,pixA,EWavelength(300),defs(j),Cs,B,alpha);
+defs=zeros(nAmpMicrographs,1);
+for j=1:nAmpMicrographs
+    defs(j)=p.defMin+(j-1)*defStep;
+    ctfs(:,:,j)=CTF(p.imgSize,p.pixA,EWavelength(p.kV),defs(j),Cs,p.B,alpha);
 end;
 
 d=struct;
-micrographIndex=floor((0:nAngs-1)'/imgsPerMicrograph)+1;
+nImgs=nAngs*nAmps;
+p.nImgs=nImgs;
+p1.nImgs=nImgs;
+disp(p1);
+
 % To fill in
-d.rlnImageName=cell(nAngs,1);
-d.rlnMicrographName=cell(nAngs,1);
-d.rlnDefocusU=zeros(nAngs,1);
-d.rlnDefocusV=zeros(nAngs,1);
+d.rlnImageName=cell(nImgs,1);
+d.rlnMicrographName=cell(nImgs,1);
+d.rlnDefocusU=zeros(nImgs,1);
+d.rlnDefocusV=zeros(nImgs,1);
 % Constant
-d.rlnDefocusAngle=zeros(nAngs,1);
-d.rlnVoltage=kV*ones(nAngs,1);
-d.rlnAmplitudeContrast=.1*ones(nAngs,1); % set to usual Relion value.
-d.rlnSphericalAberration=Cs*ones(nAngs,1);
-d.rlnMagnification=5e4/pixA*ones(nAngs,1);
-d.rlnDetectorPixelSize=5*ones(nAngs,1);
-d.rlnCtfFigureOfMerit=ones(nAngs,1);
+d.rlnDefocusAngle=zeros(nImgs,1);
+d.rlnVoltage=p.kV*ones(nImgs,1);
+d.rlnAmplitudeContrast=.1*ones(nImgs,1); % set to usual Relion value.
+d.rlnSphericalAberration=Cs*ones(nImgs,1);
+d.rlnMagnification=5e4/p.pixA*ones(nImgs,1);
+d.rlnDetectorPixelSize=5*ones(nImgs,1);
+d.rlnCtfFigureOfMerit=ones(nImgs,1);
 % Angles to fill in
-d.rlnAngleRot=zeros(nAngs,1);
-d.rlnAngleTilt=zeros(nAngs,1);
-d.rlnAnglePsi=zeros(nAngs,1);
-d.rlnOriginX=zeros(nAngs,1);
-d.rlnOriginY=zeros(nAngs,1);
+d.rlnAngleRot=zeros(nImgs,1);
+d.rlnAngleTilt=zeros(nImgs,1);
+d.rlnAnglePsi=zeros(nImgs,1);
+d.rlnOriginX=zeros(nImgs,1);
+d.rlnOriginY=zeros(nImgs,1);
 
-stack=zeros(imgSize,imgSize,nAngs,'single');
-
-% Noise
-n1=single(randn(imgSize,imgSize,nAngs)); % noise to be CTF-filtered
-n2=single(randn(imgSize,imgSize,nAngs)); % noise added after CTF
-noise1=.1*LorentzFilt(n1,.09,1)+.04*n1; % was .028
-noise2=.05*LorentzFilt(n2,.083,1)+.04*n2; % was .026
-
-maxRot=180/symmetry;
-
-for i=1:nAngs
-    j=micrographIndex(i);
-    d.rlnMicrographName{i}=sprintf('m%04u%s',j,'.mrc');
-    d.rlnImageName{i}=sprintf('%05u%s%s',i,'@',stackName);
-    d.rlnDefocusU(i)=1e4*defs(j);
-    d.rlnDefocusV(i)=1e4*defs(j);
-    rot=mod(angs(i,1)+maxRot,2*maxRot)-maxRot; % phi, restrict to +/- maxRot
-    d.rlnAngleRot(i)=rot;
-    d.rlnAngleTilt(i)=angs(i,2);
-    d.rlnAnglePsi(i)=angs(i,3);
-    d.rlnOriginX(i)=shifts(i,1);
-    d.rlnOriginY(i)=shifts(i,2);
-    
-%     Note that we are shifting after doing all the rotations.
-    img=-amp*circshift(templates(:,:,i),-shifts(i,:))+sigma*noise1(:,:,i);
-    stack(:,:,i)=real(ifftn(fftn(img) ...
-        .*ifftshift(ctfs(:,:,j))))+sigma*noise2(:,:,i);
-end;
+stack=zeros(p.imgSize,p.imgSize,nAngs*nAmps,'single');
 %%
+% Noise
+disp(' making the noise...');
 
-fullStackName=[outDir stackName];
-fullStarName=[outDir starName];
-fullRefName=[outDir refName];
+if p.useUniqueNoise
+    nNoise=nImgs;
+else
+    nNoise=nAngs;
+end;
 
+if p.useWhiteNoise
+    noise=single(randn(p.imgSize,p.imgSize,nNoise)); % white noise to add after CTF
+else
+    no.amp=.1;
+    no.lFilt=.09;
+    no.white=.04;
+    p.noise=no;
+    disp('Noise 1, before CTF');
+    disp(no);
+    
+    no.amp=.05;
+    no.lFilt=.083;
+    no.white=.04;
+    p.noise(2)=no;
+    disp('Noise 2, after CTF');
+    disp(no);
+    
+    nWhite=single(randn(p.imgSize,p.imgSize,nNoise,numel(p.noise))); % noise to be CTF-filtered
+    
+    noise=nWhite; % Get an array of the same size.
+    
+    for i=1:numel(p.noise)
+        no=p.noise(i);
+        noise(:,:,:,i)=no.amp*LorentzFilt(nWhite(:,:,:,i),no.lFilt,1)+no.white*nWhite(:,:,:,i);
+    end;
+end;
+
+%%
+maxRot=180/p.symmetry;
+angMicrographIndex=floor((0:nAngs-1)'/p.imgsPerMicrograph)+1;
+disp(' making the stack...');
+%
+    for i=1:nImgs
+        iAmp=floor((i-1)/nAngs+1);
+        iAng=mod(i-1,nAngs)+1;
+        j1=angMicrographIndex(iAng);
+        j=j1+(iAmp-1)*nAmpMicrographs; % index over all images
+        d.rlnMicrographName{i}=sprintf('m%04u%s',j,'.mrc');
+        d.rlnImageName{i}=sprintf('%05u%s%s',i,'@',stackName);
+        d.rlnDefocusU(i)=1e4*defs(j1);
+        d.rlnDefocusV(i)=1e4*defs(j1);
+        rot=mod(angs(iAng,1)+maxRot,2*maxRot)-maxRot; % phi, restrict to +/- maxRot
+        d.rlnAngleRot(i)=rot;
+        d.rlnAngleTilt(i)=angs(iAng,2);
+        d.rlnAnglePsi(i)=angs(iAng,3);
+        d.rlnOriginX(i)=shifts(iAng,1);
+        d.rlnOriginY(i)=shifts(iAng,2);
+        
+        if p.useUniqueNoise
+            ind=i; % different noise for each image
+        else
+            ind=iAng; % repeat the noise like we repeat the angles.
+        end;
+        %     Note that we are shifting after doing all the rotations.        
+        img=-p.amps(iAmp)*circshift(templates(:,:,iAng),-shifts(iAng,:));
+
+        if p.useWhiteNoise
+            stack(:,:,i)=real(ifftn(fftn(img).*ifftshift(ctfs(:,:,j1)))) ...
+                +p.sigma*noise(:,:,ind);
+        else
+            stack(:,:,i)=real(ifftn(fftn(img+p.sigma*noise(:,:,ind,1)) ...
+            .*ifftshift(ctfs(:,:,j1))))+p.sigma*noise(:,:,ind,2);
+        end;
+    end;
+%
+disp(' making the metadata struct...');
+
+
+fullStackName=[p.outDir stackName];
+fullStarName=[p.outDir starName];
+fullRefName=[p.outDir refName];
+fullLogName=[p.outDir logName];
 disp(['Writing ' fullStackName]);
-WriteMRC(stack,pixA,fullStackName);
+WriteMRC(stack,p.pixA,fullStackName);
 
 disp(['Writing ' fullStarName]);
 WriteStarFileStruct(d,'',fullStarName);
 
 disp(['Writing ' fullRefName]);
-WriteMRC(m,pixA,fullRefName);
+WriteMRC(m,p.pixA,fullRefName);
+
+disp(['Writing ' fullLogName]);
+WriteStructText(p,fullLogName);
 
 disp('done.');
-figure(1);
-imagsar(stack);
+
+% figure(1);
+% imagsar(stack);
 
 
 return
