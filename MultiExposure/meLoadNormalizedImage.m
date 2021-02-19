@@ -92,7 +92,7 @@ end;
 
 if ok
 %     Fill in the scaling of the image we read in.
-    ds=floor(min(mi.padImageSize./targetSize)); % desured overall downsampling factor.
+    ds=ceil(max(mi.padImageSize./targetSize)); % desured overall downsampling factor.
     M(1:2,3)=(origOffset-floor((ds*targetSize-mi.padImageSize)/2))';
     M(1,1)=ds;
     M(2,2)=ds;
