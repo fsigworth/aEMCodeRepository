@@ -123,11 +123,15 @@ mi.ctf.lambda=EWavelength(mi.kV);
 
 mi.mergeMatrix=eye(3);
 
+if pars.noDamageModel
+    mi.damageModelCode='1e6+f*0;'; % critical dose is huge constant
+else
 % Use the Grant&Grigorieff damage model
 if mi.kV>250
     mi.damageModelCode='.245*f.^-1.665+2.81; % Grant&Grigorieff 300 kV';
 else % 200 kV code
     mi.damageModelCode='.184*f.^-1.665+2.1; % Grant&Grigorieff 200 kV';
+end;
 end;
 
 readOk=true; % We got the data from the star line.

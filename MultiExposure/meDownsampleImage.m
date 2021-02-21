@@ -8,7 +8,8 @@ function [mOut,M]=meDownsampleImage(m1,M1,nOut);
 % M is the affine transform mOut->original micrograph
     nIn=size(m1);
     ds1=M1(1,1);
-    ds2=max(nIn./nOut); % we pick the dimension best matched by the target.
+    ds2=ceil(max(nIn./nOut)/2.1)*2; % we pick the dimension best matched by the target.
+%     allow 5% discrepancy in magnification.
     mOut=DownsampleGeneral(m1,nOut,1/ds2);
     shift=floor(nIn./ds2-nOut)/2; % The shift from the crop operation
     M2=[ds2 0 -shift(1); 0 ds2 -shift(2); 0 0 1];

@@ -36,11 +36,15 @@ dpars.writeSmallMRC=0; % Write out image downsampled to M4. Otherwise, we
 % write a small sub mrc.
 dpars.writeSmallSubMRC=1; % Write out a downsampled subtracted image
 dpars.dsSmall=4; % downsampling factor for small output images
+dpars.maxPixA=4.5;  % downsampled image resolution for radius fitting
+dpars.forceDs4=4;  % Or, use this fixed downsampling factor instead
+
 % dpars.writeVesFiles=0;   % Write vesicle models into Temp/
 
 dpars.resetBasePath=1;   % update the basePath field of the mi file to the current directory.
-dpars.modifiedAlpha=0;  % Good alpha value for lipids.
-
+dpars.modifiedAlpha=.02;  % Good alpha value for lipids.
+dpars.modifiedB=0.1;    % nonzero to change mi.CTF.B
+dpars.modifiedImageNormScale=.2;
 % Number of terms (for both radius and amplitude fitting) is set thusly:
 %    nTerms=find(vesicle.r(ind,1) < pars.rTerms/mi.pixA,1);
 % i.e. nTerms is the index of last entry of rTerms smaller than our radius.
@@ -59,9 +63,6 @@ dpars.fractionAmpTerms=[0 1]; % fraction of amp terms to use
 %  To avoid crazy fits, we repeat the whole radius-only fitting with the base
 %  radius perturbed by these steps (in angstroms) and pick the best.
 dpars.radiusStepsA=[-100 -50 0 50]; % repeat radius-only fitting with perturbed r(1)
-dpars.maxPixA=4.5;  % downsampled image resolution for radius fitting
-% dpars.maxPixA=3; %%%%%%%%%%%
-
 dpars.disA=1200;  % size of the fit window, in angstroms
 % dpars.disA=1600;  % for Mengqiu
 
@@ -124,9 +125,13 @@ for fileIndex=1:numel(miNames)
     %%
     disp(['Reading ' num2str(fileIndex) ' ' infoPath miNames{fileIndex}]);
     mi=ReadMiFile([infoPath miNames{fileIndex}]);
-            originalAlpha=mi.ctf(1).alpha;
+    % Make changes to the mi structure
+    originalAlpha=mi.ctf(1).alpha;
     if pars.modifiedAlpha>0
         mi.ctf(1).alpha=pars.modifiedAlpha;        
+    end;
+    if pars.modifiedB>0
+        mi.ctf(1).B=pars.modifiedB;
     end;
     if resetBasePath
         mi.basePath=rootPath;
@@ -211,10 +216,14 @@ for fileIndex=1:numel(miNames)
         end;
 %           Make downsampled copies for fitting. m4 is taken to be "full
 %           size" for amplitude fitting. maxPixA ~ 3A.
+if pars.forceDs4
+    ds4=pars.forceDs4;
+else
         dsMin=pars.maxPixA/mi.pixA;
         ds4=NextNiceNumber(dsMin,5,1); % Downsampling for good fits
 %         some possible values: 1, 2, 3, 4, 5, 6, 8, ....
 %         ds4 is typically 2 or 3.
+end;
         disp(['First downsampling is by ' num2str(ds4)]);
         n4=round(mi.padImageSize/ds4);
         [m4,M4]=meDownsampleImage(m1,M1,n4);
@@ -350,6 +359,7 @@ for fileIndex=1:numel(miNames)
             end;
             
             if pars.writeSubMRC  % write an MRC file
+                CheckAndMakeDir(mi.procPath);
                 if isRawImg % our input is a raw micrograph, make the output the same size.
                     mSub=Crop(m1-vs1,mi.imageSize);
                     outSubName=[mi.procPath mi.baseFilename '_v.mrc'];
@@ -363,12 +373,14 @@ for fileIndex=1:numel(miNames)
 
             smSize=round(size(m1)/pars.dsSmall);
             if pars.writeSmallMRC
+                CheckAndMakeDir(procPath_sm);
                 outSmallName=[procPath_sm mi.baseFilename 'ms.mrc'];
                 ms=Downsample(m1,smSize);
                 WriteMRC(ms,mi.pixA*pars.dsSmall,outSmallName);
                 disp([outName ' saved.']);
             end;
             if pars.writeSmallSubMRC
+                CheckAndMakeDir(procPath_sm);
                 outSubName=[procPath_sm mi.baseFilename 'mvs.mrc'];
                 mvs=Downsample(m1-vs1,smSize);
                 WriteMRC(mvs,mi.pixA*pars.dsSmall,outSubName);

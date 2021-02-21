@@ -799,7 +799,7 @@ if ok
     
     h.oldFilterFreqs=[0 0];
     set(h.textFilename,'string',mi.baseFilename);
-    h.e1ImageOffset=5; % way beyond the expected pixel range.
+    h.e1ImageOffset=0; % changed, was =5.
     e1Image=h.origImage+h.e1ImageOffset;  % offset it from zero so we
     %         can analyze its distribution.
     h.exp1Image=Downsample(e1Image,h.displaySize/2); % displaySize is a multiple of 4.
@@ -1212,9 +1212,9 @@ end
 
 function msk=GetOurMask(mi,n,ds0,indices)
 % Get a mask at downsample ratio ds0 (from mi.imageSize) and padded to n.
-n0=round(mi.imageSize/ds0); % expected size of the stored mask
+n0=round(mi.padImageSize/ds0); % expected size of the stored mask
 localMask=meGetMask(mi,n0,indices);
-msk=Crop(localMask,n);
+msk=logical(Crop(localMask,n));
 end
 
 % --- Executes on button press in pushbutton_OutlineMask.
@@ -1421,15 +1421,24 @@ if numel(h.exp1Image)>1 && ~any(isnan(h.exp1Image(:))) % Something there
     %     filter it, make a histogram, set the threshold.  We take the
     %     reference intensity of the "clear" part of the micrograph to be
     %     the upper half-maximum point of the histogram.
+    M2Inv=inv(h.M2);
+    
+    exp1Mask=ones(round(h.mi.padImageSize*M2Inv(1,1)/2),'single'); % useful part of the image
+    exp1Mask=logical(Crop(exp1Mask,size(h.exp1Image))); % expand to the image's size
+    exp1Mask=GetOurMask(h.mi,size(h.exp1Image),h.M2(1,1)*2,1);
     exp1f=GaussFiltDCT(h.exp1Image,h.sav.automaskPars.denseFilt*h.pixA*2);
-    med=abs(median(exp1f(:)));  % make sure it's positive, should be.
-    bins=.75*med:med/200:1.25*med;
-    e1Hist=hist(exp1f(:),bins);
-    [e1Val,~]=max(e1Hist);
-    e1Upper=find(e1Hist>e1Val/2,1,'last');
+    exp1fSel=exp1f(exp1Mask);
+    med=abs(median(exp1fSel(:)));  % make sure it's positive, should be.
+%     bins=.75*med:med/200:1.25*med;
+    [e1Hist,bins]=hist(exp1fSel(:),50);
+    [~,e1Peak]=max(e1Hist);
+    e1Upper=find(e1Hist>e1Peak/3,1,'last');
+    e1Lower=find(e1Hist>e1Peak/3,1);
     %     sigma5=5*(e1Upper-e1Mode+.5);
     %     e1Ctr=bins(e1Mode);
-    e1Ctr=bins(e1Upper); %%%%%%%%
+    e1Mode=bins(e1Peak);
+%     e1Ctr=bins(e1Upper);
+    e1Ctr=bins(e1Lower);
     if h.sav.automaskFixed
         e1Ctr=h.e1CtrValue;
     else
@@ -1440,7 +1449,8 @@ if numel(h.exp1Image)>1 && ~any(isnan(h.exp1Image(:))) % Something there
     %     e1mx=e1Ctr+sigma1;
     %     e1mn=e1Ctr-10*sigma1;
     %     h.e1Map=(exp1f-e1mn)/(e1mx-e1mn);
-    h.e1Map=(10*(exp1f/e1Ctr-.9)); % expand the top 10%
+%     h.e1Map=(10*(exp1f/e1Ctr-.9)); % expand the top 10%
+    h.e1Map=.5*((exp1f-e1Ctr)/(e1Mode-e1Ctr)+1); % expand upper half to 0..1
 else
     h.e1Map=ones(size(h.exp1Image),'single');  % all ones
 end;
@@ -1451,13 +1461,14 @@ f2=(h.pixA*2)/60;  % highpass cutoff
 varFilt=(h.pixA*2)/400; % filtering of the variance
 workImage=DownsampleGeneral(h.origImage,h.displaySize/2);
 varMap=GaussFiltDCT((SharpHP(SharpFilt(workImage,f1),f2)).^2,varFilt);
-
-mxVal=max(varMap(:));  % make sure it's positive, should be.
-bins=0:mxVal/100:mxVal;
-varHist=hist(varMap(:),bins);
-[~,modeIndex]=max(varHist);
-varMode=bins(modeIndex);
-h.varMap=varMap/(10*varMode);
+varMapPts=varMap(exp1Mask);
+mxVal=max(varMapPts(:));  % make sure it's positive, should be.
+% bins=0:mxVal/100:mxVal;
+% varHist=hist(varMap(:),bins);
+% [~,modeIndex]=max(varHist);
+% varMode=bins(modeIndex);
+% h.varMap=varMap/(10*varMode);
+h.varMap=varMap/mxVal;
 end
 
 function h=InitAutomask(h)

@@ -60,17 +60,29 @@ end;
 mi.imageSize=origImageSize;
 niceImageSize=NextNiceNumber(origImageSize,5,8);
 mi.padImageSize=niceImageSize;
-mc=Crop(m0-med,niceImageSize); % padded and subtr. median
+if nargout>1
+    mc=Crop(m0-med,niceImageSize); % padded and subtr. median
+else
+    mc=0;
+end;
 
 switch mode
+    case 0 % image is already normalized (K3 data)
+        mi.imageNormScale=1;
+        mi.imageMedian=med;
+        if nargout>1 && numel(mc)>1
+            m=RemoveOutliers(mc);            
+        end;
     case 1 % We assume we know the DC component correctly, or else use the
         % correction for MotionCor2's error to scale up [should it be down?]
         % the DC value.
         if med~=0
             mi.imageNormScale=1/(med*sqrt(nFrames)); % divide by the actual amplitude.
             mi.imageMedian=med; % Raw image median
-            m1=RemoveOutliers(mc);
-            m=m1*mi.imageNormScale;
+            if nargout>1
+                m1=RemoveOutliers(mc);
+                m=m1*mi.imageNormScale;
+            end;
 %             if mi.imageMedian<minMedian
 %                 disp(['   Image median is low? ' num2str(mi.imageMedian)]);
 %             end;
