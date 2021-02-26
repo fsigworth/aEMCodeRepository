@@ -2,7 +2,7 @@
 
 displayAngle=45;
 % displayAngle=90
-zFraction=.65; % relative Z-height of slice
+zFraction=.75; % relative Z-height of slice
 
 [modelName,modelPath]=uigetfile('*model.star');
 % cd(modelPath);
