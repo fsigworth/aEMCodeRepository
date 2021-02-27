@@ -54,7 +54,8 @@ v=0;
 
 if numel(dists)>0
     [mnv, tempInd]=min(dists);
-    disp(['Nearest vesicle ' num2str(mnv*h.mi.pixA,3) 'Å, index=' num2str(tempInd)]);
+    disp(['Nearest vesicle ' num2str(mnv*h.mi.pixA,3) 'Å, index=' num2str(tempInd) ...
+        '  radius ' num2str(h.mi.vesicle.r(tempInd,1)*h.mi.pixA) ' A']);
     if mnv<nrgn*h.ds0/2  % we found something within the nrgn box.
         vind=tempInd;
         oldExistFlag=h.mi.vesicle.ok(vind,1);
@@ -93,7 +94,7 @@ if oldVesFlag==0  % No existing vesicle, search the cc map
 %             p2=round([i j]+p1/h.ds0-rctr+1);
 %             p2=max(1,min(p2,n));
 %             radius=h.ccRadii(p2(1),p2(2));
-            disp(['New vesicle radius ' num2str(radius)]);
+            disp(['New vesicle radius ' num2str(radius*h.mi.pixA) ' A']);
             h.mi.vesicle.r(vind,1)=radius;
             h.mi.vesicle.ok(vind,1)=true;  % extend the array
             h.mi.vesicle.ok(vind,2)=(newVesFlag==1);
@@ -127,12 +128,16 @@ if vind>0  % a vesicle is found or created
         newVesFlag=mod(oldVesFlag+1,3);
     end;
     switch newVesFlag
+        case 0
+            disp('Erased.');
         case 1
             h.goodVesImage=h.goodVesImage+v;
             h.mi.vesicle.ok(vind,1:2)=true;
+            disp('Marked good.');
         case 2
             h.badVesImage=h.badVesImage+v;
             h.mi.vesicle.ok(vind,1:2)=[true false];
+            disp('Marked bad.');
     end;
 end;
 disp(' ');
