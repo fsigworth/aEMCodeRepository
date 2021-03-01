@@ -5,7 +5,7 @@ function infos=meLoadInfoFiles(infoDir)
 % Then return a cell array of all the structures.
 
 if nargin < 1
-    infoDir='./';
+    infoDir='Info/';
 end;
 infoDir=AddSlash(infoDir);
 

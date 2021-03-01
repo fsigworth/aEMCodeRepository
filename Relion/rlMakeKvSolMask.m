@@ -14,6 +14,6 @@ solMsk1=reshape(max(0,min(solMsk(:),1)),n);
 solMsk21=DownsampleGeneral(solMsk,128,s.pixA/2.1);
 n=size(solMsk21);
 solMsk2=reshape(max(0,min(solMsk21(:),1)),n);
-WriteMRC(solMsk2,2.1,'KvSolMask2.1A128.mrc');
+% WriteMRC(solMsk2,2.1,'KvSolMask2.1A128.mrc');
 
 

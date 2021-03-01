@@ -8,24 +8,28 @@
 % At present we assume direct usage of the raw micrograph coordinates; that
 % is, we don't use coordinates in padded micrographs.
 
-% Input mi files
+% First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
+% Then give the name here:
 % allMisName='Picking_9/allMis.mat';
 % allMisName='Picking_9/allMis82.mat';
 allMisName='Picking_9/allMis9_intens+frac_7505.mat';
-% micrograph star files
-micStarName='CtfFind/job029/micrographs_ctf.star';
-subMicStarName='CtfFind/job029/micrographs_sub_ctf.star';
-useRawMicrograph=1; % Read unpadded images
-useSubtractedMicrograph=1; % Use the subtracted micrograph name in the particles file.
-writeSubMicrographsStar=0; % write a new one?
 
-% -----Files to write-----
+% ----Micrograph star files
+micStarName='CtfFind/job029/micrographs_ctf.star';
+useRawMicrograph=1; % Read unpadded unsub images rather than from the Merged directory
+useSubtractedMicrograph=1; % Use the subtracted micrograph name in the particles file.
+    % (The subtracted micrograph is assumed to be in the Merged/ folder.)
+writeSubMicrographsStar=1; % write a new star file pointing to the sub micrographs?
+subMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to write
+
+% -----Particle and Vesicle info files to write-----
 outStarDir='RSC/';  % Place to put our star files
-outParticleStarName='particleAll9_intens+frac_7505.star';
+    CheckAndMakeDir(outStarDir,1);
+outParticleStarName='particleAll9_intens+frac_7505_unsub.star';
 outVesicleStarName=['ves_' outParticleStarName];
-writeParticleStar=0;
+writeParticleStar=1;
 writeVesicleStar=1;
-writeVesicleMat=1; % Instead of writing a long .star file, save as a Matlab .mat
+writeVesicleMat=0; % Instead of writing a long .star file, save as a Matlab .mat
 
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
 doPrint=1;

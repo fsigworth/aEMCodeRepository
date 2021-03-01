@@ -361,7 +361,9 @@ end;
             if pars.writeSubMRC  % write an MRC file
                 CheckAndMakeDir(mi.procPath);
                 if isRawImg % our input is a raw micrograph, make the output the same size.
-                    mSub=Crop(m1-vs1,mi.imageSize);
+                    % ...and undo the image normalization so it matches the raw
+                    % image.
+                    mSub=(Crop(m1-vs1,mi.imageSize)/mi.imageNormScale)+mi.imageMedian;
                     outSubName=[mi.procPath mi.baseFilename '_v.mrc'];
                 else
                     mSub=m1-vs1;
