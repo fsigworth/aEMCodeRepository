@@ -27,7 +27,7 @@ maxShiftA=200;    % max shift in A
 maxShiftFrac=0.3; %%%%%%%
 initStepA=30;  % initial step is ~ membrane width
 nRoundIters=300; % no. of Simplex iterations to do for each step
-% nRoundIters=500; %%%%%%%%%%
+nRoundIters=600 %%%%%%%%%%
 
 convCriterion=1e-3;
 maskWeight=0.2;  % Scaling of old fit to replace the masked region.

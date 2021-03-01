@@ -15,8 +15,8 @@ if ~isfield(rscc,'eigenImgs') || ~isfield(rscc,'vList') % data not there
 end;
 apFlags=16:47;  % Flag for picked particles
 apPtrs=[2 3 4 6];    % pointers for picked particles
-n=size(rscc.mxCC,1);
-ds1=mi.imageSize(1)/n;
+n=size(rscc.mxCC);
+ds1=mi.imageSize(1)/n(1);
 [ne, ~, nterms]=size(rscc.eigenImgs);
 vsz=numel(rscc.vList)/nterms;
 eigs=reshape(rscc.eigenImgs,ne*ne,nterms);
