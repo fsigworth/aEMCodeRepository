@@ -31,6 +31,13 @@ writeParticleStar=1;
 writeVesicleStar=1;
 writeVesicleMat=0; % Instead of writing a long .star file, save as a Matlab .mat
 
+% infoDir='Info/';
+outStarDir='';  % Place to put our star files
+% outStarName='RSC/particleAllSub9.star';
+% outStarName='RSC/particleAll9.star';
+outStarName='RSC/particleAll9_intens+frac_7505.star';
+
+
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
 doPrint=1;
 minGroupParts=200; % minimun number of particles in a group
@@ -101,7 +108,7 @@ for i=1:ni
         xs=mi.particle.picks(active,1);
         ys=mi.particle.picks(active,2);
         amps=mi.particle.picks(active,5);
-        
+
         subMicName=[mi.procPath mi.baseFilename subMicrographSuffix];
         if useSubtractedMicrograph
             micName=subMicName;
@@ -132,11 +139,13 @@ for i=1:ni
             groupLastParticle=iend;
             groupParts=0;
             groupIndex=groupIndex+1;
-        end;  
-                % CTF pars: for reference, this is how we got the mi.ctf parameters from the original star files:
-                % mi.ctf.defocus=(mic.rlnDefocusU(iLine)+mic.rlnDefocusV(iLine))/2e4;
-                % mi.ctf.deltadef=(mic.rlnDefocusU(iLine)-mic.rlnDefocusV(iLine))/2e4;
-                % mi.ctf.theta=mic.rlnDefocusAngle(iLine)*pi/180;
+        end;
+        
+        % For reference, this is how we got the mi.ctf parameters from the original star files:
+        % mi.ctf.defocus=(mic.rlnDefocusU(iLine)+mic.rlnDefocusV(iLine))/2e4;
+        % mi.ctf.deltadef=(mic.rlnDefocusU(iLine)-mic.rlnDefocusV(iLine))/2e4;
+        % mi.ctf.theta=mic.rlnDefocusAngle(iLine)*pi/180;
+        
         pts.rlnDefocusU(istart:iend,1)=(mi.ctf.defocus+mi.ctf.deltadef)*1e4;
         pts.rlnDefocusV(istart:iend,1)=(mi.ctf.defocus-mi.ctf.deltadef)*1e4;
         %         pts.rlnAstigmatism(istart:iend,1)=-mi.ctf.deltadef*1e4;
@@ -215,14 +224,14 @@ if writeVesicleStar
     WriteStarFileStruct(pts,'vesicles',fStar);
     fclose(fStar);
 end;
+
 if writeVesicleMat
     [~,vnm]=fileparts(outVesicleStarName);
     outName=[outStarDir vnm '.mat'];
     disp(['Writing ' outName]);
     save(outName,'ves');
 end;
-%
-%
+
 if useSubtractedMicrograph && writeSubMicrographsStar
     % ----Write the sub micrographs star file----
     fullSubMicName=[outStarDir subMicStarName];
