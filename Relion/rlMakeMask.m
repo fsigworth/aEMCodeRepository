@@ -1,7 +1,7 @@
-% rlMakeMask
+% rlMavkeMask
 % Make the "sphere+ellipsoid" mask for Kv refinement
 maskMode='sphere+ellipsoid';
-maskMode='sphere';
+% maskMode='sphere';
 n0=112;
 n1=size(maps,1);
 nim=size(maps,4);
@@ -24,4 +24,15 @@ figure(3);
 ShowSections(msk1,[],45);
 %         ShowSections(msk1,[],45);
 
-WriteMRC(msk1,pixA,outName);
+% WriteMRC(msk1,pixA,outName);
+
+
+return
+
+% Make looser Kv mask
+
+msk0=ReadMRC('KvMask2.26p128.mrc');
+maps=ReadMRC('KvRef128.mrc');
+msk1=GaussFilt(msk0>.1,.07);
+ShowSections(msk1.*(GaussFilt(maps,.1)+10),[65 65 80],45);
+WriteMRC(max(0,min(1,msk1)),2.26,'KvMask2.26wide.mrc');

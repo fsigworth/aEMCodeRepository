@@ -5,10 +5,9 @@
 % we only read the mi files, not create them.
 
 f2Mode        =0;  % 0 means k2 data
-serialMode    =1;   % go through all the steps before moving to next micrograph
+serialMode    =0;   % go through all the steps before moving to next micrograph
 %checkLogs     =0;  % not yet in use.
 
-maxAge=5;         % Runs the operation if the previous one is older than this number of days.
 findUnfinished=0; % Don't process data, just make a new allNamesUnf.mat file.
 % This option makes sense only if nJobs=1, serialMode is used.
 
@@ -19,7 +18,7 @@ forceMerging  =0;
 doDownsampleMergedImages=0;
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =1;
+doFindVesicles        =0;
 %*** special multiple VesicleFinder runs ****
 doMultiFindVesicles   = 0;
 % findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
@@ -27,14 +26,14 @@ doMultiFindVesicles   = 0;
 %                  'KvLipo121_2w10_v3.7/';'KvLipo121_2w10_v3.8/'};
 %***
 doPrelimInverseFilter =0;
-doRefineVesicles      =1;
+doRefineVesicles      =0;
 forceRefineVesicles   =0;
 refineVesicleAmpsOnly=0;
 minRefineVesiclesSequence=0;  % 0 if don't consider.
 % minRefineVesiclesSequence=inf ;    % inf forces refinement
 doInverseFilter       =0;
 forceInverseFilter=0;
-minAge=.04;  % if the corresponding log entry has a date stamp < minAge
+maxAge=.001;  % if the corresponding log entry has a date stamp < minAge
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
@@ -44,8 +43,7 @@ doPickingPreprocessor =1;
 
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/200707/';
 workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/200816/025015_1_1/';
-workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/AcrB/Lipo_data/'
-workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/201228/025035_1_1';
+workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20210216/';
 
 compressedDir=[workingDir 'Compressed/'];
 localWorkingDir=workingDir;
@@ -82,12 +80,13 @@ pars.mapMode='Kv';
 
 pars.UsePWFilter=doPrelimInverseFilter;
 
+% ---for rsRefineVesicleFits----
 pars.doPreSubtraction=1;  % rsRefineVesicleFits: pre-subtract old vesicle fit.
 pars.rTerms=[100 150 200 300  inf];
 
 pars.dsSmall=4; % downsampling of 'small' merged image
 
-pars.loadFilenames=1; % pick up allNames.mat in base directory
+pars.loadFilenames=0; % pick up allNames.mat in base directory
 pars.cpe=0;  % 0 means no change.
 
 % pars.modelMiName='~/scratch60/170417/KvLipo134_4/sq02w11/Info/sq02_1_0001_Apr18_15.11.43mi.txt';
@@ -242,7 +241,7 @@ while iName(end)<=numJobNames
     end;
     % merge images (sequence 3)
     if doMerge
-        if ~logSequence(3) || forceMerging || now-dates(3)>minAge
+        if ~logSequence(3) || forceMerging || now-dates(3)>maxAge
             if findUnfinished
                 unfinished=1 | unfinished;
             else

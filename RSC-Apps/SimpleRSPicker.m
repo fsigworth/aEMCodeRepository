@@ -849,6 +849,11 @@ end;
             disp('aa: run autopicking');
             disp('ap: set autopick parameters, then run');
             disp('ag: set autopick geometric parameters, then run');
+            disp(['   - RSO offset: max distance inside vesicle membrane to find ' ...
+                       'a particle. Zero: no limit.']);
+            disp('   - Blank radius: min distance between particles');
+            disp('   - Max bob: maximum distance outside a vesicle');
+            disp('   - Border: min distance of particle center to edge of micrograph');
             disp('Z: erase all picks');
             disp('R: turn on robo-fitting (load next image and start autopicking)');
             disp(' ');

@@ -2,11 +2,12 @@
 
 displayAngle=45;
 % displayAngle=90
-zFraction=.65; % relative Z-height of slice
+zFraction=.75; % relative Z-height of slice
 
-% [modelName,modelPath]=uigetfile('*model.star');
+[modelName,modelPath]=uigetfile('*model.star');
 % cd(modelPath);
-% [pa,nm,ex]=fileparts(modelName);
+modelName=[modelPath modelName];
+[pa,nm,ex]=fileparts(modelName);
 if ~strcmp(ex,'.mrc')
     p=strfind(modelName,'_');
     if numel(p)<2

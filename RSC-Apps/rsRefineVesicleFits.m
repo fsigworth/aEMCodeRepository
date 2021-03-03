@@ -34,7 +34,10 @@ dpars.writeSubMRC=1; % Write out subtracted image <basename>mv.mrc
 dpars.writeSmallMRC=0; % Write out image downsampled to M4. Otherwise, we 
 % match the size of any existing small image e.g. Merged_sm/*ms.mrc when we
 % write a small sub mrc.
+dpars.writeJpeg=1;
 dpars.writeSmallSubMRC=1; % Write out a downsampled subtracted image
+dpars.writeSubJpeg=1;
+dpars.jpegPath='Merged_jpeg/';
 dpars.dsSmall=4; % downsampling factor for small output images
 dpars.maxPixA=4.5;  % downsampled image resolution for radius fitting
 dpars.forceDs4=4;  % Or, use this fixed downsampling factor instead
@@ -361,7 +364,9 @@ end;
             if pars.writeSubMRC  % write an MRC file
                 CheckAndMakeDir(mi.procPath);
                 if isRawImg % our input is a raw micrograph, make the output the same size.
-                    mSub=Crop(m1-vs1,mi.imageSize);
+                    % ...and undo the image normalization so it matches the raw
+                    % image.
+                    mSub=(Crop(m1-vs1,mi.imageSize)/mi.imageNormScale)+mi.imageMedian;
                     outSubName=[mi.procPath mi.baseFilename '_v.mrc'];
                 else
                     mSub=m1-vs1;
@@ -371,20 +376,32 @@ end;
                 disp([outSubName ' saved']);
             end;
 
+            if pars.writeSmallMRC || pars.writeJpeg
             smSize=round(size(m1)/pars.dsSmall);
+                ms=Downsample(m1,smSize);
+            end;
+            
             if pars.writeSmallMRC
                 CheckAndMakeDir(procPath_sm);
                 outSmallName=[procPath_sm mi.baseFilename 'ms.mrc'];
-                ms=Downsample(m1,smSize);
                 WriteMRC(ms,mi.pixA*pars.dsSmall,outSmallName);
                 disp([outName ' saved.']);
             end;
-            if pars.writeSmallSubMRC
-                CheckAndMakeDir(procPath_sm);
-                outSubName=[procPath_sm mi.baseFilename 'mvs.mrc'];
+            if pars.writeJpeg
+                outJpegName=[pars.jpegPath mi.baseFilename 'ms.mrc'];
+                CheckAndMakeDir(pars.jpegPath);
+                WriteJpeg(ms,outJpegName);
+                disp([outJpegName ' saved.']);
+            end;
+            
+            if pars.writeSmallSubMRC || pars.writeSubJpeg
                 mvs=Downsample(m1-vs1,smSize);
-                WriteMRC(mvs,mi.pixA*pars.dsSmall,outSubName);
-                disp([outSubName ' saved, ' num2str(smSize) ' pixels']);
+            end;
+            if pars.writeSmallSubMRC
+                CheckAndMakeDir(pars.jpegPath);
+                outJpegName=[pars.jpegPath mi.baseFilename 'mvs.mrc'];
+                WriteJpeg(mvs,outJpegName);
+                disp([outJpegName ' saved.']);
             end;
             
     else  % No vesicles have been found to refine

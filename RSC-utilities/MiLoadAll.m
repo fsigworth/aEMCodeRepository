@@ -7,12 +7,14 @@
 % according to the defocus values.
 
 getNamesOnly=0;
-batchMode=1;
+batchMode=1;  % Simply load everything we find in the Info directory, and write out
+%               to the outPath.
 if batchMode
-    outPath='PIcking_9/';
-    infoPath='Info_9_lax_picking/';
+    outPath='';
+    infoPath='Info/';
     names=f2FindInfoFiles(infoPath);
     CheckAndMakeDir(outPath,1);
+    infoPath=''; % now included in file name.
 else
     [names, pathName]=uigetfile({'*mi.txt';'*mi.mat'},'Select mi files','multiselect','on');
     if isnumeric(pathName) % File selection was cancelled
@@ -23,7 +25,7 @@ else
     end;
     [rootPath, infoPath]=ParsePath(pathName);
     cd(rootPath);
-    outPath=infoPath;
+    outPath='';
 end;
 %%
 
@@ -34,7 +36,7 @@ allNames=cell(nNames,1);
 for i=1:nNames
     disp([num2str(i) '  ' names{i}]);
     %     allNames{i}=[infoPath names{i}];
-    allNames{i}=names{i};
+    allNames{i}=[infoPath names{i}];
     if ~getNamesOnly
         allMis{i,1}=ReadMiFile(allNames{i});
     end;

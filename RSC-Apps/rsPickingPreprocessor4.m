@@ -41,8 +41,10 @@ localVarRadius=100;  % angstroms
 maskPaddingA=40;     % extra space around outer radius, should be greater than maxBob in picker.
 membraneThicknessA=60;
 
-defPars.outputImageSize=960;  % size of output images.
-defPars.outputImageSize=768;
+defPars.outputImageSize=768;  % size of output images.
+defPars.outputImageSize=[720 512]; % K3
+defPars.outputImageSize=[1080 768]; % K3: must be same aspect ratio as mi.padImageSize
+
 defPars.mergedImageSuffix='s';
 defPars.mapMode='Kv';
 defPars.checkLog=0;
@@ -155,8 +157,8 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
     end;
 
     mi.basePath=rootPath;
-    [m0,M0,mergedImgOk]=meLoadNormalizedImage(mi,pars.outputImageSize,'m');
-    [m1,M1,subImgOk]=meLoadNormalizedImage(mi,pars.outputImageSize,'mv');
+    [m0,M0,mergedImgOk]=meLoadNormalizedImage(mi,pars.outputImageSize,'m',1);
+    [m1,M1,subImgOk]=meLoadNormalizedImage(mi,pars.outputImageSize,'mv',1);
     imgsOk=mergedImgOk && subImgOk;
     if ~mergedImgOk
         disp('No merged image.');
