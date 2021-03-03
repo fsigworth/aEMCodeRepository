@@ -10,10 +10,10 @@
 
 % allMisName='Picking_9/allMis.mat';
 % allMisName='Picking_9/allMis82.mat';
-allMisName='Picking_9/allMis9_intens+frac_7505.mat';
+allMisName='allMis.mat';
 
-micStarName='CtfFind/job029/micrographs_ctf.star';
-subMicStarName='CtfFind/job029/micrographs_sub_ctf.star';
+micStarName='CtfFind/job003/micrographs_ctf.star';
+subMicStarName='CtfFind/job003/micrographs_sub_ctf.star';
 writeSubMicrographsStar=0; % don't write a new one.
 
 % infoDir='Info/';

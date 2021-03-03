@@ -13,6 +13,8 @@ manRawFlag=17;  % color=6;
 bkdFlag=48;     % color=4
 minAmp=1e-3;    % amp value that is essentially zero.
 
+% The written coords are: [x y type vesInd cc template rso alpha]
+
 requiresPreprocessorText='SimpleRSP:ChangedFlags';
 
 flags=0;
