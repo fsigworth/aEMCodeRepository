@@ -8,10 +8,9 @@
 % At present we assume direct usage of the raw micrograph coordinates; that
 % is, we don't use coordinates in padded micrographs.
 
+% ----Our picking data----
 % First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
 % Then give the name here:
-% allMisName='Picking_9/allMis.mat';
-% allMisName='Picking_9/allMis82.mat';
 allMisName='Picking_9/allMis9_intens+frac_7505.mat';
 
 % ----Micrograph star files
@@ -23,19 +22,13 @@ writeSubMicrographsStar=1; % write a new star file pointing to the sub micrograp
 subMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to write
 
 % -----Particle and Vesicle info files to write-----
-outStarDir='RSC/';  % Place to put our star files
+outStarDir='RSC/';  % Place to put our particle star files
     CheckAndMakeDir(outStarDir,1);
 outParticleStarName='particleAll9_intens+frac_7505_unsub.star';
 outVesicleStarName=['ves_' outParticleStarName];
 writeParticleStar=1;
 writeVesicleStar=1;
-writeVesicleMat=0; % Instead of writing a long .star file, save as a Matlab .mat
-
-% infoDir='Info/';
-outStarDir='';  % Place to put our star files
-% outStarName='RSC/particleAllSub9.star';
-% outStarName='RSC/particleAll9.star';
-outStarName='RSC/particleAll9_intens+frac_7505.star';
+writeVesicleMat=1; % Instead of writing a long .star file, save as a Matlab .mat
 
 
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
@@ -62,8 +55,6 @@ disp(['Reading ' micStarName]);
 mcNames
 opt=mcDat{1};
 mic=mcDat{2};
-sOpt=opt;      % copy the optics info
-sMic=mic;       % copy the subtracted micrograph star structure
 disp([num2str(numel(mic.rlnMicrographName)) ' micrographs in star file.']);
 % %
 
@@ -73,15 +64,20 @@ ni=numel(allMis);
 disp([num2str(ni) ' mi files']);
 
 %%
+
 pts=struct;
 ves=struct; % structure for the vesicle info
+sOpt=opt;      % copy the optics info to the sub micrograph structure
+sMic=mic;       % copy the full micrograph star. We'll replace only the names
 
 boxSize=256; % nominal starting size
 FlagRange=[16 32]; % flags for valid particles
 groupIndex=1;
 groupParts=0;
 nTotal=0; % particle counter
+j=0; % line counter
 
+disp('Accumulating the structures. List: line; micrograph; particles; total particles.');
 for i=1:ni
     %     miName=names{i};
     %     mi=ReadMiFile(miName);
@@ -101,6 +97,7 @@ for i=1:ni
         end;
         active=(mi.particle.picks(:,10)>0) & mi.active; % ignore all particles when mi is not active.
         nParts=sum(active);
+        
         if nParts<1
             continue;
         end;
@@ -185,9 +182,11 @@ for i=1:ni
     if useSubtractedMicrograph % We make our own micrographs.star
         %             We're assuming here a one-to-one correspondence between mis
         %             and lines of the micrograph_ctf file.
-        sMic.rlnMicrographName{i}=subMicName;
-        if mic.rlnOpticsGroup(i)~=mi.opticsGroup % not one to one
-            error(['Discrepancy in micrograph indices at ' num2str(i)]);
+        j=i; % line index. Note that we don't overwrite the original mic names where there
+             %  are no particles!
+        sMic.rlnMicrographName{j}=subMicName;
+        if mic.rlnOpticsGroup(j)~=mi.opticsGroup % not one to one
+            error(['Discrepancy in micrograph indices at ' num2str(j)]);
         end;
     end;
 end; % for loop over micrograph mi files
@@ -206,7 +205,7 @@ pts.rlnAnglePsi(1:nTotal,1)=-999;
 % Write the particles star file
 if writeParticleStar
     outName=[outStarDir outParticleStarName];
-    disp(['Writing ' outName]);
+    disp(['Writing ' outName '...']);
     fStar=fopen(outName,'wt');
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(opt,'optics',fStar);
@@ -217,7 +216,7 @@ end;
 % Write the vesicle star file
 if writeVesicleStar
     outName=[outStarDir outVesicleStarName];
-    disp(['Writing ' outName]);
+    disp(['Writing ' outName '...']);
     fStar=fopen(outName,'wt');
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(opt,'optics',fStar);
@@ -228,15 +227,14 @@ end;
 if writeVesicleMat
     [~,vnm]=fileparts(outVesicleStarName);
     outName=[outStarDir vnm '.mat'];
-    disp(['Writing ' outName]);
+    disp(['Writing ' outName '...']);
     save(outName,'ves');
 end;
-
+%
 if useSubtractedMicrograph && writeSubMicrographsStar
     % ----Write the sub micrographs star file----
-    fullSubMicName=[outStarDir subMicStarName];
-    disp(['Writing ' fullSubMicName]);
-    fStar=fopen(fullSubMicName,'wt');
+    disp(['Writing ' subMicStarName '...']);
+    fStar=fopen(subMicStarName,'wt');
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(sOpt,'optics',fStar);
     WriteStarFileStruct(sMic,'micrographs',fStar);

@@ -5,7 +5,7 @@
 % we only read the mi files, not create them.
 
 f2Mode        =0;  % 0 means k2 data
-serialMode    =1;   % go through all the steps before moving to next micrograph
+serialMode    =0;   % go through all the steps before moving to next micrograph
 %checkLogs     =0;  % not yet in use.
 
 findUnfinished=0; % Don't process data, just make a new allNamesUnf.mat file.
@@ -18,7 +18,7 @@ forceMerging  =0;
 doDownsampleMergedImages=0;
 doCompressMovies      =0;  % compress movies
 doCompressMicrographs =0;  % compress micrographs
-doFindVesicles        =1;
+doFindVesicles        =0;
 %*** special multiple VesicleFinder runs ****
 doMultiFindVesicles   = 0;
 % findVesicleAmps=[5e-4 6e-4 7e-4 8e-4];
@@ -26,7 +26,7 @@ doMultiFindVesicles   = 0;
 %                  'KvLipo121_2w10_v3.7/';'KvLipo121_2w10_v3.8/'};
 %***
 doPrelimInverseFilter =0;
-doRefineVesicles      =1;
+doRefineVesicles      =0;
 forceRefineVesicles   =0;
 refineVesicleAmpsOnly=0;
 minRefineVesiclesSequence=0;  % 0 if don't consider.
