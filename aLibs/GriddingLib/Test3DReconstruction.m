@@ -58,4 +58,5 @@ vol=gridRecoverRealImage(PR,comp);
 toc
 
 figure(4);
+clf;
 ShowSections(vol);

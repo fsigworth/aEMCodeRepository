@@ -46,51 +46,53 @@ dotCount=200;
 disp('MakeFakeDataset:');
 
 
-    s=load(p.mapName);  % gets s.map, s.pixA; map is 108^3 in size.
-    % ShowSections(s.map);
-        
-    m=DownsampleGeneral(s.map,p.imgSize,1/ds);
-    p.pixA=s.pixA*ds;
-    
-    p.symmetry=4;
-    p.angStep=2;
-    %     angStep=6; %%%
-    p.psiStep=90; % all angles are in degrees
-    p.shiftMag=1;
-    
-    p.nTheta=round(180/p.angStep)+1;
-    dTheta=180/(p.nTheta-1);
-    p.nPsi=ceil(360/p.psiStep);
-    dPsi=360/p.nPsi;
-    psis=(0:dPsi:360-dPsi)';
-    p.maxNPhi=ceil(360/(p.angStep*p.symmetry))';
-    
-    nAngs=0;
-    angs=zeros(0,3);
-    for i=1:p.nTheta
-        theta=(i-1)*dTheta;
-        nPhi=ceil(sind(theta)*p.maxNPhi); % Sample phi sparsely when sin(theta) is small.
-        dPhi=360/(nPhi*p.symmetry);
-        for j=1:nPhi
-            phi=(j-1)*dPhi;
-            angs(nAngs+1:nAngs+p.nPsi,:)=[phi*ones(p.nPsi,1) theta*ones(p.nPsi,1) psis];
-            nAngs=nAngs+p.nPsi;
-        end;
+s=load(p.mapName);  % gets s.map, s.pixA; map is 108^3 in size.
+% ShowSections(s.map);
+
+m=DownsampleGeneral(s.map,p.imgSize,1/ds);
+p.pixA=s.pixA*ds;
+
+p.symmetry=4;
+p.angStep=2;
+%     angStep=6; %%%
+p.psiStep=90; % all angles are in degrees
+p.shiftMag=1;
+
+p.nTheta=round(180/p.angStep)+1;
+dTheta=180/(p.nTheta-1);
+p.nPsi=ceil(360/p.psiStep);
+dPsi=360/p.nPsi;
+psis=(0:dPsi:360-dPsi)';
+p.maxNPhi=ceil(360/(p.angStep*p.symmetry))';
+
+nAngs=0;
+angs=zeros(0,3);
+for i=1:p.nTheta
+    theta=(i-1)*dTheta;
+    nPhi=ceil(sind(theta)*p.maxNPhi); % Sample phi sparsely when sin(theta) is small.
+    dPhi=360/(nPhi*p.symmetry);
+    for j=1:nPhi
+        phi=(j-1)*dPhi;
+        angs(nAngs+1:nAngs+p.nPsi,:)=[phi*ones(p.nPsi,1) theta*ones(p.nPsi,1) psis];
+        nAngs=nAngs+p.nPsi;
     end;
-    
-    nAngs=size(angs,1);
-    p.nAngs=nAngs;
-    disp(p);
-    
-    shiftVector=zeros(p.nPsi,2);
-    for i=1:p.nPsi
-        shiftVector(i,:)=round(p.shiftMag*RotMatrix2((i-1)*2*pi/p.nPsi)*[1;0]); % shift along with psi
-    end;
-    shifts=repmat(shiftVector,nAngs/p.nPsi,1);
-    disp(p);
-    
+end;
+
+nAngs=size(angs,1);
+p.nAngs=nAngs;
+disp(p);
+
+shiftVector=zeros(p.nPsi,2);
+for i=1:p.nPsi
+    shiftVector(i,:)=round(p.shiftMag*RotMatrix2((i-1)*2*pi/p.nPsi)*[1;0]); % shift along with psi
+end;
+shifts=repmat(shiftVector,nAngs/p.nPsi,1);
+disp(p);
+
+%     Making projections takes a long time, so we skip this if they have
+%     already been computed.
 makeProjections=~(exist('templates','var') && all(size(templates)==[p.imgSize p.imgSize nAngs]));
-    
+
 if makeProjections % do this if templates haven't already been calculated.
     fprintf(' making %d projections %d x %d\n',nAngs,p.imgSize,p.imgSize);
     templates=rlMakeTemplates(angs,m,dotCount);
@@ -183,38 +185,38 @@ maxRot=180/p.symmetry;
 angMicrographIndex=floor((0:nAngs-1)'/p.imgsPerMicrograph)+1;
 disp(' making the stack...');
 %
-    for i=1:nImgs
-        iAmp=floor((i-1)/nAngs+1);
-        iAng=mod(i-1,nAngs)+1;
-        j1=angMicrographIndex(iAng);
-        j=j1+(iAmp-1)*nAmpMicrographs; % index over all images
-        d.rlnMicrographName{i}=sprintf('m%04u%s',j,'.mrc');
-        d.rlnImageName{i}=sprintf('%05u%s%s',i,'@',stackName);
-        d.rlnDefocusU(i)=1e4*defs(j1);
-        d.rlnDefocusV(i)=1e4*defs(j1);
-        rot=mod(angs(iAng,1)+maxRot,2*maxRot)-maxRot; % phi, restrict to +/- maxRot
-        d.rlnAngleRot(i)=rot;
-        d.rlnAngleTilt(i)=angs(iAng,2);
-        d.rlnAnglePsi(i)=angs(iAng,3);
-        d.rlnOriginX(i)=shifts(iAng,1);
-        d.rlnOriginY(i)=shifts(iAng,2);
-        
-        if p.useUniqueNoise
-            ind=i; % different noise for each image
-        else
-            ind=iAng; % repeat the noise like we repeat the angles.
-        end;
-        %     Note that we are shifting after doing all the rotations.        
-        img=-p.amps(iAmp)*circshift(templates(:,:,iAng),-shifts(iAng,:));
-
-        if p.useWhiteNoise
-            stack(:,:,i)=real(ifftn(fftn(img).*ifftshift(ctfs(:,:,j1)))) ...
-                +p.sigma*noise(:,:,ind);
-        else
-            stack(:,:,i)=real(ifftn(fftn(img+p.sigma*noise(:,:,ind,1)) ...
-            .*ifftshift(ctfs(:,:,j1))))+p.sigma*noise(:,:,ind,2);
-        end;
+for i=1:nImgs
+    iAmp=floor((i-1)/nAngs+1);
+    iAng=mod(i-1,nAngs)+1;
+    j1=angMicrographIndex(iAng);
+    j=j1+(iAmp-1)*nAmpMicrographs; % index over all images
+    d.rlnMicrographName{i}=sprintf('m%04u%s',j,'.mrc');
+    d.rlnImageName{i}=sprintf('%05u%s%s',i,'@',stackName);
+    d.rlnDefocusU(i)=1e4*defs(j1);
+    d.rlnDefocusV(i)=1e4*defs(j1);
+    rot=mod(angs(iAng,1)+maxRot,2*maxRot)-maxRot; % phi, restrict to +/- maxRot
+    d.rlnAngleRot(i)=rot;
+    d.rlnAngleTilt(i)=angs(iAng,2);
+    d.rlnAnglePsi(i)=angs(iAng,3);
+    d.rlnOriginX(i)=shifts(iAng,1);
+    d.rlnOriginY(i)=shifts(iAng,2);
+    
+    if p.useUniqueNoise
+        ind=i; % different noise for each image
+    else
+        ind=iAng; % repeat the noise like we repeat the angles.
     end;
+    %     Note that we are shifting after doing all the rotations.
+    img=-p.amps(iAmp)*circshift(templates(:,:,iAng),-shifts(iAng,:));
+    
+    if p.useWhiteNoise
+        stack(:,:,i)=real(ifftn(fftn(img).*ifftshift(ctfs(:,:,j1)))) ...
+            +p.sigma*noise(:,:,ind);
+    else
+        stack(:,:,i)=real(ifftn(fftn(img+p.sigma*noise(:,:,ind,1)) ...
+            .*ifftshift(ctfs(:,:,j1))))+p.sigma*noise(:,:,ind,2);
+    end;
+end;
 %
 disp(' making the metadata struct...');
 
@@ -239,32 +241,4 @@ disp('done.');
 
 % figure(1);
 % imagsar(stack);
-
-
-return
-
-
-%% Fit the background noise spectrum from a micrograph
-nd=96;
-
-micrName='/Users/fred/EMWork/Hideki/20181218/No5/sq04_1/Merged/Dec19_13.55.21ms.mrc';
-[m,s]=ReadMRC(micrName);
-imags(m);
-mc=m(481:480+nd,756:755+nd);
-figure(2);
-subplot(221);
-imags(mc);
-drawnow;
-spc=RadialPowerSpectrum(mc);
-subplot(222);
-
-semilogy(spc);
-
-x=(1:48)';
-f1=.01./(1+(x/9).^2)+.0008; % i.e. fc=9/96
-f2=.0025./(1+(x/8).^2)+.0007; % i.e. fc=8/96
-semilogy([spc f1 f2]);
-
-
-
 

@@ -4,10 +4,10 @@ function m=meMakeModelVesicleDiscs(mi,n,vindex,risetime)
 % function v=meMakeModelVesicles(mi,scl,vindex,risetime)
 % Given the info structure mi, make a model consisting of discs at each
 % vesicle position
-% for each vindex value in the mi.vesicle arrays; default is every one for
-% which mi.vesicle.ok(index,1)==true.
-% The result is an n-sized image (may be rectangular)
-% computed as a possibly downsampled version of the original micrograph.
+% for each vindex value in the mi.vesicle arrays; if vindex==0, we use
+% every vesicle entry where mi.vesicle.ok(index,1)==true.
+% The result is an n-sized image (may be rectangular) of singles,
+% Computed as a possibly downsampled version of the original micrograph.
 % If the second argument is a struct we assum it's
 %   scl.n size of the output image
 %   scl.M image scale matrix from meGetImageScale() which is used in

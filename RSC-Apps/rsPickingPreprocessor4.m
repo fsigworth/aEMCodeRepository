@@ -1,4 +1,4 @@
-edfunction rsPickingPreprocessor4(fname,pars)
+function rsPickingPreprocessor4(fname,pars)
 % rsPickingPreprocessor4
 % This program does the correlations for SimpleRSPicker, writing a file
 % *rscc.mat which contains the information.  It also places
@@ -21,38 +21,39 @@ if nargin<2
     pars=struct;
 end;
 
-% mapMode='slo2';  % Kv or AMPAR or slo2
-
-defPars.overwrite=1;
+defPars.overwrite=1; % overwrite existing *rscc.mat files
 defPars.mapMode='Kv';
-defPars.imSuffix='s';  % use the small merged images
+defPars.doNoiseWhitening=0; % if 0, use only a HP filter.
+defPars.onlyChangedFlags=0; % do only mi files where the log shows flags were changed.
+defPars.defocusfHP=.001; % highpass in A^-1
+defPars.phasefHP=.003;  % highpass to use if phase plate is in use.
+
 showTemplates=0;
-forceMedianAmplitude=false;
-showTemplatesAlternating=0;
-useNoiseWhitening=1;
-readSubtractedImage=1;
+defPars.readSubtractedImage=1;
 pwFiltPars=[.002 0; .01 .5];  % generic pw filter parameters
-fHP=.001; % highpass in A^-1
+
 % overrideDsm=2;  % downsample the merged image by this factor.
 overrideDsm=0;
 overrideB=40;
-jetScale=600;
 
 % These variables are copied to the mi file in rspLoadFiles.
 localVarRadius=100;  % angstroms
 maskPaddingA=40;     % extra space around outer radius, should be greater than maxBob in picker.
 membraneThicknessA=60;
 
-defPars.outputImageSize=960;  % size of output images.
-% defPars.outputImageSize=768;
+defPars.outputImageSize=768;  % size of output images.
+defPars.outputImageSize=[720 512]; % K3
+defPars.outputImageSize=[1080 768]; % K3: must be same aspect ratio as mi.padImageSize
+
 defPars.mergedImageSuffix='s';
 defPars.mapMode='Kv';
+defPars.checkLog=0;
 
 pars=SetOptionValues(defPars,pars);
 
 
 nterms=26;
-nterms=51;
+% nterms=51;
 % nterms=1;
 simulateImage=0;
 
@@ -61,6 +62,12 @@ doRelVarFigure=0;  % special figure of variance vs. number of terms
 
 
 ppVals=struct;
+mapPath=AddSlash(fileparts(which('arGetRefVolumes'))); % Get our directory
+
+disp(['Map: ' pars.mapMode]);
+
+mapPath=AddSlash(fileparts(which('arGetRefVolumes'))); % Get our directory
+
 switch pars.mapMode
     case 'Kv'
         ppVals.membraneOffsetA = 52;  % membrane is 52 � above particle center for RSO particle
@@ -70,18 +77,17 @@ switch pars.mapMode
         %
         %     mapName='/Users/fred/Structures/kv1.2/KvMap.mrc';
         %     mapName='~/Structures/kv1.2/KvMap.mrc'; % weak membrane subtraction
-        mapName='~/Structures/kv1.2/KvMapMbnSub.mrc';  % stronger membrane subtraction.
+        mapName=[mapPath '/KvMapMbnSub.mrc'];  % stronger membrane subtraction.
         dimShift=2;
         symmetry=4;
     case 'AMPAR'  % AMPAR
         ppVals.membraneOffsetA = -70;  % Membrane center is this distance from particle center
-        mapName='/Users/fred/Structures/AMPAR/3KG2map58.mrc';
+        mapName=[mapPath '3KG2map58.mrc'];
         dimShift=0;
         symmetry=2;
     case 'slo2'
         mapName='Slo2AMbnSub.mrc';
-        pa=AddSlash(fileparts(which('arGetRefVolumes'))); % Get our directory
-        mapName=[pa mapName];
+        mapName=[mapPath mapName];
         ppVals.membraneOffsetA=26;
         dimShift=2;
         symmetry=4;
@@ -102,7 +108,9 @@ switch pars.mapMode
     otherwise
         warning('Unrecognized mapMode');
 end;
-
+if ~exist(mapName,'file')
+    error(['The 3D map, full name ' mapName ' doesn''t exist.'])'
+end
 % new tighter values
 ppVals.nAlpha=36;
 ppVals.nBeta=12;  % even is best; number of betas per hemisphere.
@@ -113,7 +121,7 @@ ppVals.nGamma=24/symmetry;
 % mapName='/Volumes/TetraData/Structures/AMPAR/3KG2mapsub5.8A.mrc';
 
 % Have the user select some mi files: boilerplate
-if ~exist('fname','var') || ~exist('doBatchProcessing','var') || ~doBatchProcessing
+if ~exist('fname','var') || numel(fname)<1 || ~exist('doBatchProcessing','var') || ~doBatchProcessing
     [fname, pa]=uigetfile('*mi.txt','Select mi files','multiselect','on');
     if isnumeric(pa) % File selection cancelled
         return
@@ -130,7 +138,9 @@ else
 end;
 
 oldPixA=0;
-%%
+figure(1);
+
+%% ---------------Loop over micrographs--------------
 for fileIndex=1:numel(fname) % Operate on a single micrograph
     tic
     if doBatchProcessing
@@ -138,105 +148,108 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
     else
       miName=[infoPath fname{fileIndex}];
     end;
-    disp(['Reading ' miName]);
+    disp([num2str(fileIndex) ' Reading ' miName]);
     mi=ReadMiFile(miName);
+    
+    if pars.onlyChangedFlags && ~strncmp(mi.log{end},'SimpleRSP:ChangedFlags',22)
+        disp('--no vesicle changes, skipped.');
+        continue;
+    end;
+
     mi.basePath=rootPath;
-    outFileName=[mi.procPath mi.baseFilename 'rscc.mat'];
-    if exist(outFileName,'file') && ~pars.overwrite
-        disp('RSCC file exists.  Skipping.');
+    [m0,M0,mergedImgOk]=meLoadNormalizedImage(mi,pars.outputImageSize,'m',1);
+    [m1,M1,subImgOk]=meLoadNormalizedImage(mi,pars.outputImageSize,'mv',1);
+    imgsOk=mergedImgOk && subImgOk;
+    if ~mergedImgOk
+        disp('No merged image.');
+        continue;
+    end;
+    if ~subImgOk
+        disp('No subtracted image.');
+        continue;
+    end;
+    ds=M1(1,1);
+    pixA=mi.pixA*ds;
+    n=size(m1);
+%     ctr=floor(n/2+1);
+    
+%     [m1, mergeFullPath, mergedImgOk]=meReadMergedImage(mi,0,pars.mergedImageSuffix);
+%     ourProcPath=AddSlash(fileparts(mergeFullPath));
+    
+     % Check if we should skip this micrograph
+    logIndices=miDecodeLog(mi);
+    outFileName=[mi.procPath_sm mi.baseFilename 'rscc.mat'];
+    if (exist(outFileName,'file') && logIndices(8)>logIndices(5)) && ~pars.overwrite
+        disp('  A recent RSCC file exists.  Skipping.');
+        continue;
+    end;
+    if pars.checkLog && (logIndices(6)<logIndices(5) || logIndices(5)<1)
+        % no pw filter or no vesicle refinement
+        disp('  Not ready for picking.');
         continue;
     end;
     
-    if isfield(mi,'vesicle')&& numel(mi.vesicle.x)>0
-        %     Pick up the merged image
-        [origImg, mergeFullPath, mergedImgOk]=meReadMergedImage(mi,0,pars.mergedImageSuffix);
-        if ~mergedImgOk
-            disp('No merged image.  Skipping.');
-            continue;
-        end;
-        %%
-        %     Possibly downsample it
-        n1=size(origImg);
-        ds0=ceil(mi.imageSize(1)/pars.outputImageSize);  % intended downsampling from merged image
-        ds1=mi.imageSize(1)/n1(1);
-        dsm=ds0/ds1;  % downsampling factor of merged image
-        if overrideDsm
-            dsm=overrideDsm;
-        end;
-        n=n1/dsm;                      % Output size
-        if dsm~=1  % further downsampling
-            m0=DownsampleGeneral(origImg,round(n));
-        else
-            m0=origImg;
-        end;
-        n=size(m0);
-        ctr=n/2+1;  % n must be even
-        ds=mi.imageSize(1)/n(1);  % downsampling relative to original image
-        pixA=mi.pixA*ds;
-        disp(['Working image size is ' num2str(n)]);
-        
-        goodVesicle=all(mi.vesicle.ok(:,2:3),2); % in-range and refined
+    numVesicles=0;
+    if isfield(mi,'vesicle')
+        numVesicles=numel(mi.vesicle.x);
+    end;
+    if numVesicles>0
+      goodVesicle=all(mi.vesicle.ok(:,2:3),2); % in-range and refined
         badVesicle=~mi.vesicle.ok(:,2) & mi.vesicle.ok(:,3);  % found but out of range.
-        
-        if readSubtractedImage
-            [origSubImg, mergeFullPath, subImgOk]=meReadMergedImage(mi,0,['v' pars.mergedImageSuffix]);
-            if ~subImgOk
-                disp('No subtracted image. Skipping.');
-                continue;
-            end;
-            if dsm~=1  % further downsampling
-                m1=Downsample(origSubImg,n);
-            else
-                m1=origSubImg;
-            end;
             mVesGood=m0-m1;
             mVesBad=0*mVesGood;
-            
-        else % compute vesicles instead
-            
-            
-            %% Pick vesicles to work on
-            %   definition: vesicles.ok(i,:) = [aVesicle inRange refined -- ]
-            disp('Making model vesicles');
-            mVesGood=meMakeModelVesicles(mi,n,find(goodVesicle));
-            mVesBad=meMakeModelVesicles(mi,n,find(badVesicle));
-            ves=mVesGood+mVesBad;
-            %         ves=meMakeModelVesicles(mi,n,find(mi.vesicle.ok(:,3))); % everything that could be refined.
-            m1=m0-ves;
-        end;
-        %         useNoiseWhitening=(numel(mi.noiseModelPars)>0);
-        if  useNoiseWhitening
-            disp('Noise whitening');
-            H=meGetNoiseWhiteningFilter(mi,n,0,1,fHP*pixA);
-            if numel(H)<2
-                disp('Using a generic filter');
-                freqs=RadiusNorm(n)/pixA+1e-6;  % in inverse �, prevent divide by zero
-                H=ones(n,'single');
-                for i=1:size(pwFiltPars,1)  % product of (gauss + const) terms.
-                    f0=pwFiltPars(i,1);
-                    a=pwFiltPars(i,2);
-                    h=exp(-(f0./freqs).^2);
-                    H=H.*(a+(1-a)*h);
-                end;
-            end;
-            m2=real(ifftn(fftn(m1).*ifftshift(H)));
+
+        
+%         if pars.readSubtractedImage
+%             [origSubImg, mergeFullPath, subImgOk]=meReadMergedImage(mi,0,['v' pars.mergedImageSuffix]);
+%             if ~subImgOk
+%                 disp('No subtracted image. Skipping.');
+%                 continue;
+%             end;
+%             if dsm~=1  % further downsampling
+%                 m1=Downsample(origSubImg,n);
+%             else
+%                 m1=origSubImg;
+%             end;
+%             mVesGood=m0-m1;
+%             mVesBad=0*mVesGood;
+%             
+%         else % compute vesicles instead
+%             
+%             
+%             %% Pick vesicles to work on
+%             %   definition: vesicles.ok(i,:) = [aVesicle inRange refined -- ]
+%             disp('Making model vesicles');
+%             mVesGood=meMakeModelVesicles(mi,n,find(goodVesicle));
+%             mVesBad=meMakeModelVesicles(mi,n,find(badVesicle));
+%             ves=mVesGood+mVesBad;
+%             %         ves=meMakeModelVesicles(mi,n,find(mi.vesicle.ok(:,3))); % everything that could be refined.
+%             m1=m0-ves;
+%         end;
+%%        
+        % Noise-whiten the image ----
+                if isfield(mi.ctf(1),'phi') && mi.ctf(1).phi>0
+            fHP=pars.phasefHP;
+            disp('HP filter set for phase-plate data');
         else
-            disp('No specimen-noise whitening');
-            m2=m1;
-            H=1;
+            fHP=pars.defocusfHP;
         end;
-%         vCorr=meGetVesicleResiduals(mi,m2);
-%         m2=m2-vCorr;
-        %     m=m1-ves;  % vesicle subtraction
+ 
+        pwfImg=MakePreWhitening(pars,mi,pixA,fHP,n);
+
+        m2=real(ifftn(fftn(m1).*ifftshift(pwfImg)));
+
         %  --------Start making the figure--------
-        figure(1);
+%         figure(1);
         colormap jet(256);
         mysubplot(221);
         imaga(imscale(GaussFilt(m2,.3),256,.001));  % prewhitened image
         axis off;
         title(['Prewhitened: ' fname{fileIndex}],'interpreter','none');
         drawnow;
-        %%
+        % ----
+        
+        %%  Make templates
         if pixA~=oldPixA  % We haven't already made templates of the correct size
             oldPixA=pixA;
             % Load the 3D map
@@ -289,7 +302,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
             
         end;
         
-        %% Filter the templates according to the CTF
+        %% Filter the templates according to the CTF and prewhitening filter
         [nt, nt, nHemi, ppVals.nGamma, nHemiAngles]=size(allTemplates);
         nAngles=nHemi*ppVals.nGamma*nHemiAngles;
         ne=NextNiceNumber(nt*1.3);  % increase the size to allow CTF rings
@@ -300,12 +313,16 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
             end;
         end;
         ctf=meGetEffectiveCTF(mi1,ne,ds);  % put in dqe, pw filter.
-        if useNoiseWhitening % make a pre-whitening filter for the references
-            pwfRef=meGetNoiseWhiteningFilter(mi1,ne,ds);
+                useNoiseWhitening=pars.doNoiseWhitening && (numel(mi.noiseModelPars)>0);
+
+         if useNoiseWhitening % make a pre-whitening filter for the references
+            pwfRef=meGetNoiseWhiteningFilter(mi1,ne,ds,1,fHP*pixA);
+
             if numel(pwfRef)<2
                 disp('Using a generic filter');
                 freqs=RadiusNorm(ne)/pixA+1e-6;  % in inverse �, prevent divide by zero
-                pwfRef=ones(ne,ne,'single');
+%                pwfRef=ones(ne,ne,'single');
+                pwfRef=GaussHPKernel([ne ne],fHP*pixA);
                 for i=1:size(pwFiltPars,1)  % product of (gauss + const) terms.
                     f0=pwFiltPars(i,1);
                     a=pwFiltPars(i,2);
@@ -314,7 +331,8 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                 end;
             end;
         else
-            pwfRef=ones(ne,ne,'single');
+%            pwfRef=ones(ne,ne,'single');
+                pwfRef=GaussHPKernel([ne ne],fHP*pixA);            
         end;
         ctf=ctf.*pwfRef;
         
@@ -322,10 +340,10 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         xTemplates=Crop(reshape(allTemplates,nt,nt,nAngles),ne,1);
         nim=size(xTemplates,3);
         %     operate with the CTF and mask
-        H=ifftshift(ctf);
+        pwfImg=ifftshift(ctf);
         msk=fuzzymask(ne,2,0.45*ne,.1*ne);
         for i=1:nim
-            xTemplates(:,:,i)=real(ifftn(fftn(xTemplates(:,:,i)).*H)).*msk;
+            xTemplates(:,:,i)=real(ifftn(fftn(xTemplates(:,:,i)).*pwfImg)).*msk;
         end;
         xTemplates=reshape(xTemplates,ne,ne,nHemi,ppVals.nGamma,nHemiAngles);
         ntstr=num2str(nt);
@@ -373,7 +391,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                         end;
                     end;
                 end;
-                figure(1);
+                figure(5);
                 ImagicDisplay2(rImgAlt,2);
                 
                 % % %         Create a set of references for Fig. 4 of the paper
@@ -382,7 +400,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                 for k=1:nHemiAngles
                     kImgs(:,:,k)=rot90(reshape(timgs*qList(:,k),ne,ne),3);
                 end;
-                
+                figure(1);
             else  % just show the reconstructed templates
                 %%  % Make a complete set of reconstructions for comparison
                 %   and make the average power spectrum
@@ -408,8 +426,9 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                 title('Average reference power spectra');
                 mysubplot(2,1,2);
                 plot([cumsum(spr0) cumsum(spr)]);
-                figure(1);  % show the reconstructed image
+                figure(5);  % show the reconstructed image
                 ImagicDisplay2(rImg);
+                figure(1);
             end;
         end;
         % mic=rsSortVesicles(mi);  % make a copy with the vesicles sorted by position.
@@ -421,15 +440,16 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
 %         drawnow;
 %       -------display------
         mysubplot(221);
-        imags(GaussFilt(origImg,1000/size(origImg,1)));
+        imags(GaussFilt(m1,1000/size(m0,1)));
         title(miName,'interpreter','none');
 
         globalMask=meGetMask(mi,n);
+        
         %%  ----------Evaluate the cc for each vesicle----------
         disp('Evaluating cross-correlations');
         disp([' using ' num2str(nterms) ' terms']);
         %         figure(3); clf; SetGrayscale;
-        %         imac(imscale(GaussHP(GaussFilt(origImg,.1),.005),256,.003));
+        %         imac(imscale(GaussHP(GaussFilt(m1,.1),.005),256,.003));
         
         %         %% Pick vesicles to work on
         %         %   definition: vesicles.ok(i,:) = [aVesicle inRange refined -- ]
@@ -461,13 +481,25 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         mskl=fuzzymask(nl,2,msklRadius,0.12*msklRadius);  % local mask
         npts=sum(mskl(:));
         
-        nves=numel(goodVesicle);
+%         nves=numel(goodVesicle);
+        nves=numVesicles;
         disp(['Total vesicle entries: ' num2str(nves)]);
         maskPadding=ceil(maskPaddingA/pixA);
         
-        for i=1:nves  % loop over all possible vesicles
-            ctr=round([mic.vesicle.x(i) mic.vesicle.y(i)]/ds+1);  % shift to 1-based coords
-            xDist=Radius(n,ctr)-mic.vesicle.r(i)/ds;  % Get the distance map, distance from mbn center
+%             Correction for padded ms.mrc images
+        if isfield(mi,'useMicrographCoords') && mi.useMicrographCoords
+            cropOffset=floor((mi.padImageSize-mi.imageSize)/2);
+        else
+            cropOffset=[0 0];
+        end;
+        
+        
+        for i=1:numVesicles  % loop over all possible vesicles
+%             Get the vesicle center in our image coordinates
+            ctr1=M1\[mic.vesicle.x(i); mic.vesicle.y(i); 1];
+            vctr=round(ctr1(1:2)'+1); % ones-based, downsampled coordinates
+%             ctr=round(([mic.vesicle.x(i) mic.vesicle.y(i)]-M1(1:2,3)')/ds+1);  % shift to 1-based coords
+            xDist=Radius(n,vctr)-mic.vesicle.r(i)/ds;  % Get the distance map, distance from mbn center
             qDist=xDist<mxDist;
             
             if goodVesicle(i) && mic.vesicle.r(i)>ds*membraneOffset  % We search in the vicinity of this one
@@ -480,7 +512,7 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                 
                 % ---------- Get the single-vesicle correlation function here ------------
                 [mxValsU, mxInds, mxNCC, mxVals, mxRso, localVar]=...
-                    rsVesicleCorrelation6(-m2,mic,i,membraneOffset,...
+                    rsVesicleCorrelation6(-m2,mic,i,vctr,membraneOffset,...
                     maskRadii,angleInds,eigenSet);
                 
                 % Get the distance function for evaluating which is the closest
@@ -491,21 +523,21 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
                 h=ifftshift(Crop(mskl,nv));  % average over the local mask
                 filtVar=real(ifftn(fftn(localVar).*fftn(h))).*fuzzymask(nv,2,max(maskRadii(1:2)),.5);
                 
-                %     Pad all the quantities to a full-sized image
-                xVals=ExtractImage(mxVals,ctr,n,1);
-                xValsU=ExtractImage(mxValsU,ctr,n,1);
-                xTemplInds=ExtractImage(mxInds,ctr,n,1);
-                xVar=ExtractImage(filtVar,ctr,n,1);
-                %         xVar=ExtractImage(localVar,ctr,n,1);
-                %             xNCC=ExtractImage(mxNCC,ctr,n,1);
-                xRso=ExtractImage(mxRso, ctr,n,1);
+                %     Insert all the quantities into a full-sized image
+                xVals=ExtractImage(mxVals,vctr,n,1);
+                xValsU=ExtractImage(mxValsU,vctr,n,1);
+                xTemplInds=ExtractImage(mxInds,vctr,n,1);
+                xVar=ExtractImage(filtVar,vctr,n,1);
+                %         xVar=ExtractImage(localVar,vctr,n,1);
+                %             xNCC=ExtractImage(mxNCC,vctr,n,1);
+                xRso=ExtractImage(mxRso, vctr,n,1);
                 
                 %       Incorporate into the composite images
                 qVar=xVar>mxVars;  % switch function for variances
                 qAmp=xValsU>gMaxValsU; % switch function for particle amps
                 
-            elseif badVesicle(i)
-                
+%            elseif badVesicle(i)
+            else
                 xVar=nulls;
                 xVals=nulls;
                 xValsU=nulls;
@@ -591,15 +623,14 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
         mVesBad=round(mVesBad,3);
         
         partRadius=18; % ????
-    logTxt=['rsPickingPreprocessor4 ' TimeStamp];
-        
+        logTxt=['rsPickingPreprocessor4 ' TimeStamp];
         save(outFileName,'mxCC','mxCCU','mxVars','mxVesInds',...
             'mxDist','mxTemplInds','mxRsos','partRadius', 'membraneOffsetA','ds',...
-            'badVesMask','eigenImgs','vList','angleList','ppVals','pwfRef',...
-            'mVesGood','mVesBad','logTxt');
-        disp(['written: ' mi.procPath mi.baseFilename 'rscc.mat']);
+            'badVesMask','eigenImgs','vList','angleList','ppVals','fHP',...
+            'pwfRef','pwfImg','mVesGood','mVesBad','logTxt','m0','m1');
+        disp(['written: ' outFileName]);
     mi.log{end+1,:}=logTxt;
-    WriteMiFile(mi,miName);
+    WriteMiFile(mi,miName); % miName includes the infoPath
 
     else
         disp('No vesicles found.');
@@ -612,3 +643,33 @@ for fileIndex=1:numel(fname) % Operate on a single micrograph
     % disp('continuing');
 end;
 % figure(1); clf;
+
+
+
+
+
+
+
+
+        function pwf=MakePreWhitening(pars,mi,pixA,fHP,n);
+
+        useNoiseWhitening=pars.doNoiseWhitening && (numel(mi.noiseModelPars)>0);
+       if  useNoiseWhitening
+            disp('Noise whitening');
+            pwf=meGetNoiseWhiteningFilter(mi,n,0,1,fHP*pixA);
+            if numel(pwf)<2
+                disp('Using a generic filter');
+                freqs=RadiusNorm(n)/pixA+1e-6;  % in inverse �, prevent divide by zero
+                pwf=GaussHPKernel(n,fHP*pixA);
+                for i=1:size(pwFiltPars,1)  % product of (gauss + const) terms.
+                    f0=pwFiltPars(i,1);
+                    a=pwFiltPars(i,2);
+                    h=exp(-(f0./freqs).^2);
+                    pwf=pwf.*(a+(1-a)*h);
+                end;
+            end;
+        else
+            disp('No specimen-noise whitening');
+            pwf=GaussHPKernel(n,fHP*pixA);
+        end;
+

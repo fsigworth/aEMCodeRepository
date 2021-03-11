@@ -2,7 +2,11 @@
 
 displayAngle=45;
 % displayAngle=90
+<<<<<<< Updated upstream
 zFraction=.75; % relative Z-height of slice
+=======
+zFraction=.35; % relative Z-height of slice
+>>>>>>> Stashed changes
 
 [modelName,modelPath]=uigetfile('*model.star');
 % cd(modelPath);
