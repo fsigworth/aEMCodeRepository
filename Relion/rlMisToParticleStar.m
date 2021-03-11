@@ -14,6 +14,8 @@
 % we assume we're reading either MotionCorr/ micrographs or Merged/*_u.mrc
 % or Merged/*_v.mrc micrographs.
 
+
+% ----Our picking data----
 % First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
 % Then give the name here:
 allMisName='Picking_9/allMis9_intens+frac_7505.mat';
@@ -32,7 +34,7 @@ writeNewMicrographsStar=1; % write a new star file pointing to the Merged/ micro
 newMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to write
 
 % -----Particle and Vesicle info files to write-----
-outStarDir='RSC/';  % Place to put our star files
+outStarDir='RSC/';  % Place to put our particle star files
     CheckAndMakeDir(outStarDir,1);
 outParticleStarName='particleAll9_intens+frac_7505_unsub.star';
 outVesicleStarName=['ves_' outParticleStarName];
@@ -70,8 +72,6 @@ disp(['Reading ' micStarName]);
 mcNames
 opt=mcDat{1};
 mic=mcDat{2};
-sOpt=opt;      % copy the optics info
-sMic=mic;       % copy the subtracted micrograph star structure
 disp([num2str(numel(mic.rlnMicrographName)) ' micrographs in star file.']);
 % %
 
@@ -83,13 +83,17 @@ disp([num2str(ni) ' mi files']);
 %%
 pts=struct; % particles
 ves=struct; % structure for the vesicle info
+sOpt=opt;      % copy the optics info to the sub micrograph structure
+sMic=mic;       % copy the full micrograph star. We'll replace only the names
 
 boxSize=256; % nominal starting size
 FlagRange=[16 32]; % flags for valid particles
 groupIndex=1; % if we're not reading from mi.ok
 groupParts=0;
 nTotal=0; % particle counter
+j=0; % line counter
 
+disp('Accumulating the structures. List: line; micrograph; particles; total particles.');
 for i=1:ni
     %     miName=names{i};
     %     mi=ReadMiFile(miName);
@@ -112,6 +116,7 @@ for i=1:ni
         end;
         active=(mi.particle.picks(:,10)>0) & mi.active; % ignore all particles when mi is not active.
         nParts=sum(active);
+        
         if nParts<1
             continue;
         end;
@@ -220,7 +225,7 @@ pts.rlnAnglePsi(1:nTotal,1)=-999;
 % Write the particles star file
 if writeParticleStar
     outName=[outStarDir outParticleStarName];
-    disp(['Writing ' outName]);
+    disp(['Writing ' outName '...']);
     fStar=fopen(outName,'wt');
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(opt,'optics',fStar);
@@ -231,7 +236,7 @@ end;
 % Write the vesicle star file
 if writeVesicleStar
     outName=[outStarDir outVesicleStarName];
-    disp(['Writing ' outName]);
+    disp(['Writing ' outName '...']);
     fStar=fopen(outName,'wt');
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(opt,'optics',fStar);
@@ -242,7 +247,7 @@ end;
 if writeVesicleMat
     [~,vnm]=fileparts(outVesicleStarName);
     outName=[outStarDir vnm '.mat'];
-    disp(['Writing ' outName]);
+    disp(['Writing ' outName '...']);
     save(outName,'ves');
 end;
 

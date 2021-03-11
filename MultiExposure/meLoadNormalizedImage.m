@@ -27,6 +27,9 @@ function [mOut,M,ok,rawImg]=meLoadNormalizedImage(mi,targetSize,imgType,allowFra
 % origMicrographXY=M*[xOut;yOut;1];
 % [xOut;yOut;1]=M\[origX origY 1];
 %  assuming zero-based coordinates in each case.
+if nargin<4
+    allowFracDs=0;
+end;
 
 maxScaleUp=1.2; % amount by which we'll allow a small image to be scaled up.
 if nargin<2
@@ -36,9 +39,6 @@ elseif numel(targetSize)<2
 end;
 if nargin<3
     imgType='m'; % default: prefer small or compressed files.
-end;
-if nargin<4
-    allowFracDs=0;
 end;
 ok=false;
 rawImg=false;
@@ -97,7 +97,10 @@ if ok
 %     Fill in the scaling of the image we read in.
 if allowFracDs
     ds=mi.padImageSize./targetSize;
-    if 
+    if ~(abs(diff(ds))<sum(ds)*.001)
+        error(['Non-matching downsampling factors: ' num2str(ds)]);
+    end;
+    ds=ds(1);
 else
     ds=ceil(max(mi.padImageSize./targetSize)); % desured overall downsampling factor.
 end;
