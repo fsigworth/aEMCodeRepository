@@ -1,4 +1,4 @@
-function rsPickingPreprocessor4(fname,pars)
+edfunction rsPickingPreprocessor4(fname,pars)
 % rsPickingPreprocessor4
 % This program does the correlations for SimpleRSPicker, writing a file
 % *rscc.mat which contains the information.  It also places

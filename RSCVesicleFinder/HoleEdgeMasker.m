@@ -1,47 +1,44 @@
 % HoleEdgeMasker.m
 
-allMisName='Info_0_allMis/allMis.mat';
-disp(['Loading ' allMisName]);
-load(allMisName);
-nmi=numel(allMis)
+doWrite=1;
 
+
+allMisName='Picking_9/allMis9_intens+frac_7505.mat';
+outMisName='Picking_9/allMis_holemasked_i+f_7505.mat';
+outJPath='Picking_9/MaskJpegs/';
+outLocsName='Picking_9/MaskLocs.mat';
+
+% % disp(['Loading ' allMisName]);
+% % load(allMisName);
+nmi=numel(allMis)
+outMis=cell(nmi,1);
 %%
 fHP=0;
-k=.001;
-priorAmp=40;
-runStr='_hole_all_amp20py4msk';
-outMiPath=['Info' runStr '/'];
-CheckAndMakeDir(outMiPath,1);
-for i=1:6
-    outJPaths{i}=sprintf('%s%s%s%1d/','jpeg',runStr,'_shot',i);
-    CheckAndMakeDir(outJPaths{i},1);
+k=.1;
+priorAmp=100;
+if doWrite
+       CheckAndMakeDir(outJPath,1);
 end;
 
 dds=8;
 r=1;
 nBig=768;
-priorPos=[350 380 219 274 487 545
-    370 215 337 545 544 344];
-% priorPos=[350 380 219 274 487 545
-%     370 275 337 545 544 344];
-% priorPos=[350 380 219 274 487 545
-%     370 220 337 545 544 344];
-priorPos=[350 380 219 264 507 545
-    370 170 337 555 554 344];
 
-priorSigma=50;
-% priorAmp=40;
-% priorAmp=60;
+% priorPos=[350 380 219 264 507 545
+%     370 170 337 555 554 344];
+% priorSigma=50;
+
 %
 nHoles=1;
 locs=zeros(ceil(nmi/6),2,6,'single');
 %
 update2DFreq=5000
+
 figure(1);
 iStart=1
 for i=iStart:numel(allMis)
     mi=allMis{i};
-    imgName=['Merged_sm/' mi.baseFilename 'ms.mrc'];
+    imgName=['Merged_sms/' mi.baseFilename 'ms.mrc'];
     disp([imgName '  ' num2str([nHoles i])]);
     if ~exist(imgName,'file')
         disp(' no image.');
@@ -55,7 +52,7 @@ for i=iStart:numel(allMis)
     imags(m0);
     
     m0=m0-mean(m0(:));
-%     m0=GaussHP(m0,fHP);
+    %     m0=GaussHP(m0,fHP);
     n0=size(m0);
     ds=mi.padImageSize(1)/n0(1);
     m0PixA=mi.pixA*ds;
@@ -81,56 +78,97 @@ for i=iStart:numel(allMis)
         
         subplot(231);
         imags(ref);
-        subplot(233);
-        imags(norm);
+        subplot(232);
+        imags(1./(norm+k*10));
+        plot((1./(norm(:,1:20:nBig)+k)));
         
     end;
     
-    m8p=Crop(m8,nBig);
+    
+    % create the filters for detecting carbon.
+    fHP=.2; % in A^-1
+    kHP=-(log(2)/2)*(m0PixA*fHP)^2;
+    R=RadiusNorm(n0);
+    q=exp(kHP./(R+1e-4));	% Gaussian kernel
+    cPars=mi.ctf;
+    cPars.B=40;
+    cPars.alpha=.05;
+    c1=CTF(n0,m0PixA,cPars).*q;
+    cPars.alpha=pi/2+.05;
+    c2=CTF(n0,m0PixA,cPars).*q;
+    
+    fm0=fftshift(fftn(m0)); % zero center FT
+    mf1=real(ifftn(ifftshift(c1.*fm0)));
+    mf2=real(ifftn(ifftshift(c2.*fm0)));
+    
+    % %     figure(3);
+    %      sp1=RadialPowerSpectrum(fm1);
+    % sp2=RadialPowerSpectrum(fm2);
+    % freqs=sectr(RadiusNorm(n0))/m0PixA;
+    % semilogy(freqs,[sp1 sp2]);
+    
+    %  Compute the local variance
+    md1=max(0,Downsample(GaussFilt(mf1.^2,.05),n8));
+    md2=max(0,Downsample(GaussFilt(mf2.^2,.05),n8));
+    
+    v8=sqrt(md2)-sqrt(md1);
+    v8=v8-median(v8(:));
+    % plot([sectr(16*v8) sectr(m8)]);
+    % Combine variance and mean image darkness
+    varWeight=2*16; % about twice contribution from var
+    mv8=m8+(varWeight*v8);
+    
+    m8p=Crop(mv8,nBig);
     % m8p=GaussHP(m8p,fHP);
     
     subplot(234);
     imags(m8);
-    cc=real(ifftn(conj(fftn(ifftshift(m8p))).*fref));
+    subplot(235);
+    imags(mv8);
+    cc=real(ifftn(conj(fftn(ifftshift(m8p))).*(fref)));
     % subplot(232);
     % imags(cc);
-        
-    ncc=cc./(norm+k);
+    ncc0=cc./(norm+k);
     
-    prior=priorAmp*Gaussian(nBig,2,priorSigma,priorPos(:,iShot)');
+    %    prior=priorAmp*Gaussian(nBig,2,priorSigma,priorPos(:,iShot)');
     
-    ncc=(ncc+prior).*nccMask;
+%     subplot(232);
+%     plot([sect(ncc0) sect(ncc0')]);
+%     n81=n8(1);
+%     axis([1 nBig -n81 n81]);
     
-   % subplot(235);
-    % plot(sect(ncc));
-    
+    prior=priorAmp*Gaussian(nBig,2,nBig/4);
+    ncc=(ncc0+prior).*nccMask;
+     
     [mx,ix,iy]=max2d(ncc);
-
-    subplot(232);
+    
+    subplot(233);
     imags(ncc);
     hold on;
     plot(ix,iy,'r+','markersize',10);
     hold off;
-     
+    
     model=ExtractImage(ref,[ix,iy],n8);
-    subplot(235);
+    subplot(236);
     
-    modelx=GaussFiltDCT(model,.07)>.9; % expand by a few pixels
+    modelx=GaussFiltDCT(model,.05)>.9; % expand by a few pixels
+    outMis{i}=meInsertMask(modelx,mi,2);
     
-    modelImage=Downsample(modelx+60*m8,4*n8);
-    jname=sprintf('%s%04d.jpg',outJPaths{iShot},nHoles);
-    WriteJpeg(modelImage,jname);
-    disp(jname);
+    if doWrite
+        jname=sprintf('%s%05d.jpg',outJPath,i);
+        modelImage=Downsample(modelx+60*m8,4*n8);
+        WriteJpeg(modelImage,jname);
+        disp(jname);
+        
+        %         mi=meInsertMask(modelx,mi,2);
+        %         WriteMiFile(mi,[outMiPath mi.baseFilename 'mi.txt']);
+    end;
     
-    mi=meInsertMask(modelx,mi,2);
-    WriteMiFile(mi,[outMiPath mi.baseFilename 'mi.txt']);
-    
-    imags(modelx+60*m8);
+    imags(modelx+30*mv8);
     
     locs(nHoles,:,iShot)=[ix iy];
     
     title(iShot);
-    drawnow;
     % pause;
     
     if iShot==1
@@ -143,9 +181,37 @@ for i=iStart:numel(allMis)
         plot(xs,ys,'.');
         figure(1);
     end;
-%     pause
+    drawnow;
 end;
-save(['locs' runStr '.mat'],'locs');
+if doWrite
+    disp(['Writing ' outLocsName '...']);
+    save(outLocsName,'locs');
+    disp(['Writing ' outMisName '...']);
+    oldAllMis=allMis;
+    allMis=outMis;
+    save(outMisName,'allMis');
+    allMis=oldAllMis;
+    clear oldAllMis
+    disp('done.');
+end;
+return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 %
 % % save locs001amp60.mat locs
@@ -218,15 +284,15 @@ pause(1);
 
 % Try editing values outside the inner ring of the reference
 ctr=nBig/2+1;
-    bad=sqrt((xs-ctr).^2+(ys-ctr).^2)>rPix;
-    xs(bad)=NaN;
-    ys(bad)=NaN;
-    for i=1:6
-        y=ys(:,i);
-        x=xs(:,i);
-        medy(i)=median(y(~isnan(y)));
-        medx(i)=median(x(~isnan(x)));
-    end;
+bad=sqrt((xs-ctr).^2+(ys-ctr).^2)>rPix;
+xs(bad)=NaN;
+ys(bad)=NaN;
+for i=1:6
+    y=ys(:,i);
+    x=xs(:,i);
+    medy(i)=median(y(~isnan(y)));
+    medx(i)=median(x(~isnan(x)));
+end;
 
 figure(2);
 plot(xs,ys,'.');

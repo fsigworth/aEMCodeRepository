@@ -15,13 +15,34 @@ jpegDir='Picker_jpegs/';
 % 
 
 nmi=numel(allMis);
+vals=zeros(nmi,15);
+for i=1:nmi
+    z=allMis{i}.ok(1:15);
+    vals(i,:)=z;
+end;
+%  Set the selection criteria here:
+q=1./(1+vals(:,1).^2); % switch function favoring overlap <=1
+% vals(:,8) is the composite intensity
+selVal=vals(:,8)+(8.4-vals(:,8)).*q/2;
+selVal2=vals(:,1);
+figure(2);
+clf;
+hist(selVal,200);
+
+figure(3);
+selVal2(selVal2>20)=NaN;
+plot(selVal,selVal2,'.');
+
+inds=find(selVal>8.2 & selVal<8.5 & defs<3.6 & ~isnan(selVal) & res<7);
+% inds=find(selVal2<3);
 
 figure(1);
+clf;
 set(1,'color',[.4 .4 .4]);
 set(1,'menu','none');
 set(1,'toolbar','none');
 % inds=find(rej);
-inds=1:nmi;
+% inds=1:nmi;
 nin=numel(inds);
 disp([num2str(nin) ' indices']);
 iptr=1;
@@ -31,14 +52,15 @@ while iptr<nin
     mi=allMis{ind};
     allMis{ind}.active=true;
     jpegName=[jpegDir mi.baseFilename '_i0.jpg'];
-        tstr=sprintf('%04d %6.3f',iptr,intens(6,iptr));
+        tstr=sprintf('%04d %04d %6.3f %6.3f',iptr,ind,selVal(ind),selVal2(ind));
 %         tstr=sprintf('%04d %6.3f',iptr,fracs(iptr));
 %         tstr=sprintf('%04d file: %05d   def: %5.2f   res: %6.2f   FOM: %6.3f',...
 %             iptr,ind,mi.ctf.defocus, mi.ctf.resLimit,mi.ctf.ccc);
-    if exist(jpegName,'file') && intens(8,ind)<8.2
+    if exist(jpegName,'file')
         im=imread(jpegName);
         image(im);
-        fprintf('%d',ind);
+%         fprintf('%d %g',ind,selVal(ind));
+disp(tstr);n
     else
         iptr=iptr+1;
         continue;
@@ -73,7 +95,8 @@ while iptr<nin
         ind=1;
     end;
  end;
-            
+ imags(zeros(768));    
+ disp(' ');
  disp('Done.');
  return
  %%
