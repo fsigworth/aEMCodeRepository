@@ -466,7 +466,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                             disp(['Wrote ' fullJpegName]);
                         end;
                     if dis.readOnlyMode || dis.classParticlesMode
-                        disp(['Read-only mode. ' num2str(sum(rspCountParticles(picks))) ' particles.']);
+                        disp(['***Read-only mode*** ' num2str(sum(rspCountParticles(picks))) ' particles.']);
                     else
                         mi=rspStorePicksInMi(mi,picks,ptrs,1,dis);
                         mi.particle.autopickPars=dis.pars;
@@ -875,7 +875,7 @@ end;
             disp('----Advanced commands----');
             disp('D: cycle through all 10 display modes');
             disp('S: robo-fitting with statistics collection, relaxed criteria');
-            disp('P: set special preferences, including read-only mode');
+            disp('P: set special preferences, includread-only mode');
             disp('G: set amplitude of "ghost vesicle" display');
             disp('v: mark a bad vesicle good, for re-processing');
             disp(' ');
