@@ -18,7 +18,7 @@
 % ----Our picking data----
 % First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
 % Then give the name here:
-allMisName='Picking_9/allMis9_intens+frac_7505.mat';
+% allMisName='Picking_9/allMis9_intens+frac_7505.mat';
 allMisName='Picking_9/allMis_holes_i2_ov_cls.mat';
 
 % ----Micrograph star files
@@ -30,23 +30,24 @@ useSubtractedMicrograph=1; % Put the subtracted micrograph name in the particles
 % than the unsubtracted image as chosen above.
 % (The subtracted micrograph *_v.mrc (unpadded, i.e. useRawMicrograph=1)
 %  or (padded) *mv.mrc. Either is assumed to be in the Merged/ folder.)
-writeNewMicrographsStar=1; % write a new star file pointing to the Merged/ micrographs
+writeNewMicrographsStar=0; % write a new star file pointing to the Merged/ micrographs
 newMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to write
 
 % -----Particle and Vesicle info files to write-----
 outStarDir='RSC/';  % Place to put our particle star files
     CheckAndMakeDir(outStarDir,1);
-outParticleStarName='particleAll9_intens+frac_7505_unsub.star';
+outParticleStarName='particleAll9_holes_i2_ov_cls.star';
 outVesicleStarName=['ves_' outParticleStarName];
 writeParticleStar=1;
 writeVesicleStar=1;
 writeVesicleMat=0; % Instead of writing a long .star file, save as a Matlab .mat
 
 useGroupsFromMi=1; % Read the assigned group no. from mi.ok(20)
-% else just use and incrementing index, with
+% OR ELSE just use and incrementing index, with
   minGroupParts=200; % minimun number of particles in a group
 
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
+setMisActive=1; % ignore mi.active field.
 doPrint=1;
 
 
@@ -92,7 +93,9 @@ groupIndex=1; % if we're not reading from mi.ok
 groupParts=0;
 nTotal=0; % particle counter
 j=0; % line counter
-
+pSkip=0; % no particles
+zSkip=0; % zero class
+nSkip=0;
 disp('Accumulating the structures. List: line; micrograph; particles; total particles.');
 for i=1:ni
     %     miName=names{i};
@@ -107,6 +110,9 @@ for i=1:ni
     end;
     if useGroupsFromMi
         groupIndex=mi.ok(20); % a zero groupIndex means a bad micrograph
+        if groupIndex==0
+            zSkip=zSkip+1;
+        end;
     end;
     if isfield(mi.particle,'picks') && numel(mi.particle.picks)>0 && groupIndex>0
         % ----- Accumulate the particle star data -----
@@ -114,10 +120,13 @@ for i=1:ni
             flags=mi.particle.picks(:,3);
             mi.particle.picks(:,10)=(flags>=FlagRange(1)) & (flags <=FlagRange(2)); % all valid particles are active
         end;
-        active=(mi.particle.picks(:,10)>0) & mi.active; % ignore all particles when mi is not active.
+        active=(mi.particle.picks(:,10)>0) & (mi.active | setMisActive) ;
+                % ignore all particles when mi is not active.
         nParts=sum(active);
         
         if nParts<1
+            pSkip=pSkip+1;
+            nSkip=nSkip+1;
             continue;
         end;
         
@@ -196,7 +205,9 @@ for i=1:ni
         ves.ptlX(istart:iend,1)=xs;
         ves.ptlY(istart:iend,1)=ys;
         
-                nTotal=iend;            
+                nTotal=iend;     
+    else
+        nSkip=nSkip+1;
     end; % if particles
 
     if useSubtractedMicrograph || useScaledRawMicrograph % We make our own micrographs.star
@@ -209,6 +220,10 @@ for i=1:ni
     end;
 end; % for loop over micrograph mi files
 
+zSkip
+pSkip
+disp([num2str(nSkip) ' micrographs skipped, of ' num2str(ni)]);
+
 if ~useGroupsFromMi
     % Make sure the last group has enough particles
     if groupParts<=minGroupParts && groupIndex>1
@@ -219,8 +234,11 @@ end;
 
 % --Prepare the particles.star structure
 % Fill in the constant fields
-pts.rlngroupNumber(1:nTotal,1)=1; % this seems to be ignored at extraction.
+pts.rlnClassNumber(1:nTotal,1)=1;
 pts.rlnAnglePsi(1:nTotal,1)=-999;
+
+%%
+
 
 % Write the particles star file
 if writeParticleStar

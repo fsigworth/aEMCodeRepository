@@ -17,7 +17,7 @@ function [M,mOut]=meGetImageScaling(nIn,nOut,ds)
 %  If we crop-and-pad first by M1 and then by M2, then the transform from
 %  final (downsampled) coordinates to the original coordinates will be
 %  [x0; y0; 1]=M1*M2*[x; y; 1]; Note this would be in the case of zero-based
-%  coordinates. To map from downsampled to original coordinates,
+%  coordinates. To map from original to downsampled coordinates,
 %  [x;y;1]=inv(M1*M2)*[x0;y0;1];
 %  The corresponding crop-and-pad operation is
 %  mOut=Downsample(Crop(mIn,ds.*nOut),nOut);
