@@ -11,7 +11,7 @@ function [coords, ovMask, mxCC2]=rspAutoParticleFinder(mi,rscc,dis,mask)
 % out particle.   rsoOffset=0
 % indicates that we take both rso and iso
 % mask=1 where we reject particles in the field.
-
+doCheckVesicleNumbers=1; % Check for consistency with rscc
 % 
 % np=5;
 % patchMask=logical(fuzzymask(np,2,np/2,0));

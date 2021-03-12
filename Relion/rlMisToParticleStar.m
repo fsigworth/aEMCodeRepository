@@ -12,20 +12,20 @@
 % ----Our picking data----
 % First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
 % Then give the name here:
-allMisName='Picking_9/allMis9_intens+frac_7505.mat';
+allMisName='allMis.mat';
 
 % ----Micrograph star files
-micStarName='CtfFind/job029/micrographs_ctf.star';
+micStarName='CtfFind/job003/micrographs_ctf.star';
 useRawMicrograph=1; % Read unpadded unsub images rather than from the Merged directory
 useSubtractedMicrograph=1; % Use the subtracted micrograph name in the particles file.
     % (The subtracted micrograph is assumed to be in the Merged/ folder.)
 writeSubMicrographsStar=1; % write a new star file pointing to the sub micrographs?
-subMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to write
+subMicStarName='CtfFind/job003/micrographs_sub_ctf.star'; % New star file to write
 
 % -----Particle and Vesicle info files to write-----
 outStarDir='RSC/';  % Place to put our particle star files
     CheckAndMakeDir(outStarDir,1);
-outParticleStarName='particleAll9_intens+frac_7505_unsub.star';
+outParticleStarName='particles2_sub.star';
 outVesicleStarName=['ves_' outParticleStarName];
 writeParticleStar=1;
 writeVesicleStar=1;
@@ -95,6 +95,12 @@ for i=1:ni
         if size(mi.particle.picks,2)<10 || setParticlesActive % don't have the flag field
             flags=mi.particle.picks(:,3);
             mi.particle.picks(:,10)=(flags>=FlagRange(1)) & (flags <=FlagRange(2)); % all valid particles are active
+        end;
+        if ~isfield(mi,'active')
+            mi.active=1;
+        end;
+        if ~isfield(mi,'opticsGroup')
+            mi.opticsGroup=1;
         end;
         active=(mi.particle.picks(:,10)>0) & mi.active; % ignore all particles when mi is not active.
         nParts=sum(active);
@@ -178,6 +184,8 @@ for i=1:ni
         ves.ptlY(istart:iend,1)=ys;
         
                 nTotal=iend;            
+    else
+        continue;
     end; % if particles
 
     if useSubtractedMicrograph % We make our own micrographs.star
