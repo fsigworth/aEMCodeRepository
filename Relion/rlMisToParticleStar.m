@@ -14,7 +14,6 @@
 % we assume we're reading either MotionCorr/ micrographs or Merged/*_u.mrc
 % or Merged/*_v.mrc micrographs.
 
-
 % ----Our picking data----
 % First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
 % Then give the name here:
@@ -28,8 +27,8 @@ useScaledRawMicrograph=0; % Actually, use unpadded, unsub images in the Merged/ 
 % use subtracted micrographs
 useSubtractedMicrograph=1; % Put the subtracted micrograph name in the particles file, rather
 % than the unsubtracted image as chosen above.
-% (The subtracted micrograph *_v.mrc (unpadded, i.e. useRawMicrograph=1)
-%  or (padded) *mv.mrc. Either is assumed to be in the Merged/ folder.)
+% [The subtracted micrograph *_v.mrc (unpadded, i.e. useRawMicrograph=1)
+%  or (padded) *mv.mrc. Either is assumed to be in the Merged/ folder.]
 writeNewMicrographsStar=0; % write a new star file pointing to the Merged/ micrographs
 newMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to write
 
@@ -37,13 +36,15 @@ newMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to wri
 outStarDir='RSC/';  % Place to put our particle star files
     CheckAndMakeDir(outStarDir,1);
 outParticleStarName='particleAll9_holes_i2_ov_cls.star';
-outVesicleStarName=['ves_' outParticleStarName];
 writeParticleStar=1;
+
+%   If desired, we write a file with vesicle coordinates and particle angles too.
+outVesicleStarName=['ves_' outParticleStarName];
 writeVesicleStar=1;
 writeVesicleMat=0; % Instead of writing a long .star file, save as a Matlab .mat
 
 useGroupsFromMi=1; % Read the assigned group no. from mi.ok(20)
-% OR ELSE just use and incrementing index, with
+% OR ELSE just use an incrementing index of micrographs, with
   minGroupParts=200; % minimun number of particles in a group
 
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
@@ -133,7 +134,6 @@ for i=1:ni
         xs=mi.particle.picks(active,1);
         ys=mi.particle.picks(active,2);
         amps=mi.particle.picks(active,5);
-
         newMicName=[mi.procPath mi.baseFilename newMicrographSuffix];
         if useSubtractedMicrograph
             micName=newMicName;
@@ -194,7 +194,6 @@ for i=1:ni
         vrs=zeros(nParts,1,'single');
         vrs(vesOk)=real(mi.vesicle.r(vIndsOk,1));
         vpsis=atan2d(ys-vys,xs-vxs);
-        
         ves.vesMicrographName(istart:iend,1)={micName};
         ves.vesCenterX(istart:iend,1)=vxs;
         ves.vesCenterY(istart:iend,1)=vys;
@@ -205,7 +204,11 @@ for i=1:ni
         ves.ptlX(istart:iend,1)=xs;
         ves.ptlY(istart:iend,1)=ys;
         
-                nTotal=iend;     
+        % Add the extra fields to the particle struct
+        pts.vesicleRadius(istart:iend)=vrs;
+        pts.vesiclePsi(istart:iend)=vpsis;
+
+        nTotal=iend;     
     else
         nSkip=nSkip+1;
     end; % if particles
