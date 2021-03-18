@@ -25,7 +25,7 @@ if ~exist(starCName,'file'), disp([starCName ' not found.']); end;
 disp(['Reading ' starAName]);
 [nmA,aDat]=ReadStarFile(starAName);
 aPts=aDat{2};
-aNp=numel(aPts.rlnMicrographName);
+aNumLines=numel(aPts.rlnMicrographName);
 %%
 for i=1:numel(theFields)
     if ~isfield(aPts,theFields{i})
@@ -39,6 +39,11 @@ disp(['Reading ' starBName]);
 bPts=bDat{2};
 nbLines=numel(bPts.rlnMicrographName);
 % Copy B into C
+disp(['Reading ' starBName]);
+[nmB,bDat]=ReadStarFile(starBName);
+bPts=bDat{2};
+bNumLines=numel(bPts.rlnMicrographName);
+%% Copy B into C
 nmC=nmB;
 cDat=bDat;
 cPts=cDat{2};
@@ -52,10 +57,11 @@ disp([num2str(bNumNames) ' unique micrographs']);
 
 % Get the full-set A micrograph names.
 [aNames,~,aPartInds]=unique(aPts.rlnMicrographName);
-disp([num2str(numel(aNames)) ' A micrograph refs']);
+aNumNames=numel(aNames);
+disp([num2str(aNumNames) ' A micrograph refs']);
 
 % Get iaLines, the A line numbers corresponding to each B line.
-iaLines=zeros(bNumNames,1);
+mxDists=zeros(bNumNames,1);
 for i=1:bNumNames % look at each B micrograph name
     % find all the particles having that name
     ibParts=find(bPartInds==i);
@@ -63,28 +69,49 @@ for i=1:bNumNames % look at each B micrograph name
     bYs=bPts.rlnCoordinateY(ibParts);
     
     % find the correspoinding A name index
-    j=find(strcmp(bNames{i},aNames),1);
-    iaParts=find(aPartInds==j); % all the A particles with that name
-    % now we find which coordinates match
-    aXs=aPts.rlnCoordinateX(iaParts);
-    aYs=aPts.rlnCoordinateY(iaParts);
-    dists=hypot(bXs-aXs',bYs-aYs');
-    [minDists,iaLocal]=min(dists,[],2);
-    iaLines(ibParts)=iaParts(iaLocal);
+    % simple code:
+    j=find(strcmp(bNames{i},aNames));
+    if numel(j)==1
+        iaParts=find(aPartInds==j); % all the A particles with that name
+        % now we find which coordinates match
+        aXs=aPts.rlnCoordinateX(iaParts);
+        aYs=aPts.rlnCoordinateY(iaParts);
+        dists=hypot(bXs-aXs',bYs-aYs');
+        [minDists,iaLocal]=min(dists,[],2);
+          mxDists(i)=max(minDists);
+        iaLines(ibParts)=iaParts(iaLocal);
+%  plot(iaLines);
+    end;
+    if mod(i,1000)==0
+        fprintf('.');
+    end;
  end;
-
+ fprintf('\n');
+    goodALines=iaLines>0;
+    iaLines1=iaLines;
+    iaLines(~goodALines)=1; % give them a valid index.
+    disp([num2str(sum(~goodALines)) ' missing micrographs.']);
  % At this point, iaLines(i) gives the line in A cooresponding to the ith line
  % in B.
- %% Now insert the values from A into B
+ %% Now insert the values from A into C
 nFields=numel(theFields);
 for i=1:nFields
     fName=theFields{i};
-    cPts.(fName)=aPts.(fName)(iaLines);
+    if ~isfield(aPts,fName)
+        disp([fName ' not found in the A star data.']);
+    else
+        cPts.(fName)=aPts.(fName)(iaLines1);
+    end;
 end;
 
 cDat{2}=cPts;
 
 % Write out the C star file.
 disp(['Writing ' starCName]);
+% We write only the lines with valid iaLines pointers.
+flags={[] goodALines};
 hdrText=['# version 30001; using metadata from ' starAName];
-WriteStarFile(nmC,cDat,starCName,hdrText);
+disp(['Writing ' starCName '...']);
+WriteStarFile(nmC,cDat,starCName,hdrText,flags);
+disp(' done.');
+
