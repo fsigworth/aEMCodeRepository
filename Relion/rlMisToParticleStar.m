@@ -35,12 +35,12 @@ newMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to wri
 % -----Particle and Vesicle info files to write-----
 outStarDir='RSC/';  % Place to put our particle star files
     CheckAndMakeDir(outStarDir,1);
-outParticleStarName='particleAll9_holes_i2_ov_cls.star';
+outParticleStarName='particleAll9_holes_i2_ov_cls_psi.star';
 writeParticleStar=1;
 
 %   If desired, we write a file with vesicle coordinates and particle angles too.
 outVesicleStarName=['ves_' outParticleStarName];
-writeVesicleStar=1;
+writeVesicleStar=0;
 writeVesicleMat=0; % Instead of writing a long .star file, save as a Matlab .mat
 
 useGroupsFromMi=1; % Read the assigned group no. from mi.ok(20)
@@ -81,7 +81,6 @@ disp(['Loading ' allMisName ' ...']);
 load(allMisName); % Get allMis cell array
 ni=numel(allMis);
 disp([num2str(ni) ' mi files']);
-
 %%
 pts=struct; % particles
 ves=struct; % structure for the vesicle info
