@@ -17,11 +17,13 @@ dpars.pixAWork=10;  % downsampled image resolution for radius fitting
 dpars.doPreSubtraction=1;
 dpars.listFits=0;
 dpars.limitOrigNTerms=4;
+dpars.stepNTerms=3;
 dpars.maxVesiclesToFit=inf;
 dpars.radiusStepsA=0;
 dpars.disA=1200;  % display/fitted window size in angstroms
 dpars.M4=zeros(3,3,'single');
 dpars.M8=zeros(3,3,'single');
+dpars.nRoundIters=300;  % simplex iters
 
 % Merge the defaults with the given mpars
 pars=SetOptionValues(dpars,pars);
@@ -239,20 +241,24 @@ for j=1:nvToFit  % Loop over vesicles
     %             We'll do multiple rounds of fitting.  We first see how much
     %             we'll be expanding the number of terms from previously.
     origNRTerms=min(pars.limitOrigNTerms,sum(miOld.vesicle.r(ind,:)~=0));
-    stepNRTerms=max(1,ceil((finalNRTerms-origNRTerms)/3));
+%     stepNRTerms=max(1,ceil((finalNRTerms-origNRTerms)/3));
+    stepNRTerms=pars.stepNTerms; % we'll set this as a parameter
     nRounds=1+max(0,ceil((finalNRTerms-origNRTerms)/stepNRTerms));
     origNSTerms=max(1,ceil(origNRTerms*pars.fracAmpTerms));
     stepNSTerms=max(1,ceil((finalNSTerms-origNSTerms)/3));
     
     %             Set up the number of terms we'll fit for each round
     ps.nTerms=zeros(nRounds,2); % no. terms in round for [r s]
+
     for i=1:nRounds
         ps.nTerms(i,1)=min(finalNRTerms,ceil(origNRTerms+i*stepNRTerms));
         ps.nTerms(i,2)=min(finalNSTerms,ceil(origNSTerms+i*stepNSTerms));
     end;
+% nTerms=ps.nTerms
     %%%% rConstraints set here.
     ps.rConstraints=ones(finalNRTerms,1);
     ps.rConstraints(2:finalNRTerms)=0.4./((2:finalNRTerms).^2)';
+    ps.nRoundIters=pars.nRoundIters;
     %-------------------Basic fit------------------
     if doFitRadius % we're doing nonlinear fit
         if pars.doPreSubtraction
@@ -274,7 +280,7 @@ for j=1:nvToFit  % Loop over vesicles
             miInput=miNew;
             rStep=pars.radiusStepsA/miInput.pixA;
             newR1=max(miInput.vesicle.r(ind,1)+rStep(jr),minRadiusA/miInput.pixA);
-            miInput.vesicle.r(ind,1)=newR1;
+            miInput.vesicle.r(ind,1)=newR1; % Replace the constant radius
             %      --------------nonlinear fitting---------------
             [miTemps{jr},fitIms,vesFits]=rsQuickFitVesicle2(msf-vsf,vs1f,msmask,miInput,...
                 ind,ndsCTF.*ndsPW,ps,displayOn);
