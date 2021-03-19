@@ -53,7 +53,8 @@ fprintf(fi,'loop_\n');
 for i=1:nFields
     fprintf(fi,'_%s # %d\n',fnames{i},i);
 end;
-
+nDots=0;
+totalLines=0;
 for iLine=1:nLines
     if activeFlags(iLine)  % write the line
         for iField=1:nFields
@@ -73,9 +74,20 @@ for iLine=1:nLines
             end;
         end;
         fprintf(fi,'\n');
-    end;
+        totalLines=totalLines+1;
+        if mod(totalLines,1e4)==0
+            fprintf('.');
+            nDots=nDots+1;
+            if nDots>50
+                fprintf('\n');
+                nDots=0;
+            end;
+        end;
+        
+    end; % if activeFlags
 end;
 fprintf(fi,'\n');
+fprintf('\n');
 
 if ~isnumeric(fileName)
     fclose(fi);

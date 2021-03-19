@@ -19,9 +19,10 @@
 % Then give the name here:
 % allMisName='Picking_9/allMis9_intens+frac_7505.mat';
 allMisName='Picking_9/allMis_holes_i2_ov_cls.mat';
+allMisName='allMis.mat';
 
 % ----Micrograph star files
-micStarName='CtfFind/job029/micrographs_ctf.star'; % Existing file to read
+micStarName='CtfFind/job003/micrographs_ctf.star'; % Existing file to read
 useRawMicrograph=1; % Read unpadded unsub images as pointed to by the micStar file.
 useScaledRawMicrograph=0; % Actually, use unpadded, unsub images in the Merged/ folder, *_u.mrc
 % use subtracted micrographs
@@ -30,12 +31,12 @@ useSubtractedMicrograph=1; % Put the subtracted micrograph name in the particles
 % [The subtracted micrograph *_v.mrc (unpadded, i.e. useRawMicrograph=1)
 %  or (padded) *mv.mrc. Either is assumed to be in the Merged/ folder.]
 writeNewMicrographsStar=0; % write a new star file pointing to the Merged/ micrographs
-newMicStarName='CtfFind/job029/micrographs_sub_ctf.star'; % New star file to write
+newMicStarName='CtfFind/job003/micrographs_sub_ctf.star'; % New star file to write
 
 % -----Particle and Vesicle info files to write-----
 outStarDir='RSC/';  % Place to put our particle star files
     CheckAndMakeDir(outStarDir,1);
-outParticleStarName='particleAll9_holes_i2_ov_cls_psi.star';
+outParticleStarName='particles3_sub.star';
 writeParticleStar=1;
 
 %   If desired, we write a file with vesicle coordinates and particle angles too.
@@ -43,7 +44,7 @@ outVesicleStarName=['ves_' outParticleStarName];
 writeVesicleStar=0;
 writeVesicleMat=0; % Instead of writing a long .star file, save as a Matlab .mat
 
-useGroupsFromMi=1; % Read the assigned group no. from mi.ok(20)
+useGroupsFromMi=0; % Read the assigned group no. from mi.ok(20)
 % OR ELSE just use an incrementing index of micrographs, with
   minGroupParts=200; % minimun number of particles in a group
 
@@ -101,6 +102,9 @@ for i=1:ni
     %     miName=names{i};
     %     mi=ReadMiFile(miName);
     mi=allMis{i};
+    if ~isfield(mi,'opticsGroup')
+        mi.opticsGroup=1;
+    end;
     if i==1 % pick up optics parameters from the very first mi file, and
         %         put in a few more fields.
         nlOpt=numel(opt.rlnOpticsGroup);
@@ -120,7 +124,10 @@ for i=1:ni
             flags=mi.particle.picks(:,3);
             mi.particle.picks(:,10)=(flags>=FlagRange(1)) & (flags <=FlagRange(2)); % all valid particles are active
         end;
-        active=(mi.particle.picks(:,10)>0) & (mi.active | setMisActive) ;
+        if setMisActive
+            mi.active=true;
+        end;
+        active=(mi.particle.picks(:,10)>0) & mi.active;
                 % ignore all particles when mi is not active.
         nParts=sum(active);
         
@@ -216,6 +223,7 @@ for i=1:ni
         %             We're assuming here a one-to-one correspondence between mis
         %             and lines of the micrograph_ctf file.
         sMic.rlnMicrographName{i}=newMicName;
+        
         if mic.rlnOpticsGroup(i)~=mi.opticsGroup % not one to one
             error(['Discrepancy in micrograph indices at ' num2str(i)]);
         end;

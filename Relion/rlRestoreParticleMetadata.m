@@ -14,13 +14,13 @@
 theFields={'vesicleRadius' ; 'vesiclePsi'};
 
 % starAName='RSC/particleAll9_intens+frac_7505.star';
-starAName='Class2D/job235/run_ct15_it020_data.star'
-starBName='Class3D/job245/run_ct10_it025_data_original.star'
-starCName='Class3D/job245/run_ct10_it025_data.star'
+starAName='RSC/particles3_sub.star'
+starBName='Class3D/job055/run_it025_data.star'
+starCName='RSC/Class3Dj055_data_psi.star'
 
 if ~exist(starAName,'file'), disp([starAName ' not found.']); end;
 if ~exist(starBName,'file'), disp([starBName ' not found.']); end;
-if ~exist(starCName,'file'), disp([starCName ' not found.']); end;
+% if ~exist(starCName,'file'), disp([starCName ' not found.']); end;
 %%
 disp(['Reading ' starAName]);
 [nmA,aDat]=ReadStarFile(starAName);
@@ -61,6 +61,7 @@ aNumNames=numel(aNames);
 disp([num2str(aNumNames) ' A micrograph refs']);
 
 % Get iaLines, the A line numbers corresponding to each B line.
+iaLines=zeros(bNumLines,1);
 mxDists=zeros(bNumNames,1);
 for i=1:bNumNames % look at each B micrograph name
     % find all the particles having that name
