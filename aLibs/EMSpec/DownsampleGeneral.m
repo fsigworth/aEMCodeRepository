@@ -26,7 +26,7 @@ end;
     if nx>128
         maxOversample=1.3;
     else
-        maxOversample=256/(nx+16);
+        maxOversample=256/(max(nx)+16);
     end;
 % end;
 if nargin<4
