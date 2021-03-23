@@ -20,14 +20,13 @@ function [miNew, imgc, vesFit]=rsQuickFitVesicle2(img,oldVes,mask,mi,vIndex,effC
 % The other fields of pars are
 % pars.hfVar
 % pars.rConstraints
+% pars.nRoundIters
 
 minUnmaskedFraction=0.3; % Don't mask at all if less than this remains of a vesicle.
 maxShiftA=200;    % max shift in A
 % maxShiftFrac=0.2; % additional shift as a fraction of radius
 maxShiftFrac=0.3; %%%%%%%
 initStepA=30;  % initial step is ~ membrane width
-nRoundIters=300; % no. of Simplex iterations to do for each step
-nRoundIters=600 %%%%%%%%%%
 
 convCriterion=1e-3;
 maskWeight=0.2;  % Scaling of old fit to replace the masked region.
@@ -51,7 +50,7 @@ finalNTerms=pars.nTerms(end,1); % Final number of radius terms
 nPars=max(0,1+(finalNTerms-2)*2);  % overall number of simplex parameters
 nRounds=size(pars.nTerms,1);  % number of simplex rounds
 
-nIters=(1:nRounds)*nRoundIters;
+nIters=(1:nRounds)*pars.nRoundIters;
 
 sigmaT=4;  % SD of prior for shifts
 % n=size(img,1);
@@ -67,7 +66,7 @@ vr0=mi.vesicle.r(vIndex,:)/ds;
 if numel(vr0)<finalNTerms
     vr0(finalNTerms)=0; % pad with zeros
 end;
-vs=mi.vesicle.s(vIndex,1,1); % use only constant term
+vs=mi.vesicle.s(vIndex,1,1); % use only constant term for amplitude
 
 maxShiftPix=(maxShiftA/mi.pixA+maxShiftFrac*vr0(1))/ds; % max shift in our pixels
 
@@ -174,6 +173,7 @@ for iRound=1:nRounds % we'll do one round if nTerms(1)=0
         if numel(p.vr)<nTermsRound
             p.vr(1,nTermsRound)=0; % pad with zeros
         end;
+disp(nParsRound);
         p.initPars=unpack(p.vr,nTermsRound);
         p.simpMask=false(1,nPars);
         p.simpMask(1:nParsRound)=true;

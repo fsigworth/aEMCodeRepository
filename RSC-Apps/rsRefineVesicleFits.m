@@ -54,6 +54,8 @@ dpars.modifiedImageNormScale=.2;
 % dpars.rTerms=[100 150 200 250 250 300 inf];
 dpars.rTerms=[100 150 200 300 inf];  % quick
 % dpars.rTerms=[150 200 inf];  % for Mengqiu
+dpars.limitOrigNTerms=4; % max number of radius terms to fit first
+dpars.stepNTerms=3;
 
 % Define the fitting mode for each round
 % dpars.fitModes={'RadiusOnly' 'RadiusAndLin'};
@@ -290,7 +292,8 @@ end;
                 p.M4=M4;
                 maxRTerms=numel(p.rTerms);
                 % Set up parameters
-                p.limitOrigNTerms=round(pars.fractionStartingTerms(ind)*maxRTerms+1);
+%                 p.limitOrigNTerms=round(pars.fractionStartingTerms(ind)*maxRTerms+1);
+                p.limitOrigNTerms=pars.limitOrigNTerms;
                 p.fitMode=pars.fitModes{ind};
                 disp(['fitMode = ' p.fitMode]);
                 p.radiusStepsA=pars.radiusStepsA;
@@ -397,7 +400,7 @@ end;
             if pars.writeSmallSubMRC || pars.writeSubJpeg
                 mvs=Downsample(m1-vs1,smSize);
             end;
-            if pars.writeSmallSubMRC
+            if pars.writeSubJpeg
                 CheckAndMakeDir(pars.jpegPath);
                 outJpegName=[pars.jpegPath mi.baseFilename 'mvs.mrc'];
                 WriteJpeg(mvs,outJpegName);
