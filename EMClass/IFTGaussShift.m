@@ -7,7 +7,7 @@ writeImgs=0;
 figNameExt='_gauss.jpg';
 
 vlSetDarkGraphics;
-% bkd=[0 .14 .2]; % = 0 36 52 in Keynote.
+bkd=[0 .14 .2]; % = 0 36 52 in Keynote.
 % termColor=[.8 .8 .8];
 brighter=0.3;
 lw=2;
