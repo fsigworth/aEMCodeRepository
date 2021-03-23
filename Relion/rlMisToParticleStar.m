@@ -19,32 +19,32 @@
 % Then give the name here:
 % allMisName='Picking_9/allMis9_intens+frac_7505.mat';
 allMisName='Picking_9/allMis_holes_i2_ov_cls.mat';
-allMisName='allMis.mat';
+%allMisName='allMis.mat';
 
 % ----Micrograph star files
-micStarName='CtfFind/job003/micrographs_ctf.star'; % Existing file to read
+micStarName='CtfFind/job029/micrographs_ctf.star'; % Existing file to read
 useRawMicrograph=1; % Read unpadded unsub images as pointed to by the micStar file.
-useScaledRawMicrograph=0; % Actually, use unpadded, unsub images in the Merged/ folder, *_u.mrc
+useScaledRawMicrograph=1; % Actually, use unpadded, unsub images in the Merged/ folder, *_u.mrc
 % use subtracted micrographs
-useSubtractedMicrograph=1; % Put the subtracted micrograph name in the particles file, rather
+useSubtractedMicrograph=0; % Put the subtracted micrograph name in the particles file, rather
 % than the unsubtracted image as chosen above.
 % [The subtracted micrograph *_v.mrc (unpadded, i.e. useRawMicrograph=1)
 %  or (padded) *mv.mrc. Either is assumed to be in the Merged/ folder.]
-writeNewMicrographsStar=0; % write a new star file pointing to the Merged/ micrographs
-newMicStarName='CtfFind/job003/micrographs_sub_ctf.star'; % New star file to write
+writeNewMicrographsStar=1; % write a new star file pointing to the Merged/ micrographs
+newMicStarName='CtfFind/job029/micrographs_unsub_u_ctf.star'; % New star file to write
 
 % -----Particle and Vesicle info files to write-----
 outStarDir='RSC/';  % Place to put our particle star files
     CheckAndMakeDir(outStarDir,1);
-outParticleStarName='particles3_sub.star';
-writeParticleStar=1;
+outParticleStarName='particleAll9_holes_i2_ov_cls_psi_u.star'
+writeParticleStar=0;
 
 %   If desired, we write a file with vesicle coordinates and particle angles too.
 outVesicleStarName=['ves_' outParticleStarName];
 writeVesicleStar=0;
 writeVesicleMat=0; % Instead of writing a long .star file, save as a Matlab .mat
 
-useGroupsFromMi=0; % Read the assigned group no. from mi.ok(20)
+useGroupsFromMi=1; % Read the assigned group no. from mi.ok(20)
 % OR ELSE just use an incrementing index of micrographs, with
   minGroupParts=200; % minimun number of particles in a group
 
@@ -141,7 +141,8 @@ for i=1:ni
         ys=mi.particle.picks(active,2);
         amps=mi.particle.picks(active,5);
         newMicName=[mi.procPath mi.baseFilename newMicrographSuffix];
-        if useSubtractedMicrograph
+        if useSubtractedMicrograph || useScaledRawMicrograph % We're reading
+            % *_v.mrc or *_u.mrc from Merged/
             micName=newMicName;
         else
             if useRawMicrograph
@@ -230,9 +231,9 @@ for i=1:ni
     end;
 end; % for loop over micrograph mi files
 
-zSkip
-pSkip
 disp([num2str(nSkip) ' micrographs skipped, of ' num2str(ni)]);
+disp(['Micrographs skipped with unassigned group: ' num2str(zSkip)]); 
+disp(['Micrographs skipped with group but no particles: ' num2str(pSkip)]);
 
 if ~useGroupsFromMi
     % Make sure the last group has enough particles
@@ -279,7 +280,7 @@ if writeVesicleMat
     save(outName,'ves');
 end;
 
-if useSubtractedMicrograph && writeNewMicrographsStar
+if (useSubtractedMicrograph || useScaledRawMicrograph) && writeNewMicrographsStar
     % ----Write the sub micrographs star file----
     fullSubMicName=[outStarDir newMicStarName];
     disp(['Writing ' fullSubMicName]);
