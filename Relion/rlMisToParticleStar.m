@@ -46,21 +46,22 @@ writeMicrographStarV=1;
 
 outParticleStarBasename='particles';
 writeParticleStarU=1;
-writeParticleStarV=1;
+writeParticleStarV=0;
 
 %   If desired, we write a subtracted file with vesicle coordinates and particle angles too.
-outVesicleStarName=['ves_' outParticleStarBasename '_v.star'];
+outVesicleStarNameV=['ves_' outParticleStarBasename '_v.star'];
 writeVesicleStar=0;
 writeVesicleMat=0;
 
 useGroupsFromMi=1; % Read the assigned group no. from mi.ok(20)
 % OR ELSE just use an incrementing index of micrographs, with
 minGroupParts=200; % minimun number of particles in a group
+maxNMicrographs=inf; % limit the number of micrographs to consider
 
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
 setMisActive=1; % ignore mi.active field.
 
-checkForMicrographs=0;
+checkForMicrographs=1;
 
 
 if useMergedUnsubMicrograph
@@ -79,10 +80,17 @@ disp(['Reading ' inMicStarName]);
 % mcNames
 opt=mcDat{1};
 mic=mcDat{2};
+%
 nMics=numel(mic.rlnMicrographName);
+if maxNMicrographs<nMics
+    mic=TrimStructFields(mic,1,maxNMicrographs); %%%%%%%
+    nMics=maxNMicrographs;
+end;
 disp([num2str(nMics) ' micrographs in star file.']);
 disp(' ');
+
 inMicPath=fileparts(mic.rlnMicrographName{1}); % pick up the path from the first one.
+
 uMicNames=cell(nMics,1);
 vMicNames=cell(nMics,1);
 % %
@@ -92,15 +100,15 @@ load(allMisName); % Get allMis cell array
 ni=numel(allMis);
 disp([num2str(ni) ' mi files']);
 disp(' ');
-%%
+%
+ni=nMics; %%%%%%%
+
 pts=struct;
-partSubMicName=cell(nMics,1);
-partUnsubMicName=cell(nMics,1);
+partSubMicName=cell(1,1);
+partUnsubMicName=cell(1,1);
 
 ves=struct; % structure for the vesicle info
 outOpt=opt;
-uMic=mic;
-vMic=mic;       % copy the full micrograph star. We'll replace only the names
 
 boxSize=256; % nominal starting size
 FlagRange=[16 32]; % flags for valid particles
@@ -127,6 +135,7 @@ for i=1:ni
         outOpt.rlnImagePixelSize=outOpt.rlnMicrographPixelSize; % copy the vector
         outOpt.rlnImageSize(1:nlOpt,1)=boxSize; % we're setting the default particle image size.
         outOpt.rlnImageDimensionality(1:nlOpt,1)=2;
+        outOpt=rmfield(outOpt,'rlnMicrographPixelSize');
     end;
 
             %         Get the micrograph names
@@ -152,17 +161,22 @@ for i=1:ni
           || ~strncmp(newUMicBasename,newVMicBasename,nmLength)% should match up to the end
       disp([ oldMicBasename '  ' newVMicBasename '  ' newUMicBasename]);
       return     
-        miSkip=miSkip+1;
-        continue; % we'll skip ahead
     end;
     
+    vMicNames{i}=newSubMicName; % replace the micrograph name.
+    uMicNames{i}=newUnsubMicName;
+    if mic.rlnOpticsGroup(i)~=mi.opticsGroup % not one to one
+        error(['Discrepancy in optics group indices at ' num2str(i)]);
+    end;
+
     if useGroupsFromMi
         groupIndex=mi.ok(20); % a zero groupIndex means a bad micrograph
         if groupIndex==0
             zSkip=zSkip+1;
-            continue;
         end;
     end;
+
+    % Now starts code that is conditional on particle number.
     if isfield(mi.particle,'picks') && numel(mi.particle.picks)>0 && groupIndex>0
         % ----- Accumulate the particle star data -----
         if size(mi.particle.picks,2)<10 || setParticlesActive % don't have the flag field
@@ -190,6 +204,15 @@ for i=1:ni
         
         if mod(i,1000)==0
             disp(sprintf('%7d  %s %4d %8d',i,mi.baseFilename,nParts,nParts+nTotal));
+            if checkForMicrographs
+                if ~exist(newUnsubMicName,'file')
+                    disp([newUnsubMicName ' not found.']); 
+                end;
+                if ~exist(newSubMicName,'file')
+                    disp([newSubMicName ' not found.']);
+                end;
+            end;
+            
         end;
         
         %     Accumulate the particles star
@@ -246,20 +269,10 @@ for i=1:ni
         ves.ptlX(istart:iend,1)=xs;
         ves.ptlY(istart:iend,1)=ys;
         
-        % Add the extra fields to the particle struct
-        pts.vesicleRadius(istart:iend,1)=vrs;
-        pts.vesiclePsi(istart:iend,1)=vpsis;
+        % Alas, we can't add these extra fields to the particle struct
+%        pts.vesicleRadius(istart:iend,1)=vrs;
+%        pts.vesiclePsi(istart:iend,1)=vpsis;
         
-        if checkForMicrographs && nBad<20
-            if ~exist(newUnsubMicName,2)
-                disp([newUnsubMicName ' not found.']);
-                nBad=nBad+1;
-            end;
-            if ~exist(newSubMicName,2)
-                disp([newSubMicName ' not found.']);
-                nBad=nBad+1;
-            end;
-        end;
         partUnsubMicName(istart:iend,1)={newUnsubMicName}; % The only fields that differ.
         partSubMicName(istart:iend,1)={newSubMicName};
         
@@ -268,11 +281,6 @@ for i=1:ni
         nSkip=nSkip+1;
     end; % if particles
 
-    vMicNames{i}=newSubMicName; % replace the micrograph name.
-    uMicNames{i}=newUnsubMicName;
-    if mic.rlnOpticsGroup(i)~=mi.opticsGroup % not one to one
-        error(['Discrepancy in optics group indices at ' num2str(i)]);
-    end;
 end; % for loop over micrograph mi files
 
 disp([num2str(nSkip) ' micrographs skipped, of ' num2str(ni)]);
@@ -296,7 +304,7 @@ vMics.rlnMicrographName=vMicNames;
 % --Prepare the particles.star structure
 % Fill in the constant fields
 pts.rlnClassNumber(1:nTotal,1)=1;
-pts.rlnAnglePsi(1:nTotal,1)=-999;
+% pts.rlnAnglePsi(1:nTotal,1)=-999; % Alas!! this field causes Extract to hang.
 
 uPts=pts;
 uPts.rlnMicrographName=partUnsubMicName;
@@ -306,15 +314,16 @@ ves.vesMicrographName=partSubMicName;
 
 
 %%
-
+% Write the micrograph star files
 if writeMicrographStarU
     % ----Write the sub micrographs star file----
     fullSubMicName=[outStarDir outMicrographStarBasename '_u.star'];
     disp(['Writing ' fullSubMicName]);
     fStar=fopen(fullSubMicName,'wt');
     fprintf(fStar,'\n# version 30001\n');
-    WriteStarFileStruct(outOpt,'optics',fStar);
-    WriteStarFileStruct(uMic,'micrographs',fStar);
+    % We just use the optics block from the input micrograph star file.
+    WriteStarFileStruct(opt,'optics',fStar);
+    WriteStarFileStruct(uMics,'micrographs',fStar);
     fclose(fStar);
 end;
 
@@ -324,37 +333,37 @@ if writeMicrographStarV
     disp(['Writing ' fullSubMicName]);
     fStar=fopen(fullSubMicName,'wt');
     fprintf(fStar,'\n# version 30001\n');
-    WriteStarFileStruct(outOpt,'optics',fStar);
-    WriteStarFileStruct(vMic,'micrographs',fStar);
+    WriteStarFileStruct(opt,'optics',fStar);
+    WriteStarFileStruct(vMics,'micrographs',fStar);
     fclose(fStar);
 end;
 
-% Write the particles star file
+% Write the particles star files
 if writeParticleStarU
     outName=[outStarDir outParticleStarBasename '_u.star'];
-    disp(['Writing ' outName '...']);
-    fStar=fopen(outName,'wt');
-    fprintf(fStar,'\n# version 30001\n');
-    WriteStarFileStruct(outOpt,'optics',fStar);
-    WriteStarFileStruct(vPts,'particles',fStar);
-    fclose(fStar);
-end;
-%%
-if writeParticleStarV
-    outName=[outStarDir outParticleStarBasename '_v.star'];
-    disp(['Writing ' outName '...']);
+    disp(['Writing ' outName]);
     fStar=fopen(outName,'wt');
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(outOpt,'optics',fStar);
     WriteStarFileStruct(uPts,'particles',fStar);
     fclose(fStar);
 end;
+%
+if writeParticleStarV
+    outName=[outStarDir outParticleStarBasename '_v.star'];
+    disp(['Writing ' outName]);
+    fStar=fopen(outName,'wt');
+    fprintf(fStar,'\n# version 30001\n');
+    WriteStarFileStruct(outOpt,'optics',fStar);
+    WriteStarFileStruct(vPts,'particles',fStar);
+    fclose(fStar);
+end;
 
-%%
-% Write the vesicle star file
+%
+% Write the vesicle star files
 if writeVesicleStar
-    outName=[outStarDir outVesicleStarName];
-    disp(['Writing ' outName '...']);
+    outName=[outStarDir outVesicleStarNameV];
+    disp(['Writing ' outName]);
     fStar=fopen(outName,'wt');
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(outOpt,'optics',fStar);
@@ -363,10 +372,11 @@ if writeVesicleStar
 end;
 
 if writeVesicleMat
-    [~,vnm]=fileparts(outVesicleStarName);
+    [~,vnm]=fileparts(outVesicleStarNameV);
     outName=[outStarDir vnm '.mat'];
     disp(['Writing ' outName '...']);
     save(outName,'ves');
+    disp(' ');
 end;
 
 disp('Done.');

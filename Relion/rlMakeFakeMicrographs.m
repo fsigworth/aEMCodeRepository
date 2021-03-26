@@ -2,7 +2,7 @@
 % Derived from rlMakeFakeDataset
 % Test of making picker outputs. The most convenient is to make a
 % particles.star file for Relion extraction.
-% 
+%
 % Meanwhile, comparing our angle assignments with Relion's,
 % here is the result:
 % rl_rot = -phi = -angs(i,1)
@@ -14,8 +14,9 @@ pa=fileparts(which('arGetRefVolumes'));
 mapName=[pa '/KvMap.mat'];
 % Output files
 outDir=pwd; % Assume we're in the working directory
-micDir='Micrographs2/';
-starDir='Stars2/';
+micDir='Micrographs3/';
+starDir='Stars3/';
+partStarName='particles_noVesPsi_varGroups_noOrigPix.star';
 micBaseName='mic'
 
 CheckAndMakeDir(micDir,1);
@@ -26,13 +27,17 @@ alpha=.05;
 Cs=2.7;
 kV=200;
 
-nMicrographs=100
+nMicrographs=20
 defRange=[3 6]
 micSize=[4096 4096];
 micBorder=80
 minSpacing=100
 ppm=500 % particlesPerMicrograph
 maxParticlesPerMicrograph=prod(micSize-2*micBorder)/minSpacing^2
+
+makeMicrographs=0;
+writeMicrographs=0;
+
 
 ds=1;
 imgSize=128;
@@ -65,19 +70,22 @@ for i=1:nMicrographs
     psis=360*rand(ppm,1);
     thetas=acosd(1-2*rand(ppm,1));
     phis=360/symmetry*rand(ppm,1);
-    templates=rlMakeTemplates([phis thetas psis],map);
-    
     [xs,ys]=RandomTiling(ppm,micSize,minSpacing,micBorder);
-    m=zeros(micSize,'single');
-    for j=1:ppm
-        m1=ExtractImage(templates(:,:,j),round([xs(j) ys(j)]),micSize,1);
-        m=m+m1;
-        % imags(m); drawnow;
+    
+    if makeMicrographs
+        templates=rlMakeTemplates([phis thetas psis],map);
+        m=zeros(micSize,'single');
+        
+        for j=1:ppm
+            m1=ExtractImage(templates(:,:,j),round([xs(j) ys(j)]),micSize,1);
+            m=m+m1;
+            % imags(m); drawnow;
+        end;
+        mics(:,:,i)=m; % store all the unfiltered micrographs
+        imags(m);
+        title(i);
+        drawnow;
     end;
-    mics(:,:,i)=m; % store all the unfiltered micrographs
-    imags(m);
-    title(i);
-    drawnow;
     
     % picks star file
     pk=struct;
@@ -87,13 +95,13 @@ for i=1:nMicrographs
     pk.rlnAnglePsi=-999*ones(ppm,1);
     pk.rlnAutopickFigureOfMerit=-999*ones(ppm,1);
     starName=[micDir micBaseName num2str(i,'%03d') '_manualpick.star'];
-
+    
     fpicks=fopen(starName,'wt');
     fprintf(fpicks,'\n# version 30001\n');
     WriteStarFileStruct(pk,'',fpicks);
     fclose(fpicks);
     
-%     Write a .box file
+    %     Write a .box file
     boxName=[micDir micBaseName num2str(i,'%03d') '_manualpick.box'];
     fbox=fopen(boxName,'wt');
     for j=1:ppm
@@ -111,7 +119,11 @@ for i=1:nMicrographs
     
 end;
 
-save([micDir 'mics.mat'],'mics','-v7.3');
+if makeMicrographs
+    save([micDir 'mics.mat'],'mics','-v7.3');
+elseif writeMicrographs
+    load([micDir 'mics.mat']);
+end;
 
 %%
 % make the optics structure
@@ -124,7 +136,7 @@ for i=1 % I thought we had to make 2 lines to force a star table, but no.
     opt.rlnSphericalAberration(i)=Cs;
     opt.rlnAmplitudeContrast(i)=alpha;
     opt.rlnImagePixelSize(i)=pixA;
-    opt.rlnImageSize(i)=imgSize; % we're setting the particle image size.
+ %%    opt.rlnImageSize(i)=imgSize; % we're setting the particle image size.
     opt.rlnImageDimensionality(i)=2;
 end;
 
@@ -133,20 +145,21 @@ end;
 rng(2); % init the random number generator again
 CheckAndMakeDir(micDir,1);
 for i=1:nMicrographs
-    
-    c=CTF(micSize,pixA,EWavelength(kV),defs(i),Cs,BFactor,alpha);
-    nIce=randn(micSize);
-    iceNoise=iceSigma(1)*LorentzFilt(nIce,fcL/pixA)+iceSigma(2)*nIce;
-    shotNoise=shotSigma*randn(micSize);
-    m=mics(:,:,i);
-    mc=real(ifftn(fftn(imgScale*m+iceNoise).*ifftshift(c)))+shotNoise;
-    
-    %     Write out the micrograph
     micName=[micDir micBaseName num2str(i,'%03d') '.mrc'];
-    imags(GaussFilt(mc,.05/pixA));
-    title(micName,'interpreter','none');
-    drawnow;
-    WriteMRC(mc,pixA,micName);
+    if writeMicrographs
+        c=CTF(micSize,pixA,EWavelength(kV),defs(i),Cs,BFactor,alpha);
+        nIce=randn(micSize);
+        iceNoise=iceSigma(1)*LorentzFilt(nIce,fcL/pixA)+iceSigma(2)*nIce;
+        shotNoise=shotSigma*randn(micSize);
+        m=mics(:,:,i);
+        mc=real(ifftn(fftn(imgScale*m+iceNoise).*ifftshift(c)))+shotNoise;
+        
+        %     Write out the micrograph
+        imags(GaussFilt(mc,.05/pixA));
+        title(micName,'interpreter','none');
+        drawnow;
+        WriteMRC(mc,pixA,micName);
+    end;
     %%
     
     %     Accumulate the particles star
@@ -166,6 +179,7 @@ nim=numel(pts.rlnCoordinateX);
 %     end;
 % WriteMRC(stk,pixA,stackName);
 
+%%
 % -----Make the particles.star file for Relion extraction
 % We've set up the optics struct.
 % And we have already set these fields:
@@ -173,15 +187,25 @@ nim=numel(pts.rlnCoordinateX);
 % pts.rlnCoordinateX
 % pts.rlnCoordinateY
 % now for the rest:
+
+pOpt=rmfield(opt,'rlnMicrographOriginalPixelSize');
+
 pts.rlnClassNumber(1:nim,1)=1;
 pts.rlnAnglePsi(1:nim,1)=-999;
 pts.rlnAutopickFigureOfMerit(1:nim,1)=-999;
 pts.rlnOpticsGroup(1:nim,1)=1;
 
-partStarName=[starDir 'particles.star'];
+%%
+for i=1:nim
+    gpNo=ceil(8*rand);
+pts.rlnGroupName(i,1)={['group_0' num2str(gpNo)]};
+end;
+%pts.vesiclePsi=360*rand(nim,1);
+
+partStarName=[starDir partStarName];
 fStar=fopen(partStarName,'wt');
 fprintf(fStar,'\n# version 30001\n');
-WriteStarFileStruct(opt,'optics',fStar);
+WriteStarFileStruct(pOpt,'optics',fStar);
 WriteStarFileStruct(pts,'particles',fStar);
 fclose(fStar);
 
