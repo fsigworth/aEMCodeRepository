@@ -47,7 +47,8 @@ C=cell(1,1);
 if doDisplay
     fprintf('loading.');
 end;
-nDots=0;
+
+numDots=0;
 while ~feof(fi)
     line=fgetl(fi);
     p=strfind(line,commentMarkers);
@@ -64,10 +65,10 @@ while ~feof(fi)
     end;
     if mod(nLines,1e4)==0
         fprintf('.');
-        nDots=nDots+1;
-        if nDots>=50
+        numDots=numDots+1;
+        if numDots>70
             fprintf('\n');
-            nDots=0;
+            numDots=0;
         end;
     end;
 end;

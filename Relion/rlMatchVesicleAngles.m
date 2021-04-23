@@ -1,10 +1,17 @@
 % rlMatchVesicleAngles.m
 
 loadVesData=1;
+
+% Load a particles.star file, may contsain a selected subset from Refine3D etc.
 % pStarName='Refine3D/job140/run_data.star';
 pStarName='Class3D/job121/run_it025_data.star';
 % pStarName='Class3D/job187/run_it025_data.star';
+
+% Load a vesicle-particle file from the entire dataset.
 vStarName='RSC/ves_particleAll9_intens+frac_7505.mat';
+
+% We'll find the entries iVes in the ves-part file corresponding to each line of
+% the particles.star file.
 %%
 disp(['Reading ' pStarName]);
 [pnm,pdat]=ReadStarFile(pStarName);
@@ -53,18 +60,28 @@ for i=1:npn % look at each particle micrograph name
  % At this point, iVes(i) gives the line in ves cooresponding to pts(i)
  %%
  totalRso=0;
- nClasses=max(pts.rlnClassNumber);
+ showSeparateClasses=0;
+ 
+ if showSeparateClasses
+     nClasses=max(pts.rlnClassNumber);
+ else
+     nClasses=1;
+ end;
+ 
  for icls=1:nClasses
      class=icls;
-     
-     sel=pts.rlnClassNumber==class;
-     
+     if nClasses>1
+         sel=pts.rlnClassNumber==class;
+     else
+         sel=true(size(ptr.rlnMicrographName)); % select everything
+     end;
+
      psis=pts.rlnAnglePsi(sel);
      psis=mod(psis,360);
      vesPsi=-ves.vesPsi(iVes(sel));
      vesPsi=mod(vesPsi,360);
      
-     vesRs=ves.vesR(iVes(sel));
+     vesRadius=ves.vesR(iVes(sel));
      
      figure(3);
      plot(vesPsi,psis,'.');
@@ -90,14 +107,21 @@ totalRso
  
  %% Create an edited star file
  selectRso=0;
- outStarName='RSC/iso_from_Class3D_121_data.star';
+  outStarName='RSC/iso_from_Class3D_121_data.star';
+
+ if selectRso
+     str='RSO';
+ else
+     str='ISO';
+ end;
  psiResidual=pts.rlnAnglePsi+ves.vesPsi(iVes);
  psiDiff=mod(90-psiResidual,360);
  rso=psiDiff>180;
  hist(psiDiff,100);
  title(['Total ' num2str(sum(rso)) ' RSO Particles of ' num2str(numel(rso))]);
  disp(['Writing ' num2str(sum(rso)) ' particles to ' outStarName '...']);
- hdrText='# version 30001 from rlMatchVesicleAngles.m';
+ hdrText=['# version 30001, ' str ' particles. From rlMatchVesicleAngles.m'];
+ 
  if selectRso
   pFlags={[] rso}; 
     disp('Selecting RSO...');
