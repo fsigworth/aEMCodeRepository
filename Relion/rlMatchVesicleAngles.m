@@ -55,33 +55,33 @@ for i=1:npn % look at each particle micrograph name
  totalRso=0;
  nClasses=max(pts.rlnClassNumber);
  for icls=1:nClasses
- class=icls;
- 
- sel=pts.rlnClassNumber==class;
- 
- psis=pts.rlnAnglePsi(sel);
- psis=mod(psis,360);
- vesPsi=-ves.vesPsi(iVes(sel));
- vesPsi=mod(vesPsi,360);
- 
- vesRs=ves.vesR(iVes(sel));
-
- figure(3);
- plot(vesPsi,psis,'.');
- xlabel('Vesicle psi');
- ylabel('Particle psi');
- title(['Class ' num2str(class)]);
- 
- figure(4);
- psiDiff=mod(vesPsi-psis+90,360);
- hist(psiDiff,100);
- iso=psiDiff<180;
- rso=psiDiff>180; 
- rsoFraction(icls)=sum(rso)/(sum(rso)+sum(iso));
- title(['Class ' num2str(icls) ' rso-fraction ' num2str(rsoFraction(icls))]);
- disp([icls rsoFraction(icls)]);
- totalRso=totalRso+sum(rso);
-pause(1);
+     class=icls;
+     
+     sel=pts.rlnClassNumber==class;
+     
+     psis=pts.rlnAnglePsi(sel);
+     psis=mod(psis,360);
+     vesPsi=-ves.vesPsi(iVes(sel));
+     vesPsi=mod(vesPsi,360);
+     
+     vesRs=ves.vesR(iVes(sel));
+     
+     figure(3);
+     plot(vesPsi,psis,'.');
+     xlabel('Vesicle psi');
+     ylabel('Particle psi');
+     title(['Class ' num2str(class)]);
+     
+     figure(4);
+     psiDiff=mod(vesPsi-psis+90,360);
+     hist(psiDiff,100);
+     iso=psiDiff<180;
+     rso=psiDiff>180;
+     rsoFraction(icls)=sum(rso)/(sum(rso)+sum(iso));
+     title(['Class ' num2str(icls) ' rso-fraction ' num2str(rsoFraction(icls))]);
+     disp([icls rsoFraction(icls)]);
+     totalRso=totalRso+sum(rso);
+     pause(1);
  end;
  disp(pStarName);
 totalRso

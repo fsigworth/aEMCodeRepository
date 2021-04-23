@@ -22,7 +22,7 @@ if nargin<1 || numel(fontSize)<1
 end;
 
 if ~doReset
-    bkdColor=[0 .14 .2]; % = 0 36 52 in Keynote.
+%     bkdColor=[0 .14 .2]; % = 0 36 52 in Keynote.
     set(groot,'defaultFigureColor',bkdColor);
     set(groot,'defaultFigureInvertHardCopy','off');
     set(groot,'defaultAxesColor',bkdColor);

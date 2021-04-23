@@ -47,7 +47,7 @@ C=cell(1,1);
 if doDisplay
     fprintf('loading.');
 end;
-
+nDots=0;
 while ~feof(fi)
     line=fgetl(fi);
     p=strfind(line,commentMarkers);
@@ -64,6 +64,11 @@ while ~feof(fi)
     end;
     if mod(nLines,1e4)==0
         fprintf('.');
+        nDots=nDots+1;
+        if nDots>=50
+            fprintf('\n');
+            nDots=0;
+        end;
     end;
 end;
 fclose(fi);
@@ -142,6 +147,7 @@ while P<=numel(C) % loop through all the entries
         P=P+1;
     end;
     %%
+    nDots=0;
     nRows=1;
     if loopMode  % Now the values follow immediately after the fieldnames
         % possibly skip blank lines.
@@ -154,13 +160,22 @@ while P<=numel(C) % loop through all the entries
                 return  % exit the function.
             end;
         end;
-
+        
         nRows=0;
         fieldVals=cell(nLines,nFields);
         while P<numel(C) && numel(C{P}{1})>=nFields
             nRows=nRows+1;
             fieldVals(nRows,:)=C{P}{1}';
             P=P+1;
+            if mod(nRows,1e4)==0
+                fprintf('.');
+                nDots=nDots+1;
+                if nDots>=50
+                    fprintf('\n');
+                    nDots=0;
+                end;
+            end;
+            
         end;
     end;
    fieldVals=fieldVals(1:nRows,:); % truncate the array
