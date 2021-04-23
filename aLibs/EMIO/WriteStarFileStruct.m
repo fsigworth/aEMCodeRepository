@@ -55,6 +55,8 @@ for i=1:nFields
 end;
 nDots=0;
 totalLines=0;
+lineMod=min(1e4,ceil(nLines/50));
+
 for iLine=1:nLines
     if activeFlags(iLine)  % write the line
         for iField=1:nFields
@@ -75,7 +77,7 @@ for iLine=1:nLines
         end;
         fprintf(fi,'\n');
         totalLines=totalLines+1;
-        if mod(totalLines,1e4)==0
+        if mod(totalLines,lineMod)==0
             fprintf('.');
             nDots=nDots+1;
             if nDots>50

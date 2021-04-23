@@ -12,6 +12,10 @@
 %            'rlnGroupName'
 %            'rlnGroupNumber'};
 theFields={'vesicleRadius' ; 'vesiclePsi'};
+replaceOpticsBlock=0; % copy the entire optics block from B to C
+replaceOpticsGroups=1; % instead, only modify the optics block to incorporate
+% the optics group names and numbers from B. ***Not yet implemented ***
+
 
 % starAName='RSC/particleAll9_intens+frac_7505.star';
 starAName='RSC/particles3_sub.star'
@@ -47,10 +51,11 @@ bNumLines=numel(bPts.rlnMicrographName);
 nmC=nmB;
 cDat=bDat;
 cPts=cDat{2};
+if replaceOpticsBlock
     % Copy the optics info from A in t C
     cDat{1}=aDat{1};
-
-    %% get the micrograph names from the subset file B
+end;
+%% get the micrograph names from the subset file B
 [bNames,~,bPartInds]=unique(bPts.rlnMicrographName);
 bNumNames=numel(bNames);
 disp([num2str(bNumNames) ' unique micrographs']);

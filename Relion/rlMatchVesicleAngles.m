@@ -75,6 +75,7 @@ for i=1:npn % look at each particle micrograph name
      else
          sel=true(size(ptr.rlnMicrographName)); % select everything
      end;
+
      psis=pts.rlnAnglePsi(sel);
      psis=mod(psis,360);
      vesPsi=-ves.vesPsi(iVes(sel));
