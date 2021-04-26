@@ -76,6 +76,7 @@ disp('done.');
      else
          sel=true(size(pts.rlnMicrographName)); % select everything
      end;
+
      psis=pts.rlnAnglePsi(sel);
 %      psis=mod(psis,360);
      vesPsi=ves.vesPsi(iVes(sel));
@@ -149,4 +150,3 @@ disp('done.');
          
          ok=MyInput('Write another star file? ',0);
      end;
-     

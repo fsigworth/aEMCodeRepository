@@ -1,13 +1,8 @@
 function [ind,loc,b]=imagsar(imageStack, contrastFraction, showLabels, labels)
 % function [ind,loc,b]=imagsar(imageStack, contrastFraction, ShowLabels, labels)
-% Interactive display of an image array.
-% --previously ImagicDisplay3--
-% Alternative call: recover the index of a clicked-on panel by calling with no
-%   arguments.
-% imagsar('GetClick');
-% imagsar('Mark',indices,markInfo);
-%  markInfo has the fields marker and markerSize.
-% imagsar('Clear')
+% --previously called ImagicDisplay3--
+% Interactive display of an image array. This doesn't work for Matlab
+% versions later than ~2018.
 % 
 % Make an EMAN-like, resizable, scrollable display of the image stack in the current
 % figure window (or create one if no figures exist).  Only the first
@@ -24,6 +19,13 @@ function [ind,loc,b]=imagsar(imageStack, contrastFraction, showLabels, labels)
 % that label each panel.
 % Resizing works as
 % long as the window exists.
+%
+% Alternative call: recover the index of a clicked-on panel by calling with no
+%   arguments.
+% imagsar('GetClick');
+% imagsar('Mark',indices,markInfo);
+%  markInfo has the fields marker and markerSize.
+% imagsar('Clear')
 
 % fs, Sep 2014, based on ImagicDisplay by Yunhui Liu, Aug 2011 based on an earlier version by fs
 

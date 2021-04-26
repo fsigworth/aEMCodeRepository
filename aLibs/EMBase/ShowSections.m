@@ -12,6 +12,8 @@ function ShowSections( map, ctr, yAngle, options )
 %   ShowSections(map,ctr,exponent)
 % options.rowLabels doesn't work yet because mysubplot doesn't handle
 % ylabel or xlabel correctly.
+drawX=0;
+drawY=0;
 
 [nx, ny, nz, nim]=size(map);
 if nargin<3
@@ -97,10 +99,13 @@ for iSlice=1:nim
     imdraw(xs,ys,map(:,:,cz,iSlice));
     if options.showLines
         hold on;
-        plot([1 nx ],[cy cy],'b-');
-        % plot([cx cx],[1 ny],'g-');
-        plot(yxs,yys,'g-');
-        
+if drawX
+    plot([1 nx ],[cy cy],'b-');
+end;
+% plot([cx cx],[1 ny],'g-');
+if drawY
+    plot(yxs,yys,'g-');
+end;    
         hold off;
     end;
     if showRowLabels
@@ -123,10 +128,13 @@ for iSlice=1:nim
         %     plot([1 nx ],[cy0 cy0],'b-');
         %     % plot([cx0 cx0],[1 ny],'g-');
         %     plot(yxs0,yys0,'g-');
-        plot([1 nx ],[cy cy],'b-');
-        % plot([cx cx],[1 ny],'g-');
-        plot(yxs,yys,'g-');
-        hold off;
+if drawX
+    plot([1 nx ],[cy cy],'b-');
+end;    % plot([cx cx],[1 ny],'g-');
+if drawY
+    plot(yxs,yys,'g-');
+end;
+hold off;
     end;
     if options.showLabels
         xlabel('X');
@@ -162,8 +170,10 @@ for iSlice=1:nim
         hold on;
         %     plot([1 nx ],[cy0 cy0],'b-');
         %     plot([cx0 cx0],[1 nz],'r-');
-        plot([1 nx ],[cz cz],'b-');
-        plot([cx cx],[1 nz],'r-');
+if drawX
+    plot([1 nx ],[cz cz],'b-');
+end;
+plot([cx cx],[1 nz],'r-');
         
         hold off;
     end;
