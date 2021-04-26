@@ -7,15 +7,17 @@
 %  000001@Extract/job220/Merged/001_X-1Y-1-2_u.mrcs 
 % so we have to copy the image index, replace the path and the final character of the name.
 
-newPath='Extract/job218/Merged/'
+newPath='Extract/job282/Merged/'
 newSuffix='u'
 nSuffChars=numel(newSuffix);
 
-particleStarName='Refine3D/job214/run_data.star';
-outStarName='Refine3D/job214/run_data_reconstr2.star';
+particleStarName='Extract/job281/particles.star'
+outStarName='~/hd0/temp/RSC9/Extract281_VplusU_particles.star_test';
 
+disp(['Reading ' particleStarName]);
 [pnms,pdats]=ReadStarFile(particleStarName);
 
+%%
 pdt=pdats{2};
 np=numel(pdt.rlnImageName);
 qdt=pdt;
@@ -26,7 +28,9 @@ for i=1:np
     [oldPath oldStack ext]=fileparts(oldImgName(atPtr+1:end));
     newStackName=[newPath oldStack(1:end-nSuffChars) newSuffix ext];
     qdt.rlnReconstructImageName{i}=[oldImgName(1:atPtr) newStackName];
-
+    if i<11 % print out the first few
+        disp([oldImgName '  ' qdt.rlnReconstructImageName{i}]);
+    end;
 end;
 
 %%
