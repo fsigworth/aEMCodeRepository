@@ -1747,6 +1747,7 @@ maxAmp=h.sav.vesicleAmps(2);
 
 mins=1;
 nVesOld=0;
+extraTries=2;
 % Loop through finding groups of 50 vesicles.
 while mins>minAmp
     [mi1, t]=rsFindVesicles3('next',50,h.sav.vesicleAmps);
@@ -1785,8 +1786,13 @@ while mins>minAmp
     %%
     
     %     Exit the loop when we can't find any more vesicles
-    if nves<=nVesOld || nves > h.maxNVes
+    if nves<=nVesOld 
+        extraTries=extraTries-1;
+        disp('extra try');
+        if extraTries<1 || nves > h.maxNVes
+        
         break
+        end;
     end;
     nVesOld=nves;
 end;

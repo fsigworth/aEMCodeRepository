@@ -1,14 +1,24 @@
-function m1=rspCTFInverseFilter(m,mi,comp,effWeights)
+function m1=rspCTFInverseFilter(m,mi,compFraction,effWeights)
 % function m=rspCTFInverseFilter(m,mi,comp)
 % Given the downsampled image m, boost the low frequencies below the 1st
-% peak of the first exposure's CTF.  If comp=1, the boost is the inverse of
+% peak of the first exposure's CTF.  If compFraction=1, the boost is the inverse of
 % the ctf, up to a value of 10.
-%%%%%% include fake double-exposure code.
+% If we're padding the image m, it would be good to have it correspond to
+% mi.padImageSize.
+% Includes code to make a fake double-exposure image if weights are not all 1.
+%
+% mi fields that are used
+%   weights
+%   pixA
+%   padImageSize (or imageSize if padImageSize not given)
+%   ctf
 if nargin<5 || sum(effWeights)==0
     effWeights=ones(size(mi.weights));
 end;
 doDoubleExposure = ~all(effWeights(:)==mi.weights(:)); % emulate double exposure
-if comp==0 && ~doDoubleExposure % nothing to do
+% if some of mi.weights are not =1.
+
+if compFraction==0 && ~doDoubleExposure % nothing to do
     m1=m;
     return
 end;
@@ -16,7 +26,12 @@ end;
 k=.1;
 
 n=size(m);
-ds=mi.imageSize(1)/n(1);  % actual downsampling of m
+if ~isfield(mi,'padImageSize');
+    origSize=mi.padImageSize;
+else
+    origSize=mi.imageSize;
+end;    
+    ds=origSize(1)/n(1);  % actual downsampling of m
 pixA=mi.pixA*ds;
 
 freqs=RadiusNorm(n)/pixA;  % frequencies of padded image
@@ -24,8 +39,8 @@ freqs=RadiusNorm(n)/pixA;  % frequencies of padded image
 peakMask=abs(chi)<pi/4;  % mask up to just beyond the first peak
 mxAmp=max2d(peakMask.*abs(ctf));
 H=ones(n,'single');
-if comp>0
-    H(peakMask)=mxAmp*(1-comp+comp./abs(ctf(peakMask))+k);
+if compFraction>0
+    H(peakMask)=mxAmp*(1-compFraction+compFraction./abs(ctf(peakMask))+k);
 end;
 % Hp=GaussHPKernel(n,fHP);
 

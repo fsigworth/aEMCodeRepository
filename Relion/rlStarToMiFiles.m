@@ -45,6 +45,8 @@ dpars.setProcImage=0; % Set proc path to image path (if not writing merged image
 dpars.writeMergedImage=0;
 dpars.writeMergedSmall=1;
 dpars.writeJpeg=1;
+dpars.writeJpegInv=1;
+dpars.compFraction=0.3;
 dpars.dsSmall=4; % downscaling for Small and jpeg
 dpars.disFc=.2;
 
@@ -54,6 +56,7 @@ pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 cd(pars.basePath);
 
 jpegPath='Jpeg/';
+jpegInvPath='JpegInv/';
 
 if isa(starName,'cell') % Contains output from ReadStarFile()
     names=starName{1};
@@ -107,6 +110,9 @@ for i=1:nLines
         if pars.writeJpeg
             CheckAndMakeDir(jpegPath,1);
         end;
+        if pars.writeJpegInv
+            CheckAndMakeDir(jpegInvPath,1);
+        end;
     end;
     if pars.skipMissingMrcs % silently skip these lines.
         if ~micFound
@@ -132,6 +138,7 @@ for i=1:nLines
         if pars.writeMergedSmall || pars.dwriteJpeg
             smallName=[mi.procPath_sm mi.baseFilename 'ms.mrc'];
             jpegName=[jpegPath mi.baseFilename 'ms.jpg'];
+            jpegInvName=[jpegInvPath mi.baseFilename 'msinv.jpg'];
             
             if pars.writeMergedSmall
                 WriteMRC(ms,mi.pixA*pars.dsSmall,smallName);
@@ -139,8 +146,13 @@ for i=1:nLines
             if pars.writeJpeg
                 WriteJpeg(msDis,jpegName);
             end;
+            if pars.writeJpegInv
+                msInv=rspCTFInverseFilter(ms,mi,pars.compFraction);
+                msInvDis=GaussFilt(msInv,pars.disFc);
+                msDis=WriteJpeg(msInvDis,jpegInvName);
+            end;                
         end;
-        imags(msDis);
+        imaga(msDis);
         title([num2str(i),': ' mi.baseFilename],'interpreter','none');
         drawnow;
     else % not writing anything, don't need to read the original image

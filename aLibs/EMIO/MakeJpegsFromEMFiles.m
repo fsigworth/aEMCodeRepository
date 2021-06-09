@@ -1,5 +1,5 @@
 % function MakeJpegsFromEMFiles(OutputDir, binning, display, defaultPixA)
-% function MakeJpegsFromEMFiles(binning, display)
+% function MakeJpegsFromEMFiles(OutputDir, binning, display, defaultPixA)
 % For each EM image file (.mrc, .dm3, .img, .hed, .tif)
 % in the current directory, make a .jpg file.  All arguments are optional.
 % If OutputDir is given and is not an empty string, the
@@ -12,27 +12,27 @@
 inputExtensions={'.mrc' '.tif' '.mrcs'};
 % inputExtensions={'.mrcs'};
 sumStacks=1;
+outputDir='Jpeg/'; % inside the current dir
+binning=4;
+nargin=4;
+display=1;
+defaultPixA=0;
 
 % outputDir='/ysm-gpfs/project/fjs2/181216/No5Graphene/sq05_1/JpegSums/';
-outputDir='../Jpeg/';
 
-suffixes={'ms' 'mvs'};
+suffixes={'ms' 'mvs' '_u' '_v' };
+clipThresh=1e-3;
 
 disp(['Converting EM files to jpgs from directory ' pwd]);
-nargin=0;
 
 % if nargin<1
 %     OutputDir='';
 % end;
-len=numel(outputDir);
-if len>0
-    if outputDir(len)~='/' % doesn't end with slash
-        outputDir=[outputDir '/'];
-    end;
+
+
 CheckAndMakeDir(outputDir,1);
 
     disp(['Writing output files to ' outputDir]);
-end;
 
 if nargin<2
     binning=1;
@@ -78,14 +78,14 @@ for i=3:numel(d)
         if binning>1
             m=Downsample(m,n/binning);
         end;
-        ms=uint8(imscale(m,256,1e-4));
+        ms=uint8(imscale(m,256,clipThresh));
         if display
             n=size(ms);
             pixA=max(pixA,defaultPixA)*binning;
             if pixA==0
                 pixA=1;
                 label='pixels';
-            elseif pixA*n(1)>1000
+            elseif pixA*n(1)>1e4
                 pixA=pixA/10;
                 label='nm';
             else
@@ -100,7 +100,8 @@ for i=3:numel(d)
         [~, nm]=fileparts(d(i).name);
         fullOutName=[outputDir nm '.jpg'];
         if ~exist(fullOutName,'file')
-            imwrite(ms,fullOutName,'jpg');
+%             imwrite(ms,fullOutName,'jpg');
+            WriteJpeg(m,fullOutName,clipThresh); % Use the default clip threshold
         else
             disp(' --exists, not written.');
         end;
