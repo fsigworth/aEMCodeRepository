@@ -1,4 +1,7 @@
 % rlDisplayModelSpectra
+% Read the model.star file from a Refine3D job and extract the group
+% scale correction and spectrum from each group.
+% start in the Class3D/job/ folder.
 
 starName='run_model.star';
 
@@ -17,7 +20,7 @@ for ind=1:nnm
         groupInd=str2double(str);
 %          groupInd=str2double(nm{ind}(nGpString+1,end)); % Matlab bug?
 %          groupInd=str2num(nm{ind}(nGpString+1,end)); % Matlab bug?
-        if groupInd==1
+        qif groupInd==1
             spectra=d.rlnSigma2Noise;
             freqs=d.rlnResolution;
         else

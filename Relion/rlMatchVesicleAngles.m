@@ -1,14 +1,16 @@
 % rlMatchVesicleAngles.m
 
-loadVesData=1;
+loadVesData=0;
+insertVesiclePsis=0;
 
 % Load a particles.star file, may contsain a selected subset from Refine3D etc.
 % pStarName='Refine3D/job140/run_data.star';
-pStarName='Class3D/job121/run_it025_data.star';
+pStarName='Refine3D/job297/run_data.star';
 % pStarName='Class3D/job187/run_it025_data.star';
 
 % Load a vesicle-particle file from the entire dataset.
-vStarName='RSC/ves_particleAll9_intens+frac_7505.mat';
+vStarName='RSC9/ves_particles_v.star';
+
 
 % We'll find the entries iVes in the ves-part file corresponding to each line of
 % the particles.star file.
@@ -38,6 +40,7 @@ disp([num2str(npn) ' unique micrographs']);
 disp([num2str(numel(vesNames)) ' vesicle refs']);
 pvMap=zeros(npn,1);
 iVes=zeros(nParticles,1);
+disp('Matching particle locations...');
 for i=1:npn % look at each particle micrograph name
     % find all the particles having that name
     iParts=find(partInds==i);
@@ -56,81 +59,94 @@ for i=1:npn % look at each particle micrograph name
     [minDists,iVesLocal]=min(dists,[],2);
     iVes(iParts)=vesRange(iVesLocal);
  end;
+disp('done.');
 
  % At this point, iVes(i) gives the line in ves cooresponding to pts(i)
  %%
- totalRso=0;
- showSeparateClasses=0;
- 
- if showSeparateClasses
+ bins=0:4:359; % histo bins
+ nBins=numel(bins);
      nClasses=max(pts.rlnClassNumber);
- else
-     nClasses=1;
- end;
- 
+ h=zeros(nBins,nClasses);
+ fStr=sprintf('%%%uu',floor(log10(nParticles)+1)); % format string
  for icls=1:nClasses
      class=icls;
+     clsString=['Class ' num2str(icls)];
      if nClasses>1
          sel=pts.rlnClassNumber==class;
      else
-         sel=true(size(ptr.rlnMicrographName)); % select everything
+         sel=true(size(pts.rlnMicrographName)); % select everything
      end;
 
      psis=pts.rlnAnglePsi(sel);
-     psis=mod(psis,360);
-     vesPsi=-ves.vesPsi(iVes(sel));
-     vesPsi=mod(vesPsi,360);
-     
-     vesRadius=ves.vesR(iVes(sel));
-     
-     figure(3);
-     plot(vesPsi,psis,'.');
-     xlabel('Vesicle psi');
-     ylabel('Particle psi');
-     title(['Class ' num2str(class)]);
-     
-     figure(4);
-     psiDiff=mod(vesPsi-psis+90,360);
-     hist(psiDiff,100);
+%      psis=mod(psis,360);
+     vesPsi=ves.vesPsi(iVes(sel));
+%      vesPsi=mod(vesPsi,360);
+     psiDiff=mod(-vesPsi-psis+90,360);
+     h(:,icls)=hist(psiDiff,bins);
      iso=psiDiff<180;
      rso=psiDiff>180;
-     rsoFraction(icls)=sum(rso)/(sum(rso)+sum(iso));
-     title(['Class ' num2str(icls) ' rso-fraction ' num2str(rsoFraction(icls))]);
-     disp([icls rsoFraction(icls)]);
-     totalRso=totalRso+sum(rso);
-     pause(1);
+     fprintf(['%s ' fStr ' iso ' fStr ' rso, fraction %.3f \n'],clsString,sum(iso),sum(rso),sum(rso)/numel(rso));
  end;
- disp(pStarName);
-totalRso
- return
- 
- 
- %% Create an edited star file
- selectRso=0;
-  outStarName='RSC/iso_from_Class3D_121_data.star';
 
- if selectRso
-     str='RSO';
- else
-     str='ISO';
- end;
- psiResidual=pts.rlnAnglePsi+ves.vesPsi(iVes);
- psiDiff=mod(90-psiResidual,360);
- rso=psiDiff>180;
- hist(psiDiff,100);
- title(['Total ' num2str(sum(rso)) ' RSO Particles of ' num2str(numel(rso))]);
- disp(['Writing ' num2str(sum(rso)) ' particles to ' outStarName '...']);
- hdrText=['# version 30001, ' str ' particles. From rlMatchVesicleAngles.m'];
+      psis=pts.rlnAnglePsi;
+     vesPsi=ves.vesPsi(iVes);
+     
+    if insertVesiclePsis
+        disp('Inserting the vesiclePsi field.');
+     pts.vesiclePsi=vesPsi;
+     pdat{2}=pts;
+    end;
+
+    psiDiff=mod(-vesPsi-psis+90,360);
+     iso=psiDiff<180;
+     rso=psiDiff>180;
+     fprintf(['\n Total: ' fStr ' iso ' fStr ' rso, fraction %.3f \n\n'],sum(iso),sum(rso),sum(rso)/numel(rso));
+
+     figure(4);
+     bar(bins,h,'stacked');
+     legend;
+     ylabel('Frequency')
+     xlabel('Psi angle difference');
+     title([num2str(sum(iso)) ' ISO     ' num2str(sum(rso)) ' RSO']);
  
- if selectRso
-  pFlags={[] rso}; 
-    disp('Selecting RSO...');
- else
-     pFlags={[] ~rso};
-    disp('Selecting ~RSO...');
- end;
- 
-  WriteStarFile(pnm,pdat,outStarName,hdrText,pFlags);
-disp('done.'); 
- 
- 
+     [outPath]=AddSlash(fileparts(vStarName));
+     ok=MyInput('Write a star file? ',0);
+     while ok
+         selRSO=MyInput('RSO (-1 for both orientations) ? ',1);
+         if selRSO<0
+             orString='riso'
+             orFlags=true(nParticles,1);
+         elseif selRSO
+             orString='rso'
+             orFlags=rso;
+         else
+             orString='iso'
+             orFlags=iso;
+         end;
+         classSel=MyInput('Classes or 0?',0)
+         if all(classSel)==0
+             clsString='all';
+             flags=true(nParticles,1) & orFlags;
+         else
+             clsString=sprintf('%u',classSel)
+             flags=any(pts.rlnClassNumber==classSel,2) & orFlags;
+         end;
+         numParticles=sum(flags);
+         path=input(['output file path [''' outPath ''']?']);
+         if numel(path)>0
+             outPath=AddSlash(path);
+             CheckAndMakeDir(outPath,1);
+         end;
+         outStarName=['particles_' orString '_' clsString '.star'];
+         outName=input(['File name? ''' outStarName ''' ? '])
+         if numel(outName)<5
+             outName=outStarName
+         end;
+        hdrText=['# version 30001, ' orString ' particles, class ' clsString ' from ' pStarName]
+        totalParticles=sum(flags)
+        fullOutName=[outPath outName];
+        disp(['Writing ' fullOutName]);
+         WriteStarFile(pnm,pdat,fullOutName,hdrText,{[] flags});
+         
+         ok=MyInput('Write another star file? ',0);
+     end;

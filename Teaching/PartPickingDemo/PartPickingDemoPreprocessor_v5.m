@@ -23,10 +23,10 @@ basePath='~/'; % on siggpu2
 %basePath='~/siggpu2/home/siggpu2/'; % mount on mini
 
 %cd /Volumes/D257/Yangyu/20200824/
-cd([basePath '/data/20210216']);
+cd([basePath 'hd1/data/20210224']);
 disp(['Working directory: ' pwd]); 
-pin.starInPath='CtfFind/job003/';
-pin.mrcInPath='MotionCorr/job002/Movies/';
+pin.starInPath='CtfFind/job011/';
+pin.mrcInPath='MotionCorr/job010/Movies/';
 pin.matOutPath='TemplatePicker5/';
 disp(['mat output path = ' pin.matOutPath]);
 

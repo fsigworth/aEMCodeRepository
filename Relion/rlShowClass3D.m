@@ -2,8 +2,10 @@
 
 displayAngle=45;
 % displayAngle=90
-zFraction=.75; % relative Z-height of slice
+zFraction=.6; % relative Z-height of slice
+skipLoading=1;
 
+if ~(skipLoading && exist('maps','var'))
 [modelName,modelPath]=uigetfile('*model.star');
 % cd(modelPath);
 modelName=[modelPath modelName];
@@ -47,6 +49,7 @@ else
     mapNames={modelName};
     mapProbs=1;
 end;
+%%
 maps=zeros(n,n,n,nim,'single');
 %
 opts=struct;
@@ -57,6 +60,7 @@ for i=1:nim
     opts.rowLabels{i}=probString;
     maps(:,:,:,i)=ReadMRC(mapNames{i});
 end;
+end; % if ~skipLoading
 %%
 n=size(maps,1);
 n2=ceil((n+1)/2);
