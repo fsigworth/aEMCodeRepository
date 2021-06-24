@@ -6,3 +6,6 @@ function m=RotMatrix2(theta)
 c=cos(theta);
 s=sin(theta);
 m=[c -s; s c];
+%
+% %%%% New coordinate system [x';y']=m*[x;y] ccw rot of coordinates
+% m=[c s -s c]
