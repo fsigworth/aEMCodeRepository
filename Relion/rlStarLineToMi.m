@@ -4,17 +4,30 @@ function [readOk,micFound,mi,nLines]=rlStarLineToMi(sNames,sDats,iLine,pars)
 % line index iLine. Optionally returns the scaled micrograph img and the
 % total number of lines in the star structures.
 % Handles optics groups too.
-% ok==false when there is an error reading the star file line.
+% ok==false when there is an error in the star struct for that line.
 % mi.imageSize==[0 0] in the case that micrograph couldn't be read.
+
+defPars.changeImagePath=0;
+defPars.checkImagePath=0;
+defPars.writeMergedImage=0;
+defPars.writeMergedSmall=0;
+defPars.dose=50;
+defPars.cameraIndex=5;
+defPars.cpe=0.8;
+defPars.BFactor=100;
+defPars.noDamageModel=0;
 
 if nargin<4
     pars=struct; % use all defaults.
 end;
 
+pars=SetDefaultValues(defPars,pars,1);
+
 % Default outputs
 readOk=false;
 micFound=false;
 mi=[];
+
 
 % % Here are example par values (from rlStarToMiFiles).
 
@@ -74,7 +87,8 @@ mi=mi0; % copy the default parameters
 if pars.changeImagePath
     imagePath=pars.imagePath;
 end;
-if numel(imagePath)>0 && ~exist(imagePath,'dir')
+
+if pars.checkImagePath &&  numel(imagePath)>0 && ~exist(imagePath,'dir')
     error(['The image path ' imagePath ' wasn''t found']);
 end;
 imagePath=AddSlash(imagePath);
