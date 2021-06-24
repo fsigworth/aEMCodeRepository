@@ -9,7 +9,7 @@ pin.psA=150;  % particle size in angstroms
 % symmetry=3;
 % refMapName='emd_7009_flat_0822A_304.mrc';
 pin.symmetry=4;
-pin.refMapName='emd_10573.mrc';
+pin.refMapName='ATP_SYNTHASE.mrc';
 
 
 % templateFilt=.05; % inverse angstroms
@@ -23,10 +23,10 @@ basePath='~/'; % on siggpu2
 %basePath='~/siggpu2/home/siggpu2/'; % mount on mini
 
 %cd /Volumes/D257/Yangyu/20200824/
-cd([basePath '/hd0/data/20210601']);
+cd([basePath '/hd0/data/20210611']);
 disp(['Working directory: ' pwd]); 
-pin.starInPath='CtfFind/job036/';
-pin.mrcInPath='MotionCorr/job035/Movies/';
+pin.starInPath='CtfFind/job019/';
+pin.mrcInPath='MotionCorr/job018/rawTIFF/';
 pin.matOutPath='TemplatePicker5/';
 disp(['mat output path = ' pin.matOutPath]);
 
