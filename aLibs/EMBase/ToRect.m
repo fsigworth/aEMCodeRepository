@@ -7,6 +7,8 @@
 % the scaling of r values to distance in W.  A value of 0.5 means
 % that one unit in the r direction of P corresponds to an increment of 0.5
 % in the distance from the center of W.
+% If size(P,1)=1, we get only angular variations. if size(P,2)=1, we get
+% only radial variations (rot symmetrized).
 
 % % test code
 % setgrayscale;
@@ -37,7 +39,11 @@
 % center=[x0 y0];
 % % end of first test code.
 
-[nr nt]=size(P);
+[nr, nt]=size(P);
+if nr==1 % have to have at least two radial values.
+    nr=2;               % (but one angular value is ok.)
+    P=repmat(P,2,1);
+end;
 
 if nargin <3
     rscale=1;
@@ -56,7 +62,7 @@ n2=n.^2;
 P(:,nt+1)=P(:,1);
 
 % Find the polar coordinates corresponding to each rectangular matrix element.
-[X Y]=ndgrid(1-center(1):n-center(1), 1-center(2):n-center(2));
+[X, Y]=ndgrid(1-center(1):n-center(1), 1-center(2):n-center(2));
 R=1+sqrt(X.^2+Y.^2)/rscale;
 T=nt/(2*pi)*atan2(Y,X)+1;
 T=T+(T<1)*nt;  % Unwrap theta values.

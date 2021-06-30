@@ -1,28 +1,68 @@
 % WienerTRPV2.m
 % demonstration of phase-flipping, Wiener on images.
 % Version 2, plots 1D CTF as well.
-rotAngle=45;
-rotAngle=0
-cropFactor=2;
-psiAngle=180;
+
 cd ~/aEMCodeRepository/EMClass/
-[m,s]=ReadMRC('emd_5778.map');
-if mod(rotAngle,90)~=0
-    disp('Rotating...');
-    mr=rsRotateImage(m,rotAngle); % rotate about z axis
-    disp('done.');
-else
-    mr=m;
-end;
-mr=rsRotateImage(squeeze(sum(mr,1)),psiAngle); % projection
-m0=Crop(mr,512);
+
+% Code to make projections
+% % psiAngle=180;
+% % [m,s]=ReadMRC('emd_5778.map');
+% % rotAngle=0;
+% % for iRot=0:1
+% %     rotAngle
+% %     if mod(rotAngle,90)~=0
+% %         disp('Rotating...');
+% %         mr=rsRotateImage(m,rotAngle); % rotate about z axis
+% %         disp('done.');
+% %     else
+% %         mr=m;
+% %     end;
+% %     mr=rsRotateImage(squeeze(sum(mr,1)),psiAngle); % projection
+% %     
+% %     % Solvent flattening
+% %     mr1=35+(mr+4*GaussFilt(mr,.0027));
+% %     mr2=mr1.*fuzzymask(256,2,100,20);
+% %     % plot(sect(m0))
+% %     
+% %     mTop=sum(m,3);
+% %     mt1=35+(mTop+4*GaussFilt(mTop,.0027));
+% %     mt2=mt1.*fuzzymask(256,2,100,20);
+% %     mt0=Crop(mt2,512);  % top view
+% %     % imags(mt0);
+% %     
+% %     if rotAngle==0
+% %         mr0=mr2;
+% %     else
+% %         md0=mr2;
+% %     end;
+% %     rotAngle=45;
+% % end;
+% % mt0=mt2;
+% % 
+% % % write out X and diagonal side projections, and top view.
+% % WriteMRC(mr0,s.pixA,'emd_5778_yz.mrc'); % all 256 pixels
+% % WriteMRC(md0,s.pixA,'emd_5778_dz.mrc');
+% % WriteMRC(mt0,s.pixA,'emd_5778_xy.mrc');
+% % save('emd_5778_projs.mat','mr0','md0','mt0','s');
 %%
-cxExponent=.4;
+vlSetDarkGraphics;
+% vlSet1080Figure;
+
+    cropFactor=2;
+    load emd_5778_projs.mat
+    m0=Crop(mr0,512);  % side view, padded
+    pixA=s.pixA;
+    
+% Which version to make:
 phaseFlip=0;
 kWiener=0;
+
 sigma=40;
 showWienerCTF=kWiener>0;
-color1D=[.5 .6 1];
+color1D=[.7 .8 1];
+color1D2=[.4 .5 .7];
+cxExponent=.4;
+% color1D2=color1D;
 
 m1=m0+sigma*randn(size(m0));
 n=size(m1,1);
@@ -35,7 +75,7 @@ B=100/4;
 alpha=.05;
 deltadef=0;
 theta=pi/4;
-c=CTF(n,s.pixA,EWavelength(kV),def,Cs,B,alpha,deltadef,theta);
+c=CTF(n,pixA,EWavelength(kV),def,Cs,B,alpha,deltadef,theta);
 if phaseFlip
     c=abs(c);
 end;
@@ -81,7 +121,7 @@ freqs=Crop((-n/2:n/2-1)'/(s.pixA*n),nfdis);
 % freqs=(-ndis/2:ndis/2-1)'/(s.pixA*ndis);
 pars.x=freqs;
 pars.y=freqs;
-imacx2(Crop(fm1,nfdis),cxExponent,pars);
+imacx2(Crop(fm1,nfdis),cxExponent*.8,pars);
 text(min(freqs),min(freqs),' FT of Projection',...
     'color','w','fontsize',24,...
     'horizontalalignment','left','verticalalignment','bottom');
@@ -107,7 +147,7 @@ else
     modC=Crop(c,ndis);
     imacx2(Crop(c,ndis));
 end;
-imacx2(modC);
+imacx2(modC); % Show the net ctf 
 n1Ctf=ndis/2;
 hold on;
 plot(n1Ctf+[1 n1Ctf],ndis/2+1*[1 1],'w-','linewidth',1);
@@ -118,15 +158,21 @@ text(0,0,['CTF, ' num2str(def) '\mum'],...
     'horizontalalignment','left','verticalalignment','bottom');
 axis off;
 
-% 1D plot of CTF
+% -------1D plot of CTF------------
 mysubplot(2,4,7);
 ctf1=sectr(modC);
 freqs=dFreq*(1:n1Ctf);
-plot(freqs,ctf1,'color',color1D);
-hold on;
+if phaseFlip
+    c1=sectr(c);
+    plot(freqs,c1(1:n1Ctf),'--','color',color1D2);
+    hold on;
+    plot(freqs,ctf1,'color',color1D);
+else
+    plot(freqs,ctf1,'color',color1D);
+    hold on;
+end;
 plot(freqs,0*ctf1,'w-','linewidth',1);
 hold off;
-axis([0 freqs(end) -1.05 1.05]);
 text(0,-1.05,['CTF'],...
     'color','w','fontsize',24,...
     'horizontalalignment','left','verticalalignment','bottom');
@@ -142,11 +188,12 @@ end;
 %     psf(fctr(ndis),fctr(ndis))=0;
 if phaseFlip
     mulR=2e4;
-    addR=50;
+    addR=70;
 else
     [~,mulR,addR]=imscale(psf);
 end;
-imaga(psf*mulR+addR);
+imaga(psf*mulR+addR); % Show the 2D psf
+
 x01d=ndis/4+1;
 x11d=3*ndis/4;
 %     Plot the section line
@@ -163,8 +210,10 @@ axis off;
 mysubplot(2,4,3);
 xs=(-ndis/2:ndis/2-1)*s.pixA;
 ys=sect(psf);
+if phaseFlip
 ysm=max(ys);
-ys=min(ysm/2,ys);
+ys=min(ysm/4,ys);
+end;
 
 plot(xs,ys,'color',color1D);
 hold on;
