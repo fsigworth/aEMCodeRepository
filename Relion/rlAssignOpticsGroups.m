@@ -17,7 +17,7 @@ outStarName=[nm '_optics' ex];
 
 useNameDigits=2;
 
-[nm,da]=ReadStarFile(inStarName);
+[dnm,da]=ReadStarFile(inStarName);
 d=da{2};
 if isfield(d,'rlnMicrographMovieName')
     names=d.rlnMicrographMovieName;
@@ -75,5 +75,5 @@ end;
 da{1}=op1;
 da{2}=d;
 disp(['Writing ' outStarName]);
-WriteStarFile(nm,da,outStarName);
+WriteStarFile(dnm,da,outStarName);
 
