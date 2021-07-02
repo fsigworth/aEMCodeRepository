@@ -48,7 +48,7 @@ dpars.writeJpeg=1;
 dpars.writeJpegInv=1;
 dpars.compFraction=0.3;
 dpars.dsSmall=4; % downscaling for Small and jpeg
-dpars.disFc=.2;
+dpars.disFc=.4;
 
 
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
