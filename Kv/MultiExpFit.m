@@ -44,7 +44,12 @@ for i=1:nIters
     err=yDiff'*yDiff;
     newAlphas=Simplex(err);
     if mod(i,10)==0
-        plot(x,[y estY biaYs(start+1:stop,1:5)],'linewidth',1);
+% %         plot(x,[y estY biaYs(start+1:stop,1:5)],'linewidth',2);
+%         plot(x,[y estY biaYs(start+1:stop,1:5)],'linewidth',1.5);
+        plot(x,y,'linewidth',2);
+        hold on;
+        plot(x,estY,'k-','linewidth',1);
+        hold off;
         title(['taus: ' num2str(1./alphas,4) '     amps: ' num2str(a',4)]);
     	pause(0.1)
     end;

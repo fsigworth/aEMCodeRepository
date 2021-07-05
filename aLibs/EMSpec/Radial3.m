@@ -1,10 +1,17 @@
-function r=Radial3(w,org)
+function [r,med,vals]=Radial3(w,org)
 % function r = Radial3(w,org)
+% function [r,med,vals]=Radial3(w,org);
 % Compute the circularly-averaged, radial component of the cubic volume w,
 % with the origin taken to be org.  The number of points returned is
 % nr=floor(min(size(w))/2).
-% r(1) = average of points with r in [0,1),
-% r(2) = average of points with r in [1,2), etc.
+% The assignment of r values used to be ceil(r) but is now round(r). Thus
+% r(1) = average of points in shell with radius in [0,.5), i.e. 0 only.
+% r(2) = average of points in shell with radius in [.5, 1.5), etc.
+% New addition fs July 2021:
+% If desired, medians of shells are returned. Also, vals is a cell array, each
+% element contains a vector of sorted values from each shell. (The median
+% is taken as the middle value of that vector.)
+
 
 sz = size(w);
 if nargin<2
@@ -13,6 +20,25 @@ end;
 szmin=min(sz);
 nr=floor(szmin/2);
 R=Radius3(sz,org);
-    [r, norm]=WeightedHisto(ceil(R),w,nr);
+    [r, norm]=WeightedHisto(round(R),w,nr);
     r=r./(norm+eps);
-return;
+
+if nargout>1 % We're computing ordered entries
+    rs=R(:);
+    [sortRs,rInds]=sort(rs);
+    steps=find(diff(round(sortRs)));
+    steps=[0;steps];
+    vals=cell(nr,1);
+    med=zeros(nr,1);
+    for i=1:nr
+        binVals=sort(w(rInds(steps(i)+1:steps(i+1))));
+        nb=numel(binVals);
+        if mod(nb,2)  % odd
+            med(i)=binVals((nb+1)/2);
+        else
+            lowCtr=nb/2;
+            med(i)=mean(binVals(lowCtr:lowCtr+1));
+        end;
+        vals{i}=binVals;
+    end;
+end;    
