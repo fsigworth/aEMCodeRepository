@@ -14,7 +14,7 @@ function [r,med,vals]=Radial3(w,org)
 
 
 sz = size(w);
-if nargin<2
+if nargin<2 || numel(org)<1
     org=ceil((sz+1)/2);
 end;
 szmin=min(sz);
