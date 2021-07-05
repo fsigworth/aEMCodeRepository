@@ -1,7 +1,7 @@
 function m=RotMatrix2(theta)
 % function m=RotMatrix2(theta)
 % Compute m such that m*v1 takes the vector v1 into a vector rotated ccw 
-% by theta.
+% by theta, in radians.
 
 c=cos(theta);
 s=sin(theta);
