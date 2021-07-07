@@ -1,6 +1,6 @@
-function [r,med,vals]=Radial3(w,org)
+function [r,med,vals,rVals]=Radial3(w,org)
 % function r = Radial3(w,org)
-% function [r,med,vals]=Radial3(w,org);
+% function [r,med,vals,rVals]=Radial3(w,org);
 % Compute the circularly-averaged, radial component of the cubic volume w,
 % with the origin taken to be org.  The number of points returned is
 % nr=floor(min(size(w))/2).
@@ -10,7 +10,8 @@ function [r,med,vals]=Radial3(w,org)
 % New addition fs July 2021:
 % If desired, medians of shells are returned. Also, vals is a cell array, each
 % element contains a vector of sorted values from each shell. (The median
-% is taken as the middle value of that vector.)
+% is taken as the middle value of that vector.) rVals are the corresponding
+% radius values.
 
 
 sz = size(w);
@@ -25,8 +26,8 @@ R=Radius3(sz,org);
 
 if nargout>1 % We're computing ordered entries
     rs=R(:);
-    [sortRs,rInds]=sort(rs);
-    steps=find(diff(round(sortRs)));
+    [rVals,rInds]=sort(rs);
+    steps=find(diff(round(rVals)));
     steps=[0;steps];
     vals=cell(nr,1);
     med=zeros(nr,1);

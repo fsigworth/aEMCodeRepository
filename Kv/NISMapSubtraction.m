@@ -42,10 +42,10 @@ m2uc=Downsample(m2c,n*us);
 
 bigFigure=2;
 
-% % ?***
-% m1uc=m2uc;
-% bigFigure=3;
-% % ****
+% ?***
+m1uc=m2uc;
+bigFigure=3;
+% ****
 
 %%
 % Make synthetic maps
@@ -183,18 +183,30 @@ for i=1:nAngs
             %             nx=NextNiceNumber(2*range+5)
             nx=2*range+3;
             mLoc=ExtractVolumeInterp(m1vcr,cds,nx);
-            [rMean,rMedian,rVals]=Radial3(mLoc,[]);
+            [rMean,rMedian,yVals,rVals]=Radial3(mLoc,[]);
+%             % Correct the r=0 point
+%             rMean(1)=0*rMean(1)+1*mean(yVals{2}(1:6)); % 1/2 times r=1 points
+%             rMean(2)=4/3*rMean(2)-1/3*mean(yVals{2}(1:6)); % remove the r=1 points
+            
             sMean=[rMean(range+1:-1:1); rMean(2:range+1)];
             sMedian=[rMedian(range+1:-1:1); rMedian(2:range+1)];
             lines(:,1,1,j)=sMean;
+            lines(:,2,1,j)=sMedian;
             legTxt{j}=ionLabel;
             %             radLine=zeros(2*range+1);
             %             radLine(range+1:end)=rMed(1:range);
             %             radLine(range:-1:1)=rMed(2:range-1);
             %
-            subplot(2,nIons,nIons+j)
+            mysubplot(2,nIons,nIons+j)
             plot(xVals,[sMean sMedian]);
+            plot(xVals,sMedian,'linewidth',1);
+            hold on; 
+            plot(xVals,0*xVals,'k-');
+            hold off;
+            grid on;
             axis([-inf inf yLims]);
+            ylabel('Map density');
+            xlabel('Radius, Å');
         else
             
             rngs0=[{0} {0} {0}];
@@ -245,11 +257,31 @@ for i=1:nAngs
     drawnow;
     end; % for j=1:nIons
 end; % for i-1:nAngs
-%
+%%
 if showRadialAverage
-    figure(5);
-    plot(xVals,squeeze(lines(:,1,1,:)));
+%     figure(2*bigFigure);
+%     plot(xVals,squeeze(lines(:,1,1,:)));
+%     legend(legTxt);
+%     title('Means');
+    if bigFigure==2
+        figText='Na_I_Map';
+        maxY=1.5;
+    else
+        figText='Na_Map';
+        maxY=1;
+    end;
+    figure(2*bigFigure+1);
+    plot(xVals,squeeze(lines(:,2,1,:)),'linewidth',1);
+    hold on;
+    plot(xVals,0*xVals,'k-');
+    hold off;
+    axis([min(xVals) max(xVals) -.5 maxY]);
+    
+    
     legend(legTxt);
+    title([figText ' Medians'],'interpreter','none');
+    xlabel('Radius from atom center, Å');
+    ylabel('Map density');
 end;
 
 
