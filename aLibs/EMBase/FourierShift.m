@@ -1,32 +1,33 @@
 function P=FourierShift(n,sh)
-% function P=FourierShift(n,sh)
-% Compute the complex exponential for shifting an image.  n is the size of
-% the image (scalar for a square image or a 2-element vector for a
-% rectangular image), and can be odd.  If n is a 3-element vector, then a
-% 3D array is produced for shifting a volume. sh =[dx dy] or [dx dy dz] contains the shifts in
-% pixels. Positive values are shifts up and to the right.  In the returned
-% matrix, P(1,1) is zero frequency.
-% If sh is nim x 2 in size and numel(n)<3 then a stack of 2D complex images is created.
+% function P=FourierShift(n,sh) Compute the complex exponential for
+% shifting an image.  n is the size of the column vector, image or volume
+% (can be a scalar for a square image or a cube), and can be odd. sh is the
+% desired shift in pixels, and its dimension sets the dimension of P.
+% Positive values are shifts up and to the right.  In the returned
+% matrix, P(1) is zero frequency. If sh is nim x ndims in size then a
+% stack of vectors/images/volumes is created.
 %
-% e.g. to shift by dx, dy pixels,
+% e.g. to shift an image by by dx, dy pixels,
 %   fm=fftn(m);
 %   P=FourierShift(size(m),[dx dy]);
 %   fsh=real(ifftn(fm.*P));
 % or, in one line,
 %   fsh=real(ifftn(fftn(m).*FourierShift(size(m,1),[dx dy])));
 %
-if numel(n)<2
-    n(2)=n(1);
-end;
-if numel(sh)<4  % Too small to be a stack of shifts
-    sh=sh(:)';  % force a row vector;
-end;
 
-ndims=numel(n);
-nim=size(sh,1); % one row for each output image
-switch ndims
-    case 2
+nim=size(sh,1); % multiple rows for a stack of outputs
+ndims=size(sh,2); % columns of shifts set the dimension
+if numel(n)<ndims
+    n=ones(1,ndims)*n(1);
+end;
         P=zeros([n nim]);
+switch ndims
+    case 1
+       X=((-floor(n/2):floor((n-1)/2))/n)';
+for i=1:nim
+            P(:,:,i)=exp((-1j*2*pi)*fftshift(sh(i,1)*X));
+end;
+    case 2
         for i=1:nim
             nx=n(1);
             ny=n(2);

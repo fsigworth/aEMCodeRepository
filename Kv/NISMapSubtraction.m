@@ -1,13 +1,15 @@
 % NISMapSubtraction.m
 
 
-showRadialAverage=1; % show just the radial average.
+mode='ligands'; % Options: radial (show just the radial average)
+%                           ligands (show ligands)
+%                           angs (show along angles)
 
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
 
-mapName1='NIS_I_Na_resampled.mrc';
-mapName1='MapsForSubtraction/cryosparc_P1_J55_010_volume_map_sharp(6)_copy.mrc';
-mapName2='MapsForSubtraction/NIS_Na.mrc';
+% mapName1='NIS_I_Na_resampled.mrc';
+mapName1='MapsForSubtraction/210705/cryosparc_P1_J55_010_volume_map_sharp(6)_copy.mrc';
+mapName2='MapsForSubtraction/210705/cryosparc_P6_J40_010_volume_map_sharp(1).mrc';
 pdbName1='MapsForSubtraction/SR_7_1_21_dimer_copy.pdb';
 
 [m1,s]=ReadMRC(mapName1);
@@ -21,6 +23,28 @@ ptrsI=find(b==2);
 iPtrs=[ptrsNa(2:3); ptrsI(1)];
 nIons=numel(iPtrs);
 
+ligands= cell(3,4);
+ligands(1,:)={'OE1' 'GLN' 72 'B'};
+% ligands(1,:)={'CD' 'GLN' 72 'B'};
+ligands(2,:)={'OH' 'TYR' 144 'B'};
+ligands(3,:)={'OG' 'SER' 416 'B'};
+nL=size(ligands,1);
+ptrsL=zeros(nL,1);
+disp('Ligands:');
+ligandIon=1;
+ligandLabels=cell(nL,1);
+for i=1:nL
+    disp(ligands(i,:));
+    pt=find(strcmp(ligands{i,1},p1.atomName) & strcmp(ligands{i,2},p1.resName) ...
+        & ligands{i,3}==p1.resNum & strcmp(ligands{i,4},p1.chainID));
+    if numel(pt)>0
+        ptrsL(i)=pt(1);
+    else
+        disp('...not found.');
+    end;
+    ligandLabels{i}=[ligands{i,2} num2str(ligands{i,3}) ' ' ligands{i,1}];
+end;
+ptrsL
 %%
 n1=size(m1,1);
 % n=144;
@@ -32,56 +56,60 @@ nv=vs*nu;
 
 msk1=fuzzymask(n,3,0.45*n,.1*n);
 
+baseRotDegrees=34; % rotation we do with the original map.
 m1c=Crop(m1,n);
-m1cr=rsRotateImage(msk1.*m1c,34);
-m1uc=Downsample(m1c,n*us);
+m1cr=rsRotateImage(msk1.*m1c,baseRotDegrees);
+m1uc=Downsample(m1cr,n*us);
 
-m2c=rsRotateImage(Crop(m2,n),-2);
-m2cr=rsRotateImage(msk1.*Crop(m2,n),32);
-m2uc=Downsample(m2c,n*us);
+basePhi=baseRotDegrees*pi/180;
+
+P=[33.932 2.7759]; % alignment for the J40 Na map.
+    m2cr=rsRotateImage(msk1.*m2c,P(1)); %
+    fsh=FourierShift(n,[0 0 P(2)]); % shift only in z
+    m2crs=real(ifftn(fsh.*fftn(m2cr)));
+m2uc=Downsample(m2crs,n*us);
 
 bigFigure=2;
 
-% ?***
-m1uc=m2uc;
-bigFigure=3;
-% ****
+% % ?***
+% m1uc=m2uc;
+% bigFigure=3;
+% % ****
+%%
+% % Make synthetic maps
+% muSy=zeros([1 1 1]*nu,'single'); % all atom positions marked
+% muSi=zeros([1 1 1]*nu,'single'); % ion positions marked
+% ctru=nu/2+1;
+% ctr0=n1/2;
+% na=numel(p1.X);
+% 
+% % Make coords = coordinates of atoms in the 2x upsampled map.
+% c0=[p1.X;p1.Y;p1.Z];
+% coords=round(us*(c0/s.pixA-ctr0))+ctru;
+% 
+% ok=all((coords>=1 & coords<=nu),1);
+% for i=1:na
+%     if ok
+%         muSy(coords(1,i),coords(2,i),coords(3,i))=1;
+%     end;
+% end;
+% for i=1:3
+%     j=iPtrs(i);
+%     muSi(coords(1,j),coords(2,j),coords(3,j))=1;
+% end;
+% 
+% 
+% %
+% muSy=SharpFilt(muSy,.33/us);
+% m1Sy=Downsample(muSy,n);
+% 
+% muSi=SharpFilt(muSi,.33/us);
+% m1Si=Downsample(muSi,n);
 
 %%
-% Make synthetic maps
-muSy=zeros([1 1 1]*nu,'single'); % all atom positions marked
-muSi=zeros([1 1 1]*nu,'single'); % ion positions marked
-ctru=nu/2+1;
-ctr0=n1/2;
-na=numel(p1.X);
-
-% Make coords = coordinates of atoms in the 2x upsampled map.
-c0=[p1.X;p1.Y;p1.Z];
-coords=round(us*(c0/s.pixA-ctr0))+ctru;
-
-ok=all((coords>=1 & coords<=nu),1);
-for i=1:na
-    if ok
-        muSy(coords(1,i),coords(2,i),coords(3,i))=1;
-    end;
-end;
-for i=1:3
-    j=iPtrs(i);
-    muSi(coords(1,j),coords(2,j),coords(3,j))=1;
-end;
-
-
-%%
-muSy=SharpFilt(muSy,.33/us);
-m1Sy=Downsample(muSy,n);
-
-muSi=SharpFilt(muSi,.33/us);
-m1Si=Downsample(muSi,n);
-
-%%
-figure(1);
-% imags(sum(m4c-600*m4Sy,3));
-imags(sum(m1uc+1000*muSi,3));
+% figure(1);
+% % imags(sum(m4c-600*m4Sy,3));
+% imags(sum(m1uc+1000*muSi,3));
 
 %%
 % m2c=Crop(m2,n);
@@ -89,8 +117,8 @@ imags(sum(m1uc+1000*muSi,3));
 % ShowSections(m2c);
 %%
 uScale=500;
-nnInterp=0; % 1: faster ERotate3 with nearest neighbor
-showSi=1;
+nnInterp=0; % 1: faster ERotate3 using nearest neighbor
+showSi=0;
 
 % rotations from standard position:
 % none, 45deg about z, y, x
@@ -114,8 +142,7 @@ lines=zeros(2*range+1,3,nAngs,nIons); % (dens, dirs, ion)
 
 for i=1:nAngs
     
-    phiAng=34;
-    phi=phiAng*pi/180+angs(i,1);
+    phi=angs(i,1);
     theta=angs(i,2);
     psi=angs(i,3);
     
@@ -135,7 +162,7 @@ for i=1:nAngs
     
     % Crearte the rotated coordinates p1r
     % mrot=RotMatrix2(-psiAng);
-    mrot=EulerMatrix(phi,theta,psi);
+    mrot=EulerMatrix(phi+basePhi,theta,psi);
     % mrot(3,3)=1;
     ctr0=n1/2;
     p1Coords=[p1.X;p1.Y;p1.Z]/s.pixA-ctr0;
@@ -170,10 +197,11 @@ for i=1:nAngs
         ptr=iPtrs(j);
         ionLabel=[p1.element{ptr} ' chain ' p1.chainID{ptr}];
         %     Get coords into the upsampled map.
-        cds=round([p1r.X(ptr) p1r.Y(ptr) p1r.Z(ptr)]*us*vs+ctrv);
-        
-        if showRadialAverage
-            mysubplot(2,nIons,j);
+        cds0=[p1r.X(ptr) p1r.Y(ptr) p1r.Z(ptr)]*us*vs+ctrv;
+        cds=round(cds0);
+switch mode
+    case 'radial'
+           mysubplot(2,nIons,j);
             imags(m1vcr(:,:,cds(3))); % show the section
             hold on;
             plot(cds(1),cds(2),'yo','markersize',20);
@@ -200,15 +228,58 @@ for i=1:nAngs
             mysubplot(2,nIons,nIons+j)
             plot(xVals,[sMean sMedian]);
             plot(xVals,sMedian,'linewidth',1);
-            hold on; 
+            hold on
+            
+            
+            ; 
             plot(xVals,0*xVals,'k-');
             hold off;
             grid on;
             axis([-inf inf yLims]);
             ylabel('Map density');
             xlabel('Radius, Å');
-        else
             
+    case 'ligands'
+        if j~=ligandIon  % only want one ion.
+            continue;
+        end;
+%         show where we are
+% figure(10);
+% imags(m1vcr(:,:,cds(3)));
+% hold on;
+% plot(p1r.X(ptrsL)*us*vs+ctrv,p1r.Y(ptrsL)*us*vs+ctrv,'go','markersize',10);
+% plot(cds0(1),cds0(2),'yo','markersize',10);
+% hold off;
+
+        figure(bigFigure+4);
+%         plot(xVals,0*xVals,'k-');
+%         hold on;
+        nPts=2*range+1;
+        xVals=(-range:range)*s.pixA/(us*vs);
+        lines=zeros(nPts,nL);
+        points=zeros(nL,1);
+%         colors=get(gca,'colororder');
+        cds0
+        for k=1:nL
+            ptrL=ptrsL(k);
+            cdl=[p1r.X(ptrL) p1r.Y(ptrL) p1r.Z(ptrL)]*us*vs+ctrv
+            vec=cdl-cds0;
+            lines(:,k)=ExtractLine3(m1vcr,nPts,vec,cds0);
+            points(k)=range+1-round(sqrt(vec*vec'));
+%              plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
+        end;
+            plot(xVals,lines,'-','linewidth',1);
+%         plot(xVals,lines);
+%         
+        hold on;
+        for k=1:nL
+                     plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
+        end;
+        hold off;
+            grid on;
+        legend([ligandLabels' {'' '' ''}]);
+            
+    case 'angs'            
             rngs0=[{0} {0} {0}];
             for k=1:3 % x,y,z trace
                 rngsh=rngs0;
@@ -258,7 +329,7 @@ for i=1:nAngs
     end; % for j=1:nIons
 end; % for i-1:nAngs
 %%
-if showRadialAverage
+if mode=='radial'
 %     figure(2*bigFigure);
 %     plot(xVals,squeeze(lines(:,1,1,:)));
 %     legend(legTxt);
@@ -268,9 +339,9 @@ if showRadialAverage
         maxY=1.5;
     else
         figText='Na_Map';
-        maxY=1;
+        maxY=1.5;
     end;
-    figure(2*bigFigure+1);
+    figure(bigFigure+2);
     plot(xVals,squeeze(lines(:,2,1,:)),'linewidth',1);
     hold on;
     plot(xVals,0*xVals,'k-');
@@ -286,6 +357,32 @@ end;
 
 
 return
+
+
+%% Try to optimize subtraction by filtering.
+m1vcr=Downsample(m1uc,n*4);
+m2vcr=Downsample(m2uc,n*4);
+%
+msk2=fuzzymask(4*n,2,25,8,[cds(1) cds(2)]);
+s1=m1vcr(:,:,cds(3));
+s2=m2vcr(:,:,cds(3));
+
+P=Simplex('init',[.5 .5 1 .1]);
+for i=1:200
+    ds=msk2.*(s2-P(2)*SharpFilt(s1,P(4)));
+    imags(50*ds+50);
+    title(P);
+    drawnow;
+    dsm=ds.*msk2;
+    err=sum(std(ds(:)).^2);
+    P=Simplex(err);
+end;
+err
+
+return
+
+%%
+
 
 % %%
 %
