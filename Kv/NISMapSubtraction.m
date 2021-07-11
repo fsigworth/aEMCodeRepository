@@ -4,6 +4,7 @@
 mode='ligands'; % Options: radial (show just the radial average)
 %                           ligands (show ligands)
 %                           angs (show along angles)
+showRadialAverage=1; % don't compute other angles.
 
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
 
@@ -64,6 +65,7 @@ m1uc=Downsample(m1cr,n*us);
 basePhi=baseRotDegrees*pi/180;
 
 P=[33.932 2.7759]; % alignment for the J40 Na map.
+    m2c=Crop(m2,n);
     m2cr=rsRotateImage(msk1.*m2c,P(1)); %
     fsh=FourierShift(n,[0 0 P(2)]); % shift only in z
     m2crs=real(ifftn(fsh.*fftn(m2cr)));
@@ -193,12 +195,17 @@ for i=1:nAngs
         end;
     end;
     ltp=1:3*nAngs;
+    cdsAll=[p1r.X(iPtrs)' p1r.Y(iPtrs)' p1r.Z(iPtrs)']*us*vs+ctrv;
     for j=1:nIons
         ptr=iPtrs(j);
         ionLabel=[p1.element{ptr} ' chain ' p1.chainID{ptr}];
         %     Get coords into the upsampled map.
         cds0=[p1r.X(ptr) p1r.Y(ptr) p1r.Z(ptr)]*us*vs+ctrv;
         cds=round(cds0);
+               
+        
+        
+        
 switch mode
     case 'radial'
            mysubplot(2,nIons,j);
@@ -210,7 +217,19 @@ switch mode
             title(ionLabel);
             %             nx=NextNiceNumber(2*range+5)
             nx=2*range+3;
-            mLoc=ExtractVolumeInterp(m1vcr,cds,nx);
+            
+%             Tweak the ion location
+            if j>1 % the first one is problematic
+                dLoc=ExtractVolumeInterp(m1vcr,cds,7);
+                [val, dcds]=max3di(dLoc);
+                cds1=cds+dcds-4; % tweaked cds0
+                disp([j cds1-cds0]);
+            else
+                cds1=cds0;
+            end;
+            mLoc=ExtractVolumeInterp(m1vcr,cds1,nx);
+%             Tune up the center coordinate
+            imags(sum(mLoc,3));
             [rMean,rMedian,yVals,rVals]=Radial3(mLoc,[]);
 %             % Correct the r=0 point
 %             rMean(1)=0*rMean(1)+1*mean(yVals{2}(1:6)); % 1/2 times r=1 points
@@ -328,8 +347,8 @@ switch mode
     drawnow;
     end; % for j=1:nIons
 end; % for i-1:nAngs
-%%
-if mode=='radial'
+%
+if strcmp(mode,'radial')
 %     figure(2*bigFigure);
 %     plot(xVals,squeeze(lines(:,1,1,:)));
 %     legend(legTxt);
