@@ -59,6 +59,7 @@ mrot=EulerMatrix(basePhi,0,0);
     ctr0=n1/2;
     p1Coords=[p1.X;p1.Y;p1.Z]/s.pixA-ctr0;
     p1rCoords=mrot*p1Coords;
+    p1r=p1;
     p1r.X=p1rCoords(1,:); % Zero-based atom coordinates, in A
     p1r.Y=p1rCoords(2,:);
     p1r.Z=p1rCoords(3,:);
@@ -84,9 +85,9 @@ ligands(1,:)={'OE1' 'GLN' 72 'B'};
 ligands(2,:)={'CD' 'GLN' 72 'B'};
 ligands(3,:)={'OH' 'TYR' 144 'B'};
 ligands(4,:)={'OG' 'SER' 416 'B'};
+ligandIons=[1 1 1 1];
 nL=size(ligands,1);
 ptrsL=zeros(nL,1);
-ligandIon=1;
 ligandLabels=cell(nL,1);
 for i=1:nL
 %     disp(ligands(i,:));
@@ -107,7 +108,7 @@ hold off;
 
 % Valuable variables
 disp('Saving variables...');
-save NISMapData.m m1v m2v p1r ptrsI ptrsL ligandLabels dsv nv s names
+save NISMapData.mat m1v m2v p1r ptrsI ptrsL ligandLabels ligandIons dsv nv s names
 disp('done.');
 return
 
