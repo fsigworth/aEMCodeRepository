@@ -1,22 +1,31 @@
 % NISMapAnalysis.m
 
-mode='radial';
-mode='ligands';
-showAllAngles=1;
 addpath ~/aEMCodeRepository/aLibs/HealpixLib
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
- load NISMapData
+disp('Loading...');
+load NISMapData
+disp('done.');
 % loads: m1v m2v p1r ptrsI ptrsL ligandLabels dsv nv s names
-%%
 
-mv=m1v; % Choose the Na_I map
-mapText='Na_I_Map';
-%         figText='Na_Map';
+figSizes = ...
+    [      0           0           0           0
+       -2517         795        1120         736
+       -1685          66        1104         734
+        -860         897         560         420
+       -2905          78        1538         755
+       -2625         891         855         650 ];
+%%
+mode='radial';
+% mode='ligands';
+showAllAngles=1;
+
+% mv=m1v; % Choose the Na_I map
+% mapText='Na_I_Map';
+mv=m2v;
+mapText='Na_Map';
 
 nIons=numel(ptrsI);
 
-% figure(2);
-% clf;
 
 ctrv=ceil((nv+1)/2);
 cdIs=[p1r.X(ptrsI)' p1r.Y(ptrsI)' p1r.Z(ptrsI)']*dsv+ctrv; % padded pixels
@@ -29,6 +38,7 @@ hpOrder=2;
 switch mode
     case 'radial'
         figure(3-showAllAngles);
+        set(gcf,'position',figSizes(3-showAllAngles,:));
         clf;
         range=5*dsv; % range, in pixels
         nx=2*range+3; % makes the radial function of size range+1
@@ -58,7 +68,11 @@ switch mode
             plot(cdI(1),cdI(2),'yo','markersize',20);
             hold off;
             axis off;
-            title(ionLabel);
+            if j==1
+                title([mapText '   ' ionLabel],'interpreter','none');
+            else
+                title(ionLabel,'interpreter','none');
+            end;
             
             mysubplot(2,nIons,nIons+j)
             colors=get(gca,'colororder');
@@ -84,7 +98,7 @@ switch mode
                     lines(:,k)=ExtractLine3(mv,nPts,vecs(k,:),cdI);
                 end;
                 plot(xVals,lines);
-                yLims=[-2 3];
+                yLims=[-1.5 2.5];
             else
                 plot(xVals,yVals(:,j),'-','color',colors(j,:),'linewidth',lw);
                 hold on;
@@ -98,6 +112,7 @@ switch mode
         end; % for j
 
 figure(4);
+set(gcf,'position',figSizes(4,:));
 clf;
 yLims=[-.5 1.6];
 title('Means');
@@ -126,14 +141,23 @@ legend(legTxt);
         lines=zeros(nPts,nL);
         points=zeros(nL,1);
         figure(5);
+        set(gcf,'position',figSizes(5,:));
+        clf;
+        colors=get(gca,'colororder');
         for k=1:nL
             jIon=ligandIons(k);
             cdI=cdIs(jIon,:);
             cdL=cdLs(k,:);
             
+% % %          Testing the ligand location.   
+%             cdLr=round(cdL);
+%             mv(cdLr(1),cdLr(2),cdLr(3))=2;
+% % %  
+            
             vec=cdL-cdI;
+%             line increases in the direction of the ligand
             lines(:,k)=ExtractLine3(mv,nPts,vec,cdI);
-            points(k)=range+1-round(sqrt(vec*vec'));
+            points(k)=range+1+round(sqrt(vec*vec'));
             %              plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
             
             mysubplot(2,nL,k);
@@ -143,8 +167,11 @@ legend(legTxt);
             plot(cdL(1),cdL(2),'yo','markersize',20);
             plot(cdI(1),cdI(2),'w+','markersize',10);
             hold off;
-            title(ligandLabels(k));
-            
+            if k>1
+                title(ligandLabels(k));
+            else
+                title([mapText '   ' ligandLabels{1}],'interpreter','none');
+            end;
             mysubplot(2,nL,k+nL);
             plot(xVals,lines(:,k),'-','linewidth',1,'color',colors(k,:));
             hold on;
@@ -156,6 +183,8 @@ legend(legTxt);
         
         
         figure(6);
+        set(gcf,'position',figSizes(6,:));
+        clf;
         ax=gca;
         plot(xVals,lines,'-','linewidth',1);
         %         plot(xVals,lines);
@@ -203,6 +232,16 @@ legend(legTxt);
     otherwise
         disp(['Unrecognized mode: ' mode]);
 end;
+
+return;
+
+%% Pick up figure sizes
+sizes=zeros(6,4);
+for i=2:6
+    figure(i);
+    sizes(i,:)=get(gcf,'Position');
+end;
+
 
 
 %                     rngs0=[{0} {0} {0}];
