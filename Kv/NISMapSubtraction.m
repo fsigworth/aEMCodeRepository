@@ -9,13 +9,19 @@ showRadialAverage=1; % don't compute other angles.
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
 
 % mapName1='NIS_I_Na_resampled.mrc';
-mapName1='MapsForSubtraction/210705/cryosparc_P1_J55_010_volume_map_sharp(6)_copy.mrc';
-mapName2='MapsForSubtraction/210705/cryosparc_P6_J40_010_volume_map_sharp(1).mrc';
+mapName1='MapsForSubtraction/210705/cryosparc_P1_J55_010_volume_map_sharp(6)_copy.mrc'; % Na + I
+mapName2='MapsForSubtraction/210705/cryosparc_P6_J40_010_volume_map_sharp(1).mrc'; % Na only
+mapName3='MapsForSubtraction/210705/cryosparc_P8_J67_010_volume_map_sharp(1).mrc'; % perrhenate
+
 pdbName1='MapsForSubtraction/SR_7_1_21_dimer_copy.pdb';
+pdbName2='MapsForSubtraction/model_fit_P8j67-07-12_ek-coot-9.pdb'; % Fig to perrhenate
 
 [m1,s]=ReadMRC(mapName1);
 m2=ReadMRC(mapName2);
+m3=ReadMRC(mapName3);
+
 p1=pdb2mat(pdbName1);
+p2=pdb2mat(pdbName2);
 
 % locate the ions
 [u,a,b]=unique(p1.element);
@@ -72,6 +78,9 @@ P=[33.932 2.7759]; % alignment for the J40 Na map.
 m2uc=Downsample(m2crs,n*us);
 
 bigFigure=2;
+
+m3c=Crop(m3,n);
+
 
 % % ?***
 % m1uc=m2uc;
@@ -495,38 +504,47 @@ plot(zs,zds);
 legend(p1.element(iPtrs));
 
 return
+
+
+%% -------------Align maps code-----------
+
+% m1crf=GaussFilt(m1cr,.2);
+% Manual fitting.
+P=[67 0];
+    m3r=rsRotateImage(m3c,P(1));
+    fsh=FourierShift(n*[1 1 1],[0 0 P(2)]);
+    m3s=real(ifftn(fftn(m3r).*fsh));
+ShowSections(m3s);
 %%
 
-m1crf=GaussFilt(m1cr,.2);
-fsh=FourierShift(n*[1 1 1],[0 0 -5]);
-m1crf=real(ifftn(fftn(m1crf).*fsh));
 
 % Aligner
 %  two variables: alpha, dz
-iVals=[34 0 .2 .2 .5 .5];
-iSteps=[.2 1 .05 .05 .1 .1];
-iFlags=[0 0 1 1 1 1];
+iVals=[66 1];
+iSteps=[2 10];
+iFlags=[0 1];
+% we'll align m3c to m1cr. Best values are
+[66.1 2.27].
 
-P1=Simplex('init',iVals,iSteps,iFlags);
+
+P1=Simplex('init',iVals,iSteps);
 iMax=80
 for i=1:iMax
     P=P1;
-    m1crf=rsRotateImage(m1c,P(1));
+    m3r=rsRotateImage(m3c,P(1));
     fsh=FourierShift(n*[1 1 1],[0 0 P(2)]);
-    m1crs=real(ifftn(fftn(m1crf).*fsh));
-    m1crs2=P(5)*GaussFilt(m1crs,P(4))+P(6)*SharpFilt(m1crs,P(5));
-    figure(1);
-    ShowSections(m1crs2);
-    figure(3);
-    mdiff=(m1crs2-m2cr).*msk;
-    mdiff=GaussHP(mdiff,.05);
-    ShowSections(mdiff);
-    title(i);
+    m3rs=real(ifftn(fftn(m3r).*fsh));
+    mdiff=GaussFilt((m1cr-m3rs),.2).*msk1;
+%     mdiff=GaussHP(mdiff,.05);
+    if mod(i,5)==0
+        ShowSections(mdiff);
+        title(i);
+    end;
     err=mdiff(:)'*mdiff(:);
     disp([num2str([i P]) '   ' num2str(err)]);
     P1=Simplex(err);
-    if i==iMax/2
-        P1=Simplex('init',P,iSteps,iFlags);
-    end;
+%     if i==iMax/2
+%         P1=Simplex('init',P,iSteps,iFlags);
+%     end;
     pause(0.1);
 end;
