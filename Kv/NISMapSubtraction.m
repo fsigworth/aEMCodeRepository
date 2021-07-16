@@ -522,20 +522,24 @@ ShowSections(m3s);
 % Aligner
 %  two variables: alpha, dz
 iVals=[66 1];
-iSteps=[2 10];
+iSteps=[10 2c0];
 iFlags=[0 1];
 % we'll align m3c to m1cr. Best values are
-[66.1 2.27].
+[66.14 2.23]
 
+ctr=ceil((n+1)/2);
+aliMask=fuzzymask(n,3,n/4,n*.1,[ctr+.15*n ctr ctr]);
 
 P1=Simplex('init',iVals,iSteps);
 iMax=80
 for i=1:iMax
+    fci=i/iMax; % between 0 and 1
+    fc=.05+3*fci;
     P=P1;
     m3r=rsRotateImage(m3c,P(1));
     fsh=FourierShift(n*[1 1 1],[0 0 P(2)]);
     m3rs=real(ifftn(fftn(m3r).*fsh));
-    mdiff=GaussFilt((m1cr-m3rs),.2).*msk1;
+    mdiff=GaussFilt((m1cr-m3rs),.2).*aliMask;
 %     mdiff=GaussHP(mdiff,.05);
     if mod(i,5)==0
         ShowSections(mdiff);

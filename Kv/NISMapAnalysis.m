@@ -6,7 +6,7 @@ disp('Loading...');
 load NISMapData
 disp('done.');
 % loads: m1v m2v p1r ptrsI ptrsL ligandLabels dsv nv s names
-
+%%
 figSizes = ...
     [      0           0           0           0
        -2517         795        1120         736
@@ -14,25 +14,40 @@ figSizes = ...
         -860         897         560         420
        -2905          78        1538         755
        -2625         891         855         650 ];
+%    % set figure sizes
+%    for i=2:size(figSizes,1)
+%        figure(i);
+%        set(gcf,'Position',figSizes(i,:));
+%    end;
+%    figure(1);
 %%
 mode='radial';
 % mode='ligands';
-showAllAngles=1;
+showAllAngles=0;
 
 % mv=m1v; % Choose the Na_I map
 % mapText='Na_I_Map';
+ptrsI=ptrsI1;
+pr=p1r;
 mv=m2v;
 mapText='Na_Map';
-
+mv=m3v;
+yLimsAll=[-1.5 2.5];
+yLims1=[-.5 1.6];
+mapText='Re_Map';
+ptrsI=ptrsI2;
+pr=p2r;
+yLimsAll=[-2 7];
+yLims1=[-1 6.6];
 nIons=numel(ptrsI);
 
 
 ctrv=ceil((nv+1)/2);
-cdIs=[p1r.X(ptrsI)' p1r.Y(ptrsI)' p1r.Z(ptrsI)']*dsv+ctrv; % padded pixels
+cdIs=[pr.X(ptrsI)' pr.Y(ptrsI)' pr.Z(ptrsI)']*dsv+ctrv; % padded pixels
 cdIs(1,:)=cdIs(1,:)+[1 -1 0];
 cdIs(2,:)=cdIs(2,:)+[0 -1 0];
 
-cdLs=[p1r.X(ptrsL)' p1r.Y(ptrsL)' p1r.Z(ptrsL)']*dsv+ctrv;
+cdLs=[pr.X(ptrsL)' pr.Y(ptrsL)' pr.Z(ptrsL)']*dsv+ctrv;
 hpOrder=2;
 
 switch mode
@@ -43,7 +58,6 @@ switch mode
         range=5*dsv; % range, in pixels
         nx=2*range+3; % makes the radial function of size range+1
         xVals=(-range:range)*s.pixA/dsv; % actual angstroms
-        yLims=[-.5 1.6];
         nPts=2*range+1;
         yVals=zeros(nPts,nIons);
         ionLabels=cell(nIons,1);
@@ -58,7 +72,7 @@ switch mode
         
         for j=1:nIons
             ptr=ptrsI(j);
-            ionLabel=[p1r.element{ptr} ' chain ' p1r.chainID{ptr}];
+            ionLabel=[pr.element{ptr} ' chain ' pr.chainID{ptr}];
             ionLabels{j}=ionLabel;
             mysubplot(2,nIons,j);
             cdI=cdIs(j,:);
@@ -98,10 +112,11 @@ switch mode
                     lines(:,k)=ExtractLine3(mv,nPts,vecs(k,:),cdI);
                 end;
                 plot(xVals,lines);
-                yLims=[-1.5 2.5];
+                yLims=yLimsAll;
             else
                 plot(xVals,yVals(:,j),'-','color',colors(j,:),'linewidth',lw);
                 hold on;
+                yLims=yLims1;
             end;
             plot(xVals,0*xVals,'k-');
             hold off;
@@ -114,7 +129,6 @@ switch mode
 figure(4);
 set(gcf,'position',figSizes(4,:));
 clf;
-yLims=[-.5 1.6];
 title('Means');
 plot(xVals,yVals,'linewidth',1);
 hold on;
@@ -129,7 +143,7 @@ legend(legTxt);
         % figure(10);
         % imags(m1vcr(:,:,cds(3)));
         % hold on;
-        % plot(p1r.X(ptrsL)*us*vs+ctrv,p1r.Y(ptrsL)*us*vs+ctrv,'go','markersize',10);
+        % plot(pr.X(ptrsL)*us*vs+ctrv,pr.Y(ptrsL)*us*vs+ctrv,'go','markersize',10);
         % plot(cds0(1),cds0(2),'yo','markersize',10);
         % hold off;
         
@@ -201,7 +215,7 @@ legend(legTxt);
         ligLabels(end+1:end+nL+1)={' '};
         legend(ligLabels);
 % We assume wer'e dealisng iwth only one ion.!!
-        ionLabel=[p1r.element{ptrsI(jIon)} ' chain ' p1r.chainID{ptrsI(jIon)}];
+        ionLabel=[pr.element{ptrsI(jIon)} ' chain ' pr.chainID{ptrsI(jIon)}];
         title([mapText '  ' ionLabel],'interpreter','none');
 
 %     case 'angs'
