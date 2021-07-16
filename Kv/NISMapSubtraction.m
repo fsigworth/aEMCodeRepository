@@ -2,6 +2,7 @@
 
 
 mode='ligands'; % Options: radial (show just the radial average)
+mode='radial'; % Options: radial (show just the radial average)
 %                           ligands (show ligands)
 %                           angs (show along angles)
 showRadialAverage=1; % don't compute other angles.
@@ -238,7 +239,7 @@ switch mode
             end;
             mLoc=ExtractVolumeInterp(m1vcr,cds1,nx);
 %             Tune up the center coordinate
-            imags(sum(mLoc,3));
+%            imags(sum(mLoc,3));
             [rMean,rMedian,yVals,rVals]=Radial3(mLoc,[]);
 %             % Correct the r=0 point
 %             rMean(1)=0*rMean(1)+1*mean(yVals{2}(1:6)); % 1/2 times r=1 points
