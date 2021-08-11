@@ -1,4 +1,7 @@
 % ShiftRotAlignMaps
+% Rotate about the Z-axis and shift along the Z-axis to align maps of
+% Cn-symmetric molecules
+% m1c, m2c, msk1 (prelim. mask for m1c)
 
 m1cr=rsRotateImage(msk1.*m1c,34);
 n=size(m2c);

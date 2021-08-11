@@ -20,27 +20,41 @@ figSizes = ...
 %        set(gcf,'Position',figSizes(i,:));
 %    end;
 %    figure(1);
-%%
+%
 mode='radial';
 % mode='ligands';
 showAllAngles=0;
+map=3;
+doSave=1;
+figPrefix='Figures3/Re3';
 
-% mv=m1v; % Choose the Na_I map
-% mapText='Na_I_Map';
-ptrsI=ptrsI1;
-pr=p1r;
-mv=m2v;
-mapText='Na_Map';
-mv=m3v;
+ptrsL=ptrsL1;
 yLimsAll=[-1.5 2.5];
 yLims1=[-.5 1.6];
+
+switch map
+    case 1
+mv=m1v; % Choose the Na_I map
+mapText='Na_I_Map';
+ptrsI=ptrsI1;
+pr=p1r;
+
+    case 2
+mv=m2v;
+mapText='Na_Map';
+
+    case 3
+mv=m3v;
 mapText='Re_Map';
-ptrsI=ptrsI2;
-pr=p2r;
+% ptrsI=ptrsI2;
+% pr=p2r;
+ptrsI=ptrsI3;
+pr=p3r;
 yLimsAll=[-2 7];
 yLims1=[-1 6.6];
 nIons=numel(ptrsI);
-
+figSizes(2:3,3)=1890;
+end;
 
 ctrv=ceil((nv+1)/2);
 cdIs=[pr.X(ptrsI)' pr.Y(ptrsI)' pr.Z(ptrsI)']*dsv+ctrv; % padded pixels
@@ -72,11 +86,17 @@ switch mode
         
         for j=1:nIons
             ptr=ptrsI(j);
-            ionLabel=[pr.element{ptr} ' chain ' pr.chainID{ptr}];
+            if pr.flipped(ptr)
+                flipMark='*';
+            else
+                flipMark='';
+            end;
+            ionLabel=[pr.element{ptr} ' chain ' pr.chainID{ptr} ' ' ...
+                num2str(pr.resNum(ptr)) flipMark];
             ionLabels{j}=ionLabel;
             mysubplot(2,nIons,j);
             cdI=cdIs(j,:);
-
+            
             imags(mv(:,:,round(cdI(3)))); % show the section
             hold on;
             plot(cdI(1),cdI(2),'yo','markersize',20);
@@ -90,7 +110,7 @@ switch mode
             
             mysubplot(2,nIons,nIons+j)
             colors=get(gca,'colororder');
-
+            
             %             sVecs=rand(10,3)-.5;
             %             for i=1:size(sVecs,1)
             mLoc=ExtractVolumeInterp(mv,cdI,nx);
@@ -125,19 +145,33 @@ switch mode
             ylabel('Map density');
             xlabel('Radius, Å');
         end; % for j
-
-figure(4);
-set(gcf,'position',figSizes(4,:));
-clf;
-title('Means');
-plot(xVals,yVals,'linewidth',1);
-hold on;
-plot(xVals,0*xVals,'k-');
-hold off;
-axis([min(xVals) max(xVals) yLims]);
-legTxt=ionLabels;
-legend(legTxt);
-
+        if doSave
+            if showAllAngles
+                figTxt='_Radial_multi.jpg';
+            else
+                figTxt='_Radial1.jpg';
+            end;
+            print('-djpeg','-r300',[figPrefix figTxt]);
+        end;
+        
+        figure(4);
+        set(gcf,'position',figSizes(4,:));
+        clf;
+        title('Means');
+        plot(xVals,yVals,'linewidth',1);
+        hold on;
+        plot(xVals,0*xVals,'k-');
+        hold off;
+        axis([min(xVals) max(xVals) yLims]);
+        xlabel('Radial distance from center, Å');
+        ylabel('Map density');
+        legTxt=ionLabels;
+        legend(legTxt);
+        if doSave
+            print('-djpeg','-r300',[figPrefix '_Radial.jpg']);
+        end;
+        
+        
     case 'ligands'
         %         show where we are
         % figure(10);
@@ -148,54 +182,54 @@ legend(legTxt);
         % hold off;
         
         nL=numel(ptrsL);
-        range=7.5*dsv; % range, in pixels
+    range=7.5*dsv; % range, in pixels
+    
+    nPts=2*range+1;
+    xVals=(-range:range)*s.pixA/dsv;
+    lines=zeros(nPts,nL);
+    points=zeros(nL,1);
+    figure(5);
+    set(gcf,'position',figSizes(5,:));
+    clf;
+    colors=get(gca,'colororder');
+    for k=1:nL
+        jIon=ligandIons(k);
+        cdI=cdIs(jIon,:);
+        cdL=cdLs(k,:);
         
-        nPts=2*range+1;
-        xVals=(-range:range)*s.pixA/dsv;
-        lines=zeros(nPts,nL);
-        points=zeros(nL,1);
-        figure(5);
-        set(gcf,'position',figSizes(5,:));
-        clf;
-        colors=get(gca,'colororder');
-        for k=1:nL
-            jIon=ligandIons(k);
-            cdI=cdIs(jIon,:);
-            cdL=cdLs(k,:);
-            
-% % %          Testing the ligand location.   
-%             cdLr=round(cdL);
-%             mv(cdLr(1),cdLr(2),cdLr(3))=2;
-% % %  
-            
-            vec=cdL-cdI;
-%             line increases in the direction of the ligand
-            lines(:,k)=ExtractLine3(mv,nPts,vec,cdI);
-            points(k)=range+1+round(sqrt(vec*vec'));
-            %              plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
-            
-            mysubplot(2,nL,k);
-            imags(mv(:,:,round(cdL(3))));
-            axis off;
-            hold on;
-            plot(cdL(1),cdL(2),'yo','markersize',20);
-            plot(cdI(1),cdI(2),'w+','markersize',10);
-            hold off;
-            if k>1
-                title(ligandLabels(k));
-            else
-                title([mapText '   ' ligandLabels{1}],'interpreter','none');
-            end;
-            mysubplot(2,nL,k+nL);
-            plot(xVals,lines(:,k),'-','linewidth',1,'color',colors(k,:));
-            hold on;
-            plot(xVals(points(k)),lines(points(k),k),'.','markersize',20,'color',colors(k,:));
-            plot(xVals,0*xVals,'k-');
-            hold off;
-            grid on;
+        % % %          Testing the ligand location.
+        %             cdLr=round(cdL);
+        %             mv(cdLr(1),cdLr(2),cdLr(3))=2;
+        % % %
+        
+        vec=cdL-cdI;
+        %             line increases in the direction of the ligand
+        lines(:,k)=ExtractLine3(mv,nPts,vec,cdI);
+        points(k)=range+1+round(sqrt(vec*vec'));
+        %              plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
+        
+        mysubplot(2,nL,k);
+        imags(mv(:,:,round(cdL(3))));
+        axis off;
+        hold on;
+        plot(cdL(1),cdL(2),'yo','markersize',20);
+        plot(cdI(1),cdI(2),'w+','markersize',10);
+        hold off;
+        if k>1
+            title(ligandLabels(k));
+        else
+            title([mapText '   ' ligandLabels{1}],'interpreter','none');
         end;
-        
-        
+        mysubplot(2,nL,k+nL);
+        plot(xVals,lines(:,k),'-','linewidth',1,'color',colors(k,:));
+        hold on;
+        plot(xVals(points(k)),lines(points(k),k),'.','markersize',20,'color',colors(k,:));
+        plot(xVals,0*xVals,'k-');
+        hold off;
+        grid on;
+    end;
+    
+    
         figure(6);
         set(gcf,'position',figSizes(6,:));
         clf;

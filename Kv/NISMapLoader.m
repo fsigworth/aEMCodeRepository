@@ -14,6 +14,7 @@ names.map3='MapsForSubtraction/210705/cryosparc_P8_J67_010_volume_map_sharp(1).m
 
 names.pdb1='MapsForSubtraction/SR_7_1_21_dimer_copy.pdb';
 names.pdb2='MapsForSubtraction/model_fit_P8j67-07-12_ek-coot-9.pdb'; % Fig to perrhenate
+names.pdb3='MapsForSubtraction/Perrheate_0806.pdb'; % Fig to perrhenate
 
 disp('Loading maps');
 [m1,s]=ReadMRC(names.map1);
@@ -70,10 +71,13 @@ drawnow;
 basePhi2=P(1)*pi/180;
 baseShift2=P(2);
 
+basePhi3=basePhi2;
+baseShift3=baseShift2;
+
 %%
 % Handle the pdb file
 
-disp(['Loading the pdb file' names.pdb1]);
+disp(['Loading the pdb file ' names.pdb1]);
 p1=pdb2mat(names.pdb1);
 mrot=EulerMatrix(basePhi,0,0);
     ctr0=n1/2;
@@ -83,11 +87,12 @@ mrot=EulerMatrix(basePhi,0,0);
     p1r.X=p1rCoords(1,:); % Zero-based atom coordinates, in A
     p1r.Y=p1rCoords(2,:);
     p1r.Z=p1rCoords(3,:);
+    p1r.flipped=false(size(p1r.X));
 mysubplot(2,2,4);
 plot(p1r.X,p1r.Y,'.','markersize',1);
 
 
-disp(['Loading the pdb file' names.pdb2]);
+disp(['Loading the pdb file ' names.pdb2]);
 p2=pdb2mat(names.pdb2);
 mrot=EulerMatrix(basePhi2,0,0);
 
@@ -98,8 +103,27 @@ mrot=EulerMatrix(basePhi2,0,0);
     p2r.X=p2rCoords(1,:); % Zero-based atom coordinates, in A
     p2r.Y=p2rCoords(2,:);
     p2r.Z=p2rCoords(3,:)+baseShift2;
+    p2r.flipped=false(size(p2r.X));
+
 hold on;
 plot(p2r.X,p2r.Y,'r.','markersize',1);
+hold off;
+
+disp(['Loading the pdb file ' names.pdb3]);
+p3=pdb2mat(names.pdb3);
+mrot=EulerMatrix(basePhi3,0,0);
+
+    ctr0=n1/2;
+    p3Coords=[p3.X;p3.Y;p3.Z]/s.pixA-ctr0;
+    p3rCoords=mrot*p3Coords;
+    p3r=p3;
+    p3r.X=p3rCoords(1,:); % Zero-based atom coordinates, in A
+    p3r.Y=p3rCoords(2,:);
+    p3r.Z=p3rCoords(3,:)+baseShift3;
+    p3r.flipped=false(size(p3r.X));
+
+hold on;
+plot(p3r.X,p3r.Y,'g.','markersize',1);
 hold off;
 drawnow;
 
@@ -122,15 +146,48 @@ NaPtrs=find(b==3);
 RePtrs=find(b==5);
 HOHPtrs=find(strcmp(p2.chainID,'B'));
 
-ptrsI2=[NaPtrs(2); HOHPtrs; RePtrs];
+NaPtrs=find(strcmp('Na',p2.element))
+RePtrs=find(strcmp('Re',p2.element))
+HOHPtrs=find(strcmp('HOH',p2.resName))
+
+ptrsI2=[NaPtrs(2); HOHPtrs; RePtrs]
 % We ignore the first NaPtr as it's a mirror of Na2
 hold on;
 plot(p2r.X(ptrsI2),p2r.Y(ptrsI2),'ro','markersize',10);
 hold off;
 
+disp('..pdb 3');
+% [u,a,b]=unique(p3.element);
+% restore these if necessary
+    p3r.X=p3rCoords(1,:); % Zero-based atom coordinates, in A
+    p3r.Y=p3rCoords(2,:);
+    p3r.Z=p3rCoords(3,:)+baseShift3;
+    %
+NaPtrs=find(strcmp('Na',p3.element));
+NaPtrs=NaPtrs(p3r.X(NaPtrs)>0); % get only the right-hand monomer m2
+% NaXs=p3r.X(NaPtrs)
+RePtrs=find(strcmp('Re',p3.element));
+RePtrs=RePtrs(p3r.Y(RePtrs)>0);
+% ReXs=p3r.X(RePtrs)
+HOHPtrs=find(strcmp('HOH',p3.resName));
+
+% Flip the ones unique to m1 over to m2
+fl=HOHPtrs([1 3]);
+p3r.flipped(fl)=true;
+p3r.X(fl)=abs(p3r.X(fl));
+p3r.Y(fl)=abs(p3r.Y(fl));
+
+HOHPtrs=HOHPtrs(p3r.X(HOHPtrs)>0);
+% HOHXs=p3r.X(HOHPtrs)
+ptrsI3=[NaPtrs HOHPtrs RePtrs];
+Xs=p3r.X(ptrsI3)
+Ys=p3r.Y(ptrsI3)
+hold on;
+plot(p3r.X(ptrsI3),p3r.Y(ptrsI3),'ko','markersize',10);
+hold off;
 
 
-%% locate the ligands
+%% locate the ligands in p1
 disp('Finding the ligands...');
 ligands= cell(3,4);
 ligands(1,:)={'OE1' 'GLN' 72 'B'};
@@ -161,7 +218,7 @@ hold off;
 
 % Valuable variables
 disp('Saving variables...');
-save NISMapData.mat m1v m2v m3v p1r p2r ptrsI1 ptrsL1 ligandLabels1 ligandIons1 dsv nv s names
+save NISMapData.mat m1v m2v m3v p1r p2r p3r ptrsI1 ptrsI2 ptrsI3 ptrsL1 ligandLabels1 ligandIons1 dsv nv s names
 disp('done.');
 return
 
