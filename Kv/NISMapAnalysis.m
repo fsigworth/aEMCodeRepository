@@ -9,11 +9,11 @@ disp('done.');
 %%
 figSizes = ...
     [      0           0           0           0
-       -2517         795        1120         736
-       -1685          66        1104         734
-        -860         897         560         420
-       -2905          78        1538         755
-       -2625         891         855         650 ];
+    -2517         795        1120         736
+    -1685          66        1104         734
+    -860         897         560         420
+    -2905          78        1538         755
+    -2625         891         855         650 ];
 %    % set figure sizes
 %    for i=2:size(figSizes,1)
 %        figure(i);
@@ -23,10 +23,10 @@ figSizes = ...
 %
 mode='radial';
 % mode='ligands';
-showAllAngles=0;
-map=3;
+showAllAngles=1;
+map=1;
 doSave=1;
-figPrefix='Figures3/Re3';
+figPrefix='Figures4/Re3NaI';
 
 ptrsL=ptrsL1;
 yLimsAll=[-1.5 2.5];
@@ -34,26 +34,37 @@ yLims1=[-.5 1.6];
 
 switch map
     case 1
-mv=m1v; % Choose the Na_I map
-mapText='Na_I_Map';
-ptrsI=ptrsI1;
-pr=p1r;
-
+        % % Standard NaI map with NaI ion locations.
+        % mv=m1v; % Choose the Na_I map
+        % mapText='Na_I_Map';
+        
+        % Alternative case in which we use the NaI ion pointers but the Re map.
+        mv=m3v; % No, the perrhenate map!
+        mapText='Re_Map with NaI ions';
+        mapText='Re_Map with NaI ions';
+        yLimsAll=[-2 7];
+        yLims1=[-1 6.6];
+        
+        % ion pointers
+        ptrsI=ptrsI1;
+        pr=p1r;
+        nIons=numel(ptrsI);
+        
     case 2
-mv=m2v;
-mapText='Na_Map';
-
+        mv=m2v;
+        mapText='Na_Map';
+        
     case 3
-mv=m3v;
-mapText='Re_Map';
-% ptrsI=ptrsI2;
-% pr=p2r;
-ptrsI=ptrsI3;
-pr=p3r;
-yLimsAll=[-2 7];
-yLims1=[-1 6.6];
-nIons=numel(ptrsI);
-figSizes(2:3,3)=1890;
+        mv=m3v;
+        mapText='Re_Map';
+        % ptrsI=ptrsI2;
+        % pr=p2r;
+        ptrsI=ptrsI3;
+        pr=p3r;
+        yLimsAll=[-2 7];
+        yLims1=[-1 6.6];
+        nIons=numel(ptrsI);
+        figSizes(2:3,3)=1890;
 end;
 
 ctrv=ceil((nv+1)/2);
@@ -165,6 +176,7 @@ switch mode
         axis([min(xVals) max(xVals) yLims]);
         xlabel('Radial distance from center, Å');
         ylabel('Map density');
+        grid on;
         legTxt=ionLabels;
         legend(legTxt);
         if doSave
@@ -182,54 +194,54 @@ switch mode
         % hold off;
         
         nL=numel(ptrsL);
-    range=7.5*dsv; % range, in pixels
-    
-    nPts=2*range+1;
-    xVals=(-range:range)*s.pixA/dsv;
-    lines=zeros(nPts,nL);
-    points=zeros(nL,1);
-    figure(5);
-    set(gcf,'position',figSizes(5,:));
-    clf;
-    colors=get(gca,'colororder');
-    for k=1:nL
-        jIon=ligandIons(k);
-        cdI=cdIs(jIon,:);
-        cdL=cdLs(k,:);
+        range=7.5*dsv; % range, in pixels
         
-        % % %          Testing the ligand location.
-        %             cdLr=round(cdL);
-        %             mv(cdLr(1),cdLr(2),cdLr(3))=2;
-        % % %
-        
-        vec=cdL-cdI;
-        %             line increases in the direction of the ligand
-        lines(:,k)=ExtractLine3(mv,nPts,vec,cdI);
-        points(k)=range+1+round(sqrt(vec*vec'));
-        %              plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
-        
-        mysubplot(2,nL,k);
-        imags(mv(:,:,round(cdL(3))));
-        axis off;
-        hold on;
-        plot(cdL(1),cdL(2),'yo','markersize',20);
-        plot(cdI(1),cdI(2),'w+','markersize',10);
-        hold off;
-        if k>1
-            title(ligandLabels(k));
-        else
-            title([mapText '   ' ligandLabels{1}],'interpreter','none');
+        nPts=2*range+1;
+        xVals=(-range:range)*s.pixA/dsv;
+        lines=zeros(nPts,nL);
+        points=zeros(nL,1);
+        figure(5);
+        set(gcf,'position',figSizes(5,:));
+        clf;
+        colors=get(gca,'colororder');
+        for k=1:nL
+            jIon=ligandIons(k);
+            cdI=cdIs(jIon,:);
+            cdL=cdLs(k,:);
+            
+            % % %          Testing the ligand location.
+            %             cdLr=round(cdL);
+            %             mv(cdLr(1),cdLr(2),cdLr(3))=2;
+            % % %
+            
+            vec=cdL-cdI;
+            %             line increases in the direction of the ligand
+            lines(:,k)=ExtractLine3(mv,nPts,vec,cdI);
+            points(k)=range+1+round(sqrt(vec*vec'));
+            %              plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
+            
+            mysubplot(2,nL,k);
+            imags(mv(:,:,round(cdL(3))));
+            axis off;
+            hold on;
+            plot(cdL(1),cdL(2),'yo','markersize',20);
+            plot(cdI(1),cdI(2),'w+','markersize',10);
+            hold off;
+            if k>1
+                title(ligandLabels(k));
+            else
+                title([mapText '   ' ligandLabels{1}],'interpreter','none');
+            end;
+            mysubplot(2,nL,k+nL);
+            plot(xVals,lines(:,k),'-','linewidth',1,'color',colors(k,:));
+            hold on;
+            plot(xVals(points(k)),lines(points(k),k),'.','markersize',20,'color',colors(k,:));
+            plot(xVals,0*xVals,'k-');
+            hold off;
+            grid on;
         end;
-        mysubplot(2,nL,k+nL);
-        plot(xVals,lines(:,k),'-','linewidth',1,'color',colors(k,:));
-        hold on;
-        plot(xVals(points(k)),lines(points(k),k),'.','markersize',20,'color',colors(k,:));
-        plot(xVals,0*xVals,'k-');
-        hold off;
-        grid on;
-    end;
-    
-    
+        
+        
         figure(6);
         set(gcf,'position',figSizes(6,:));
         clf;
@@ -248,35 +260,35 @@ switch mode
         ligLabels=ligandLabels;
         ligLabels(end+1:end+nL+1)={' '};
         legend(ligLabels);
-% We assume wer'e dealisng iwth only one ion.!!
+        % We assume wer'e dealisng iwth only one ion.!!
         ionLabel=[pr.element{ptrsI(jIon)} ' chain ' pr.chainID{ptrsI(jIon)}];
         title([mapText '  ' ionLabel],'interpreter','none');
-
-%     case 'angs'
-%         
-%         
-%         for j=1:nIons
-%             lines(:,k)=ExtractLine3(m1vcr,nPts,vec,cdI);
-%             points(k)=range+1-round(sqrt(vec*vec'));
-%             %              plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
-%             
-%             mysubplot(2,nI,k);
-%             imags(mv(:,:,round(cdL(3))));
-%             hold on;
-%             plot(cdL(1),cdL(2),'yo','markersize',20);
-%             plot(cdI(1),cdI(2),'w+','markersize',10);
-%             hold off;
-%             title(ligandLabels(k));
-%             
-%             mysubplot(2,nL,k+nL);
-%             plot(xVals,lines(:,k),'-','linewidth',1,'color',colors(k,:));
-%             hold on;
-%             plot(xVals(points(k)),lines(points(k),k),'.','markersize',20,'color',colors(k,:));
-%             plot(xVals,0*xVals,'k-');
-%             hold off;
-%             grid on;
-%         end;
-%         
+        
+        %     case 'angs'
+        %
+        %
+        %         for j=1:nIons
+        %             lines(:,k)=ExtractLine3(m1vcr,nPts,vec,cdI);
+        %             points(k)=range+1-round(sqrt(vec*vec'));
+        %             %              plot(xVals(points(k)),lines(points(k),k),'k+','markersize',10);
+        %
+        %             mysubplot(2,nI,k);
+        %             imags(mv(:,:,round(cdL(3))));
+        %             hold on;
+        %             plot(cdL(1),cdL(2),'yo','markersize',20);
+        %             plot(cdI(1),cdI(2),'w+','markersize',10);
+        %             hold off;
+        %             title(ligandLabels(k));
+        %
+        %             mysubplot(2,nL,k+nL);
+        %             plot(xVals,lines(:,k),'-','linewidth',1,'color',colors(k,:));
+        %             hold on;
+        %             plot(xVals(points(k)),lines(points(k),k),'.','markersize',20,'color',colors(k,:));
+        %             plot(xVals,0*xVals,'k-');
+        %             hold off;
+        %             grid on;
+        %         end;
+        %
     otherwise
         disp(['Unrecognized mode: ' mode]);
 end;
@@ -366,3 +378,28 @@ end;
 %     ylabel('Map density');
 % end;
 %
+%% Show the vicinity of the NaF4 spot
+saveIt=1;
+j=2;
+cdI=cdIs(j,:);
+[mvAbs,mulr,addr]=imscale(mv(:,:,round(cdI(3))),256,1e-4);
+nax=19 % number of z-sections to show
+na0=(nax+1)/2; % offset of center
+nextr=7; % no. of points in extracted subimage
+xtoffs=(nextr+1)/2-3;
+for iOs=1:nax
+    mysubplot(4,5,iOs);
+    mvd=mv(:,:,round(cdI(3))+iOs-na0);
+    mvs=ExtractImage(mvd,round(cdI(1:2)+3),nextr);
+    [maxv,ix,iy]=max2di(mvs);
+    imaga(mvd*mulr+addr); % show the section
+    hold on;
+    plot(cdI(1),cdI(2),'yo','markersize',20);
+    plot(cdI(1)+ix-xtoffs,cdI(2)+iy-xtoffs,'ro','markersize',15);
+    hold off;
+    axis off;
+    title(['z= ' num2str(iOs-na0) '  peak val= ' num2str(maxv,3)]);
+end;
+if saveIt
+    print('-djpeg','-r300',[figPrefix '_NaF4_slices.jpg']);
+end;
