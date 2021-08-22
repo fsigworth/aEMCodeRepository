@@ -1,3 +1,4 @@
+
 % rlAssignOpticsGroups
 % Reads a movies.star file (maybe someday a micrographs.star also)
 % And assigns optics group numbers based on shot coordinates in the movie
@@ -10,14 +11,15 @@
 % we start in the job directory where the star file is found.
 % inStarName='movies.star';
 % inStarName='corrected_micrographs.star';
-inStarName='micrographs_sub_ctf.star';
+% inStarName='micrographs_sub_ctf.star';
+inStarName='movies.star'
 
 [pa,nm,ex]=fileparts(inStarName);
 outStarName=[nm '_optics' ex];
 
 useNameDigits=2;
 
-[nm,da]=ReadStarFile(inStarName);
+[dnm,da]=ReadStarFile(inStarName);
 d=da{2};
 if isfield(d,'rlnMicrographMovieName')
     names=d.rlnMicrographMovieName;
@@ -75,5 +77,5 @@ end;
 da{1}=op1;
 da{2}=d;
 disp(['Writing ' outStarName]);
-WriteStarFile(nm,da,outStarName);
-
+WriteStarFile(dnm,da,outStarName);
+disp('done.');

@@ -9,7 +9,7 @@ pin.psA=150;  % particle size in angstroms
 % symmetry=3;
 % refMapName='emd_7009_flat_0822A_304.mrc';
 pin.symmetry=4;
-pin.refMapName='emd_10573.mrc';
+pin.refMapName='emd_11127.mrc';
 
 
 % templateFilt=.05; % inverse angstroms
