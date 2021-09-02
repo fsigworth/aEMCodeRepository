@@ -1,6 +1,7 @@
 % KvGelAnalysis
 
- imc=IMG_5782Rot(2201:2800,601:1900,:);
+% analyze the gel image from the email of Yangyang, 
+imc=IMG_5782Rot(2201:2800,601:1900,:);
 img=single(imc(:,:,1:2));
 img=sum(img,3);
 bands=[89 190; 311 430; 563 679; 829 926 ; 889 917; 1090 1172];

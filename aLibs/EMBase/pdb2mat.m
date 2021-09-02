@@ -182,6 +182,6 @@ PDBdata.charge     = strtrim(charge);
 % close file
 fclose(FileID);
 
-toc;
+% % toc;
 
 end

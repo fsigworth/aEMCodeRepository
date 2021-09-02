@@ -17,7 +17,6 @@ folders={['aLibs' filesep 'EMBase']
          ['aLibs' filesep 'GriddingLib']
          ['aLibs' filesep 'MEX'   ]   
          ['aLibs' filesep 'Others']
-         ['aLibs' filesep 'Others' filesep 'bfmatlab']
          'EMClass'
          'FourierReconstruction'
          'K2Camera'
@@ -33,6 +32,8 @@ folders={['aLibs' filesep 'EMBase']
          'RSCVesicleFinder'
          'RSCAnalysis'
          'AMPAR'
+         'Kv'
+%         ['aLibs' filesep 'Others' filesep 'bfmatlab']
 %          'RSCAdaptiveBasis'
 %          'RSCAdaptiveBasis/utils'
          };

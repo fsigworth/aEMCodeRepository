@@ -91,6 +91,7 @@ while P<=numel(C) % loop through all the entries
     while numel(C{P})<1 || numel(C{P}{1})<1
         P=P+1;
         if P>numel(C)
+            fprintf('\n');
             if doDisplay
                 disp('done.');
             end;
@@ -104,6 +105,7 @@ while P<=numel(C) % loop through all the entries
         nBlocks=nBlocks+1;
         blockNames{nBlocks,1}=C{P}{1}{1};  % whole string data_xxx
     else
+        fprintf('\n');
         disp(C{P}');
         warning(['''data_'' expected at line ' num2str(P) ' . Returning.'])
         return
@@ -155,6 +157,7 @@ while P<=numel(C) % loop through all the entries
         while numel(C{P})<1 || numel(C{P}{1})<1
             P=P+1;
             if P>numel(C)
+                fprintf('\n');
                 if doDisplay
                     disp('done.');
                 end;
@@ -211,6 +214,7 @@ while P<=numel(C) % loop through all the entries
     end;
     blockData{nBlocks,1}=q;
 end;
+fprintf('\n');
 if doDisplay
     disp('done.');
 end;

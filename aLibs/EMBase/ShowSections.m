@@ -12,8 +12,8 @@ function ShowSections( map, ctr, yAngle, options )
 %   ShowSections(map,ctr,exponent)
 % options.rowLabels doesn't work yet because mysubplot doesn't handle
 % ylabel or xlabel correctly.
-drawX=0;
-drawY=0;
+drawX=1;
+drawY=1;
 
 [nx, ny, nz, nim]=size(map);
 if nargin<3
@@ -99,13 +99,13 @@ for iSlice=1:nim
     imdraw(xs,ys,map(:,:,cz,iSlice));
     if options.showLines
         hold on;
-if drawX
-    plot([1 nx ],[cy cy],'b-');
-end;
-% plot([cx cx],[1 ny],'g-');
-if drawY
-    plot(yxs,yys,'g-');
-end;    
+        if drawX
+            plot([1 nx ],[cy cy],'b-');
+        end;
+        % plot([cx cx],[1 ny],'g-');
+        if drawY
+            plot(yxs,yys,'g-');
+        end;
         hold off;
     end;
     if showRowLabels
@@ -120,7 +120,7 @@ end;
             axis off equal;
         end;
     end;
-
+    
     mysubplot(nr,nc,iSlice*nc0-2);
     imdraw(xs,ys,sum(map(:,:,:,iSlice),3));
     if options.showLines
@@ -128,13 +128,13 @@ end;
         %     plot([1 nx ],[cy0 cy0],'b-');
         %     % plot([cx0 cx0],[1 ny],'g-');
         %     plot(yxs0,yys0,'g-');
-if drawX
-    plot([1 nx ],[cy cy],'b-');
-end;    % plot([cx cx],[1 ny],'g-');
-if drawY
-    plot(yxs,yys,'g-');
-end;
-hold off;
+        if drawX
+            plot([1 nx ],[cy cy],'b-');
+        end;    % plot([cx cx],[1 ny],'g-');
+        if drawY
+            plot(yxs,yys,'g-');
+        end;
+        hold off;
     end;
     if options.showLabels
         xlabel('X');
@@ -142,7 +142,7 @@ hold off;
     else
         axis off equal;
         if iSlice==1
-        title('Projections XY');
+            title('Projections XY');
         end;
     end;
     
@@ -160,7 +160,7 @@ hold off;
     else
         axis off equal;
         if iSlice==1
-        title('XZ');
+            title('XZ');
         end;
     end;
     
@@ -170,10 +170,10 @@ hold off;
         hold on;
         %     plot([1 nx ],[cy0 cy0],'b-');
         %     plot([cx0 cx0],[1 nz],'r-');
-if drawX
-    plot([1 nx ],[cz cz],'b-');
-end;
-plot([cx cx],[1 nz],'r-');
+        if drawX
+            plot([1 nx ],[cz cz],'b-');
+        end;
+        plot([cx cx],[1 nz],'r-');
         
         hold off;
     end;
@@ -184,7 +184,7 @@ plot([cx cx],[1 nz],'r-');
     else
         axis off equal;
         if iSlice==1
-        title('XZ');
+            title('XZ');
         end;
     end;
     
@@ -203,9 +203,9 @@ plot([cx cx],[1 nz],'r-');
     else
         axis off equal;
         if iSlice==1
-        title('YZ');
+            title('YZ');
         end;
-
+        
     end;
     
     mysubplot(nr,nc,iSlice*nc0);
@@ -224,20 +224,20 @@ plot([cx cx],[1 nz],'r-');
     else
         axis off equal;
         if iSlice==1
-        title('YZ');
+            title('YZ');
         end;
     end;
     if ~isStack
-%         rotMap=abs(rotMap);
+        %         rotMap=abs(rotMap);
         subplot(3,3,7);  % Plot 1D sections along x, y and z
-%         plot(xs,rotMap(:,cy,cz)','b-',...
+        %         plot(xs,rotMap(:,cy,cz)','b-',...
         plot(xs,map(:,cy,cz)','b-',...
             ys,rotMap(cx,:,cz),'g-',....
             zs,squeeze(rotMap(cx,cy,:)),'r-','linewidth',2);
         axis([1 nx -inf inf]);
         legend('X','Y','Z');
         title('Line sections');
-%         set(gca,'color','k');
+        %         set(gca,'color','k');
         
         subplot(3,3,8);  % Plot corresponding 1D projections
         plot(xs,squeeze(sum(sum(rotMap,3),2)),'b-',...
@@ -245,16 +245,16 @@ plot([cx cx],[1 nz],'r-');
             zs,squeeze(sum(sum(rotMap,2),1)),'r-','linewidth',2);
         axis([1 nx -inf inf]);
         title('Line projections');
-%         set(gca,'color','k');
+        %         set(gca,'color','k');
     end;
 end;
 
-function imdraw(xq,yq,m)
-if isComplex
-    imacx(m,exp);
-else
-    imags(xq,yq,m);
-end;
-
-end
+    function imdraw(xq,yq,m)
+        if isComplex
+            imacx(m,exp);
+        else
+            imags(xq,yq,m);
+        end;
+        
+    end
 end
