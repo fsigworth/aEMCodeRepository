@@ -14,7 +14,7 @@
 
 % mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
 p=struct;
-p.baseName='SimStack14';
+p.baseName='SimStack1uDef01Ampa';
 
 pa=fileparts(which('arGetRefVolumes'));
 p.mapName=[pa '/KvMap.mat'];
@@ -25,14 +25,14 @@ stackName=[p.baseName '.mrcs'];
 starName=[p.baseName '.star'];
 logName=[p.baseName 'Log.txt'];
 refName=[p.baseName 'Ref.mrc'];
-p.amps=[.01];
+p.amps=[.05];
 nAmps=numel(p.amps);
-p.defMin=3;  % Assign min, max defocus
-p.defMax=5;
+p.defMin=1;  % Assign min, max defocus
+p.defMax=1.5;
 p.imgsPerMicrograph=200;
 p.kV=300;
 
-p.imgSize=256;
+p.imgSize=144;
 ds=1;
 p.useWhiteNoise=1; % Lorentzian noise
 p.sigma=11.925; % noise makes unity variance (empirical)
@@ -73,6 +73,7 @@ for i=1:p.nTheta
     dPhi=360/(nPhi*p.symmetry);
     for j=1:nPhi
         phi=(j-1)*dPhi;
+        % enter all the psi values
         angs(nAngs+1:nAngs+p.nPsi,:)=[phi*ones(p.nPsi,1) theta*ones(p.nPsi,1) psis];
         nAngs=nAngs+p.nPsi;
     end;
@@ -95,7 +96,9 @@ makeProjections=~(exist('templates','var') && all(size(templates)==[p.imgSize p.
 
 if makeProjections % do this if templates haven't already been calculated.
     fprintf(' making %d projections %d x %d\n',nAngs,p.imgSize,p.imgSize);
-    templates=rlMakeTemplates(angs,m,dotCount);
+    rlAngs=angs;
+    rlAngs(:,3)=angs(:,3)-90; % fix a discrepancy
+    templates=rlMakeTemplates(rlAngs,m,dotCount);
     save('templates.mat','templates','p','-v7.3');
 else
     disp('Using the existing templates.');
@@ -129,12 +132,8 @@ d.rlnDefocusU=zeros(nImgs,1);
 d.rlnDefocusV=zeros(nImgs,1);
 % Constant
 d.rlnDefocusAngle=zeros(nImgs,1);
-d.rlnVoltage=p.kV*ones(nImgs,1);
-d.rlnAmplitudeContrast=.1*ones(nImgs,1); % set to usual Relion value.
-d.rlnSphericalAberration=Cs*ones(nImgs,1);
-d.rlnMagnification=5e4/p.pixA*ones(nImgs,1);
-d.rlnDetectorPixelSize=5*ones(nImgs,1);
 d.rlnCtfFigureOfMerit=ones(nImgs,1);
+d.rlnOpticsGroup=ones(nImgs,1);
 % Angles to fill in
 d.rlnAngleRot=zeros(nImgs,1);
 d.rlnAngleTilt=zeros(nImgs,1);
@@ -217,19 +216,34 @@ for i=1:nImgs
             .*ifftshift(ctfs(:,:,j1))))+p.sigma*noise(:,:,ind,2);
     end;
 end;
-%
-disp(' making the metadata struct...');
 
-
+%%
 fullStackName=[p.outDir stackName];
-fullStarName=[p.outDir starName];
-fullRefName=[p.outDir refName];
-fullLogName=[p.outDir logName];
 disp(['Writing ' fullStackName]);
 WriteMRC(stack,p.pixA,fullStackName);
 
+%%
+disp(' making the metadata struct...');
+
+    opt.rlnOpticsGroupName={'opticsGroup1'};
+    opt.rlnOpticsGroup=1;
+    opt.rlnMicrographOriginalPixelSize=p.pixA;
+    opt.rlnVoltage=p.kV;
+    opt.rlnSphericalAberration=Cs;
+    opt.rlnAmplitudeContrast=alpha;
+    opt.rlnMicrographOriginalPixelSize=p.pixA;
+    opt.rlnImagePixelSize=p.pixA;
+    opt.rlnImageSize=p.imgSize; % we're setting the particle image size.
+    opt.rlnImageDimensionality=2;
+
+fullStarName=[p.outDir starName];
+fullRefName=[p.outDir refName];
+fullLogName=[p.outDir logName];
+
+structNames={'data_optics'; 'data_particles'};
+structs={opt; d};
 disp(['Writing ' fullStarName]);
-WriteStarFileStruct(d,'',fullStarName);
+WriteStarFile(structNames,structs,fullStarName,'version 3');
 
 disp(['Writing ' fullRefName]);
 WriteMRC(m,p.pixA,fullRefName);
