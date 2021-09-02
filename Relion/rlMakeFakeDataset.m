@@ -13,19 +13,21 @@
 
 
 % mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
+disp(['Working directory: ' pwd]);
 p=struct;
-p.baseName='SimStack1uDef01Ampa';
+p.baseName='SimStack1uDef01Ampd';
+p.amps=[.01];
 
 pa=fileparts(which('arGetRefVolumes'));
 p.mapName=[pa '/KvMap.mat'];
+p.dotCount=100; % number of computed templates per dot printed out.
 
-
-p.outDir='/Users/fred/EMWork/Simulations/Relion/';
+% p.outDir='/Users/fred/EMWork/Simulations/Relion/';
+p.outDir='SimStacks/';
 stackName=[p.baseName '.mrcs'];
 starName=[p.baseName '.star'];
 logName=[p.baseName 'Log.txt'];
 refName=[p.baseName 'Ref.mrc'];
-p.amps=[.05];
 nAmps=numel(p.amps);
 p.defMin=1;  % Assign min, max defocus
 p.defMax=1.5;
@@ -40,8 +42,6 @@ p.sigma=1;
 p.useUniqueNoise=1;
 
 p.B=60;       % ctf B factor
-
-dotCount=200;
 
 disp('MakeFakeDataset:');
 
@@ -68,7 +68,7 @@ p.maxNPhi=ceil(360/(p.angStep*p.symmetry))';
 nAngs=0;
 angs=zeros(0,3);
 for i=1:p.nTheta
-    theta=(i-1)*dTheta;
+    theta=mod(90+(i-1)*dTheta,180); % start at 90 and go up
     nPhi=ceil(sind(theta)*p.maxNPhi); % Sample phi sparsely when sin(theta) is small.
     dPhi=360/(nPhi*p.symmetry);
     for j=1:nPhi
@@ -90,37 +90,60 @@ end;
 shifts=repmat(shiftVector,nAngs/p.nPsi,1);
 disp(p);
 
+% -----------projections----------------
 %     Making projections takes a long time, so we skip this if they have
 %     already been computed.
 makeProjections=~(exist('templates','var') && all(size(templates)==[p.imgSize p.imgSize nAngs]));
 
 if makeProjections % do this if templates haven't already been calculated.
     fprintf(' making %d projections %d x %d\n',nAngs,p.imgSize,p.imgSize);
-    rlAngs=angs;
-    rlAngs(:,3)=angs(:,3)-90; % fix a discrepancy
-    templates=rlMakeTemplates(rlAngs,m,dotCount);
-    save('templates.mat','templates','p','-v7.3');
+d1=struct;
+d1.rlnAngleRot=angs(:,1);
+d1.rlnAngleTilt=angs(:,2);
+d1.rlnAnglePsi=angs(:,3);
+d1.rlnOriginXAngst=shifts(:,1);
+d1.rlnOriginYAngst=shifts(:,2);
+templates=rlMakeRelionProjections(m,d1,[],p.pixA,p.dotCount);
+%     rlAngs=angs;
+%     rlAngs(:,3)=angs(:,3)-90; % fix a discrepancy
+%     templates=rlMakeTemplates(rlAngs,m,dotCount);
+disp(['Saving the templates at ' pwd '/templates.mat']);
+save('templates.mat','templates','d1','p','-v7.3');
 else
     disp('Using the existing templates.');
 end; % if makeProjections
 
 %%
 
-disp(' computing ctfs...');
+nImgs=nAngs*nAmps; % we repeat the angles for each ampltude value.
+
 nAmpMicrographs=ceil(nAngs/p.imgsPerMicrograph);
 defStep=(p.defMax-p.defMin)/(nAmpMicrographs-1);
 ctfs=zeros(p.imgSize,p.imgSize,nAmpMicrographs,'single');
 lambda=EWavelength(p.kV);
 Cs=2.7;
 alpha=.02; % alpha for simulation
+
+disp(' making the Optics struct');
+    opt=struct;
+opt.rlnOpticsGroupName={'opticsGroup1'};
+    opt.rlnOpticsGroup=1;
+    opt.rlnMicrographOriginalPixelSize=p.pixA;
+    opt.rlnVoltage=p.kV;
+    opt.rlnSphericalAberration=Cs;
+    opt.rlnAmplitudeContrast=alpha;
+    opt.rlnMicrographOriginalPixelSize=p.pixA;
+    opt.rlnImagePixelSize=p.pixA;
+    opt.rlnImageSize=p.imgSize; % we're setting the particle image size.
+    opt.rlnImageDimensionality=2;
+
+    disp(' making the CTFs');
 defs=zeros(nAmpMicrographs,1);
 for j=1:nAmpMicrographs
     defs(j)=p.defMin+(j-1)*defStep;
     ctfs(:,:,j)=CTF(p.imgSize,p.pixA,EWavelength(p.kV),defs(j),Cs,p.B,alpha);
 end;
 
-d=struct;
-nImgs=nAngs*nAmps;
 p.nImgs=nImgs;
 p1.nImgs=nImgs;
 disp(p1);
@@ -138,8 +161,8 @@ d.rlnOpticsGroup=ones(nImgs,1);
 d.rlnAngleRot=zeros(nImgs,1);
 d.rlnAngleTilt=zeros(nImgs,1);
 d.rlnAnglePsi=zeros(nImgs,1);
-d.rlnOriginX=zeros(nImgs,1);
-d.rlnOriginY=zeros(nImgs,1);
+d.rlnOriginXAngst=zeros(nImgs,1);
+d.rlnOriginYAngst=zeros(nImgs,1);
 
 stack=zeros(p.imgSize,p.imgSize,nAngs*nAmps,'single');
 %%
@@ -183,22 +206,25 @@ end;
 maxRot=180/p.symmetry;
 angMicrographIndex=floor((0:nAngs-1)'/p.imgsPerMicrograph)+1;
 disp(' making the stack...');
+
 %
-for i=1:nImgs
-    iAmp=floor((i-1)/nAngs+1);
-    iAng=mod(i-1,nAngs)+1;
+for iAmp=1:nAmps
+  for iAng=1:nAngs
+    i=iAng+nAngs*(iAmp-1); % index of all images
     j1=angMicrographIndex(iAng);
-    j=j1+(iAmp-1)*nAmpMicrographs; % index over all images
-    d.rlnMicrographName{i}=sprintf('m%04u%s',j,'.mrc');
-    d.rlnImageName{i}=sprintf('%05u%s%s',i,'@',stackName);
+    j=j1+(iAmp-1)*nAmpMicrographs; % index over all micrographs
+    
+    d.rlnMicrographName{i}=sprintf('%sm%04u%s',p.outDir,j,'.mrc');
+    d.rlnImageName{i}=sprintf('%05u%s%s%s',i,'@',p.outDir,stackName);
     d.rlnDefocusU(i)=1e4*defs(j1);
     d.rlnDefocusV(i)=1e4*defs(j1);
-    rot=mod(angs(iAng,1)+maxRot,2*maxRot)-maxRot; % phi, restrict to +/- maxRot
-    d.rlnAngleRot(i)=rot;
-    d.rlnAngleTilt(i)=angs(iAng,2);
-    d.rlnAnglePsi(i)=angs(iAng,3);
-    d.rlnOriginX(i)=shifts(iAng,1);
-    d.rlnOriginY(i)=shifts(iAng,2);
+%     rot=mod(angs(iAng,1)+maxRot,2*maxRot)-maxRot; % phi, restrict to +/- maxRot
+    
+    d.rlnAngleRot(i)=d1.rlnAngleRot(iAng);
+    d.rlnAngleTilt(i)=d1.rlnAngleTilt(iAng);
+    d.rlnAnglePsi(i)=d1.rlnAnglePsi(iAng);
+    d.rlnOriginXAngst(i)=d1.rlnOriginXAngst(iAng);
+    d.rlnOriginYAngst(i)=d1.rlnOriginYAngst(iAng);
     
     if p.useUniqueNoise
         ind=i; % different noise for each image
@@ -215,6 +241,7 @@ for i=1:nImgs
         stack(:,:,i)=real(ifftn(fftn(img+p.sigma*noise(:,:,ind,1)) ...
             .*ifftshift(ctfs(:,:,j1))))+p.sigma*noise(:,:,ind,2);
     end;
+  end;
 end;
 
 %%
@@ -223,19 +250,6 @@ disp(['Writing ' fullStackName]);
 WriteMRC(stack,p.pixA,fullStackName);
 
 %%
-disp(' making the metadata struct...');
-
-    opt.rlnOpticsGroupName={'opticsGroup1'};
-    opt.rlnOpticsGroup=1;
-    opt.rlnMicrographOriginalPixelSize=p.pixA;
-    opt.rlnVoltage=p.kV;
-    opt.rlnSphericalAberration=Cs;
-    opt.rlnAmplitudeContrast=alpha;
-    opt.rlnMicrographOriginalPixelSize=p.pixA;
-    opt.rlnImagePixelSize=p.pixA;
-    opt.rlnImageSize=p.imgSize; % we're setting the particle image size.
-    opt.rlnImageDimensionality=2;
-
 fullStarName=[p.outDir starName];
 fullRefName=[p.outDir refName];
 fullLogName=[p.outDir logName];

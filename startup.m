@@ -1,4 +1,4 @@
-% startup.m
+f% startup.m
 % Put this script somewhere where Matlab will look on startup, e.g. in home
 % folder or in ~/Documents/MATLAB
 host='MyHost';
