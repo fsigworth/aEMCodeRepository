@@ -14,13 +14,14 @@
 
 % mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
 p=struct;
-p.baseName='SimStack1uDef01Ampa';
+p.baseName='SimTMStk1uDef01Ampa';
 
 pa=fileparts(which('arGetRefVolumes'));
 p.mapName=[pa '/KvMap.mat'];
 
-
 p.outDir='/Users/fred/EMWork/Simulations/Relion/';
+p.outDir='/Users/fred/EMWork/Simulations/Relion2/Fred2_HRPicking/SimStacks';
+
 stackName=[p.baseName '.mrcs'];
 starName=[p.baseName '.star'];
 logName=[p.baseName 'Log.txt'];
@@ -32,7 +33,15 @@ p.defMax=1.5;
 p.imgsPerMicrograph=200;
 p.kV=300;
 
-p.imgSize=144;
+% p.imgSize=144; % for full Kv complex
+% p.mapClip=0; % blank the map from z=1:mapClip
+% p.mapZShift=0;
+
+% To make isolated TM region
+p.imgSize=128;
+p.mapClip=74; % blank the map from z=1:mapClip
+p.mapZShift=-24;
+
 ds=1;
 p.useWhiteNoise=1; % Lorentzian noise
 p.sigma=11.925; % noise makes unity variance (empirical)
@@ -51,6 +60,13 @@ s=load(p.mapName);  % gets s.map, s.pixA; map is 108^3 in size.
 
 m=DownsampleGeneral(s.map,p.imgSize,1/ds);
 p.pixA=s.pixA*ds;
+if p.mapClip>0
+    msk=ones(p.imgSize,p.imgSize,p.imgSize,'single');
+    msk(:,:,1:p.mapClip)=0;
+    fmsk=GaussFilt(msk,.1);
+    m=circshift(m.*fmsk,[0 0 p.mapZShift]);
+end;
+
 
 p.symmetry=4;
 p.angStep=2;
