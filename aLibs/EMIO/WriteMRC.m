@@ -47,7 +47,7 @@ switch mode
     case 6
         string='uint16';
         
-    case 32  % Packed uint4 values
+    case {32 101}  % Packed uint4 values. SerialEM calls this mode 101
         string='uint8';
         map=uint8(map);
         tempMap=min(map,15);
