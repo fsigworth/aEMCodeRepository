@@ -12,7 +12,7 @@ function [c, chi]=ContrastTransfer(s, lambda, defocus, Cs, B, alpha)
 % CPars.lambda
 % CPars.defocus
 % CPars.Cs
-% CPars.B
+% CPars.B --note this is Bs^2/4 convention
 % CPars.alpha
 %   and, optionally, to handle astigmatism,
 % CPars.deltadef
@@ -65,11 +65,12 @@ if deltadef~=0 && ndims(s)<3  % handle astigmatism
 end;
 s2=s.^2;
 chi=-1e4*lambda.*defocus.*s2+Cs.*lambda.^3.*5e6.*s2.^2-alpha/pi;
+B4=B/4;
 
 if doComplex
-    c=1i*exp(1i*pi*chi-B*s2);
+    c=1i*exp(1i*pi*chi-B4*s2);
 else
-    c=sin(pi*chi).*exp(-B*s2);
+    c=sin(pi*chi).*exp(-B4*s2);
 end;
 if cuton  % handle sharp cut-on of a phase plate.
     c=c.*(0.5+0.5*erf((abs(s)-cuton)*10/cuton));

@@ -35,7 +35,7 @@ switch dimension
     case 3
         rft=FromCAS(P.PadFT(sp1+1:sp1+np, sp1+1:sp1+np, sp1+1:sp1+np));
         if any(shifts~=0)
-            rft=rft.*fftshift(FourierShift(np,shifts));
+            rft=rft.*fftshift(FourierShift(np,-shifts));
         end;
         rm=fftshift(real(ifftn(fftshift(rft))));
         if numel(postcomp)>1
@@ -49,7 +49,7 @@ switch dimension
         %     postcomp=postcomp'./max(.01,masksum);
         rft=FromCAS(P.PadFT(sp1+1:sp1+np,sp1+1:sp1+np));
         if any(shifts~=0)
-            rft=rft.*fftshift(FourierShift(np,shifts));
+            rft=rft.*fftshift(FourierShift(np,-shifts));
         end;
         rm=fftshift(real(ifftn(fftshift(rft)))); % Get the np x np reconstruction.
         rm=rm.*kron(postcomp,postcomp');  % perform the post-compensation
@@ -58,7 +58,7 @@ switch dimension
     case 1
         rft=FromCAS(P.PadFT(sp1+1:sp1+np));
         if any(shifts)~=0
-            rft=rft.*fftshift(FourierShift(np,shifts));
+            rft=rft.*fftshift(FourierShift(np,-shifts));
         end;
         rm=fftshift(real(ifft(fftshift(rft)))); % Get the np x np reconstruction.
         rm=rm.*postcomp;  % perform the post-compensation

@@ -47,21 +47,22 @@ nl=numel(lineInds);
 
 %     CTF parameters: an array of structs
 ct=struct;
-for iLine=1:nl
-ct.defocus=(pts.rlnDefocusU(iLine)+pts.rlnDefocusV(iLine))/2e4;
-ct.deltadef=(pts.rlnDefocusU(iLine)-pts.rlnDefocusV(iLine))/2e4;
-ct.theta=pts.rlnDefocusAngle(iLine)*pi/180;
-ct.Cs=GetOptField('rlnSphericalAberration',iLine);
-ct.alpha=GetOptField('rlnAmplitudeContrast',iLine);
-ct.B=0;
-ct.pixA=pixA;
-ct.lambda=lambda;
+for i=1:nl
+    iLine=lineInds(i);
+    ct.defocus=(pts.rlnDefocusU(iLine)+pts.rlnDefocusV(iLine))/2e4;
+    ct.deltadef=(pts.rlnDefocusU(iLine)-pts.rlnDefocusV(iLine))/2e4;
+    ct.theta=pts.rlnDefocusAngle(iLine)*pi/180;
+    ct.Cs=GetOptField('rlnSphericalAberration',iLine);
+    ct.alpha=GetOptField('rlnAmplitudeContrast',iLine);
+    ct.B=bVal;
+    ct.pixA=pixA;
+    ct.lambda=lambda;
 
-if i==1
-    ctf=ct;
-else
-    ctf(iLine)=ct;
-end;
+    if i==1
+        ctf=ct;
+    else
+        ctf(i)=ct;
+    end;
 end;
 
     function val=GetOptField(fieldName,ind)

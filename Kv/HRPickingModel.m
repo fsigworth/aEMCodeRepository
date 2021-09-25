@@ -1,8 +1,10 @@
 % HRPickingModel.m
 % Create 3D model and 2D projections for high-res picking.
 
+doWrite=0; % Write out the models?
+shiftToMatchModel=0;
 n1=144; % working map box size
-n2=196; % Output map size
+% n2=256; % Output map size, matches input map
 ct1=ceil((n1+1)/2);
 cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel');
 pdbName='W366F_v4.2(delete_loop add ion)_VSDchecked.pdb'; % TM only
@@ -12,6 +14,7 @@ pdbName='W366F_v4.2(delete_loop add ion)_VSDchecked.pdb'; % TM only
 % mp=circshift(mp0,round(-mCtr));
 
 [mp0,s]=ReadMRC('Postprocess/job171/postprocess.mrc');
+n2=size(mp0,1);
 baseRotDegrees=0;
 % mpr=rsRotateImage(mp,baseRotDegrees);
 mp1=DownsampleGeneral(mp0,n1,s.pixA); % convert to 1A/pixel
@@ -33,15 +36,15 @@ figure(3);
 cc3=fftshift(real(ifftn(fftn(mp1).*conj(fftn(dProt)))));
 ShowSections(cc3);
 [val,zShift]=max3di(cc3) % shift is 21 pixels in z
-mp1=circshift(mp1,round(ct1-zShift)); % Center the tm region
+mp1sh=circshift(mp1,round(ct1-zShift)); % Center the tm region
 figure(1);
-ShowSections(mp1);
+ShowSections(mp1sh);
 %%
-amp=(dProt(:)'* mp1(:))/(dProt(:)'*dProt(:))
+amp=(dProt(:)'* mp1sh(:))/(dProt(:)'*dProt(:))
 % value is .0035
 
 %% Get micelle 1D density
-ySlab=squeeze(mean(mp1(:,ct1-12:ct1+9,:),2));
+ySlab=squeeze(mean(mp1sh(:,ct1-12:ct1+9,:),2));
 xySlab=mean(ySlab(ct1+32:ct1+38,:),1);
 figure(2);
 mysubplot(121);
@@ -62,35 +65,35 @@ plot(micDens1);
 protMask=GaussFilt(GaussFilt(dProt,.05)>.01,.2);
 micelleDens=repmat(shiftdim(micDens1,-2),[n1 n1 1]);
 figure(3);
-ShowSections(GaussFilt( (1-protMask).*mp1+protMask.*micelleDens,.05),[ct1 ct1 ct1+28]);
+ShowSections(GaussFilt( (1-protMask).*mp1sh+protMask.*micelleDens,.05),[ct1 ct1 ct1+28]);
 
 t1Mask=zeros(n1,n1,n1,'single');
 w=26;
 t1Mask(:,:,ct1-w:ct1+w)= 1;
 
 t1Maskf=GaussFilt(t1Mask,.05);
-ShowSections(GaussFilt( (1-protMask).*mp1+protMask.*micelleDens,.2),[ct1 ct1 ct1+28]);
+ShowSections(GaussFilt( (1-protMask).*mp1sh+protMask.*micelleDens,.2),[ct1 ct1 ct1+28]);
 drawnow;
-mMap0=GaussFilt( (1-protMask).*mp1.*t1Mask+protMask.*micelleDens*1,.1);
+mMap0=GaussFilt( (1-protMask).*mp1sh.*t1Mask+protMask.*micelleDens*1,.1);
 ShowSections(mMap0,[ct1 ct1 ct1+28]);
 % drawnow;
-% ShowSections(t1Maskf.*mp1);
+% ShowSections(t1Maskf.*mp1sh);
 
 drawnow;
 %
-ShowSections(t1Maskf.*mp1-mMap0,[],45);
+ShowSections(t1Maskf.*mp1sh-mMap0,[],45);
 %
-tMap0=(t1Maskf.*mp1-mMap0).*protMask;
-ShowSections(tMap0,[],45);
-%%
-tMap1=circshift(tMap0,round(zShift-ct1));
+tMapsh=(t1Maskf.*mp1sh-mMap0).*protMask;
+ShowSections(tMapsh,[],45);
+%% Unshift the TM map
+tMap1=circshift(tMapsh,round(zShift-ct1)); % undo the shift of the TM region
 ShowSections(tMap1,[],45);
 
-mMap1=circshift(mMap0,round(zShift-ct1));
+micMap1=circshift(mMap0,round(zShift-ct1)); % undo the micelle shift too.
 
-tMap2=DownsampleGeneral(tMap1,n2,1/s.pixA);
+tMap2=DownsampleGeneral(tMap1,n2,1/s.pixA); % Convert back to the orig pixel size
 tmMag=tMap2(:)'*tMap2(:)
-mMap2=DownsampleGeneral(mMap1,n2,1/s.pixA);
+mMap2=DownsampleGeneral(micMap1,n2,1/s.pixA);
 mtMag=tMap2(:)'*mMap2(:)
 mtCC=fftshift(real(ifftn(fftn(mMap2).*conj(fftn(tMap2)))));
 tmAC=fftshift(real(ifftn(abs(fftn(tMap2)).^2)));
@@ -104,10 +107,11 @@ title('TM region autocorrelation');
 
 %% Write the output files
 outPath='HRPicking/';
-CheckAndMakeDir(outPath);
-WriteMRC(tMap2,s.pixA,[outPath 'tmMap.mrc']);
-WriteMRC(mMap2,s.pixA,[outPath 'micMap.mrc']);
-
+if doWrite
+    CheckAndMakeDir(outPath);
+WriteMRC(tMap2,s.pixA,[outPath 'tmMap.mrc']); % Map of TM Region
+WriteMRC(mMap2,s.pixA,[outPath 'micMap.mrc']); % Micelle map
+end;
 
 %%
 % See the total power in acf as a function of resolution.
