@@ -14,7 +14,7 @@
 
 % ----------
 % W366F data start here:
-cd ~/EMWork/Yangyu/20210224_YW_sel/
+% cd ~/EMWork/Yangyu/20210224_YW_sel/
 starDir='Refine3D/job110/';
 starName='run_data.star';
 % To use the reconstructed map
@@ -25,21 +25,27 @@ starName='run_data.star';
 % refDir='';
 % refName='postprocess_masked_2.55A.mrc';
 
-% To use our TM map
+% % To use our TM map
+% refDir='HRPicking/';
+% refName='tmMap.mrc';
+% projsFilename='projsComp.mat';
+%
+% To use our alpha-subunit composite map
 refDir='HRPicking/';
-refName='tmMap.mrc';
+refName='compMap.mrc';
+projsFilename='projsComp.mat';
 
 bValue=80 % This gives the best results
 stackPrune=0;
 refCrop=216;
 % -----------
 
-computeNewProjs=0;
+computeNewProjs=1;
 listStackFiles=0;
 stackMode=1;
 maxNumParticles=1e4; % actual set is 2678 particles.
 
-skipStar=0;
+skipStar=1;
 if ~skipStar
     dataStarName=[starDir starName];
     disp(['Reading ' dataStarName '...']);
@@ -78,9 +84,9 @@ for iFile=2:nUStacks
     stack1=ReadMRC(stackFilename);
     stackInds1=find(stackRPtrs==iFile);
     np1=numel(stackInds1);
-if listStackFiles
-    disp(['Stack file: ' stackFilename '  ' num2str(np1) ' particles']);
-end;
+    if listStackFiles
+        disp(['Stack file: ' stackFilename '  ' num2str(np1) ' particles']);
+    end;
     stack(:,:,np+1:np+np1)=stack1(:,:,1:np1);
     np=np+np1;
     stackInds=[stackInds; stackInds1];
@@ -100,16 +106,18 @@ stackIndsP=stackInds(okInds); % pointers to original stack indices
 stackP=stack(:,:,okInds);
 npP=sum(okInds);
 
-%% Compute all the projections
+%% -----Compute all the projections-----
 if computeNewProjs
     [tmRef,s]=ReadMRC([refDir refName]); % Get our 3D ref
     tmRef1=Crop(tmRef,refCrop);
     disp(['Making ' num2str(npP) ' projections']);
     [projs,angs,shifts]=rlMakeRelionProjections(tmRef1,d,stackIndsP,ct(1).pixA,100);
     npR=size(projs,3);
-    save([refDir 'projs.mat'],'projs','angs','shifts','tmRef1');
+    disp(['Writing ' refDir projsFilename]);
+    save([refDir projsFilename],'projs','angs','shifts','tmRef1');
 else
-    load([refDir 'projs.mat']);
+    disp(['Reading ' refDir projsFilename]);
+    load([refDir projsFilename]);
 end;
 %% Get a ctf for each micrograph
 activeMicRPtrs=micRPtrs(stackIndsP);
@@ -124,6 +132,7 @@ for i=1:nct
 end;
 
 %% Operate on the projections with ctfs
+npR=npP; % I guess it's just a name change.
 cProjs=zeros(n0,n0,npR,'single');
 for i=1:npR
     micInd=activeMicRPtrs(i);
@@ -146,41 +155,41 @@ ct0=ceil((n0+1)/2);
 found=false(npR,1);
 shiftErrs=zeros(npR,3);
 figure(2);
-displayOn=0;
-listResults=0;
+displayOn=1;
+listResults=1;
 
 for i=1:npR
     q=stackP(:,:,i);
     pr=Crop(projs(:,:,i),n0);
     rr=cProjs(:,:,i);
     ccp=fftshift(real(ifftn(fftn(q).*conj(fftn(pr)))));
-
+    
     cc=fftshift(real(ifftn(fftn(q).*conj(fftn(rr)))));
     [ccMax,sx,sy]=max2di(cc);
     rsx=sx-ct0;
     rsy=sy-ct0;
-
+    
     if displayOn
         subplot(331);
         imags(GaussFilt(q,.2));
         title(i);
-
+        
         subplot(332);
         imags(pr);
-
+        
         subplot(333);
         imags(rr);
-
+        
         subplot(335);
         imacs(ccp);
-
-
+        
+        
         subplot(336);
         imacs(cc);
         hold on;
         plot(sx,sy,'w+','linewidth',2)
         hold off;
-
+        
         subplot(339);
         imacs(Crop(cc,16))
         hold on;
@@ -190,8 +199,8 @@ for i=1:npR
         colormap jet
         drawnow;
     end;
-
-
+    
+    
     shiftErrs(i,:)=[rsx rsy hypot(rsx,rsy)];
     if hypot(rsx,rsy)<2
         found(i)=true;
@@ -213,7 +222,7 @@ return
 %% Compute average projection spectrum
 spSum=zeros(n0,n0,'single');
 for i=1:npR
-spSum=spSum+abs(fftn(Crop(projs(:,:,i),n0)));
+    spSum=spSum+abs(fftn(Crop(projs(:,:,i),n0)));
 end;
 %%
 spMean=fftshift(spSum/npR);
@@ -248,9 +257,9 @@ subplot(223);
 plot(freqs,spM3d*20,'b-','linewidth',2);
 hold on;
 for i=1:nDefs
-ctPars.defocus=defs(i);
+    ctPars.defocus=defs(i);
     c=ContrastTransfer(freqs,ctPars).^2;
-     plot(freqs,c);
+    plot(freqs,c);
     signals(i)=c*spM3d;
 end;
 hold off;
@@ -280,7 +289,7 @@ for i=1:npP
     drawnow;
 end;
 
-
+return
 
 
 
@@ -288,7 +297,7 @@ end;
 
 nMic=numel(micUNames);
 for i=1
-   if ~exist(micUNames{i},'file')
+    if ~exist(micUNames{i},'file')
         continue;
     end;
     [mic,s]=ReadMRC(micUNames{i});
@@ -314,16 +323,16 @@ for i=1
     hold off;
     title(i);
     drawnow;
-
-%% try to find particles
-for j=1:np
-    cp=cProjs(:,:,j);
-    cpx=Crop(cp,[s.mx s.my]);
     
-
-
-
-
-
+    %% try to find particles
+    for j=1:np
+        cp=cProjs(:,:,j);
+        cpx=Crop(cp,[s.mx s.my]);
+        
+        
+        
+        
+        
+        
+    end;
 end;
-
