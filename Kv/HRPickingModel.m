@@ -6,8 +6,8 @@ shiftToMatchModel=0;
 n1=144; % working map box size
 % n2=256; % Output map size, matches input map
 ct1=ceil((n1+1)/2);
-% cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel'); % on Katz
-cd('/Volumes/EMWork/Yangyu/20210224_YW_sel'); % Katz mounted
+cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel'); % on Katz
+% cd('/Volumes/EMWork/Yangyu/20210224_YW_sel'); % Katz mounted
 pdbName='W366F_v4.2(delete_loop add ion)_VSDchecked.pdb'; % TM only
 
 % [mp0,s]=ReadMRC('postprocess_masked_2.55A.mrc');
@@ -107,6 +107,8 @@ amMap1=aMap1-1.2*GaussFilt(aMap1,.004); % undo most of the overshoot
 
 isT1=GaussFilt((GaussFilt(aMap1,.05)>.006) > protMsk1,.1)>.8;
 isT1=GaussFilt(GaussFilt((GaussFilt(aMap1,.05)>.006) > protMsk1,.1)>.8,.1);
+
+compMap1=aMap1;
 
 tMap2=DownsampleGeneral(tMap1,n2,1/s.pixA); % Convert back to the orig pixel size
 tmaMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);

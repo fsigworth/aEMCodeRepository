@@ -40,12 +40,12 @@ stackPrune=0;
 refCrop=216;
 % -----------
 
-computeNewProjs=1;
+computeNewProjs=0;
 listStackFiles=0;
 stackMode=1;
 maxNumParticles=1e4; % actual set is 2678 particles.
 
-skipStar=1;
+skipStar=0;
 if ~skipStar
     dataStarName=[starDir starName];
     disp(['Reading ' dataStarName '...']);
@@ -111,10 +111,12 @@ if computeNewProjs
     [tmRef,s]=ReadMRC([refDir refName]); % Get our 3D ref
     tmRef1=Crop(tmRef,refCrop);
     disp(['Making ' num2str(npP) ' projections']);
-    [projs,angs,shifts]=rlMakeRelionProjections(tmRef1,d,stackIndsP,ct(1).pixA,100);
+%     [projs,angs,shifts]=rlMakeRelionProjections(tmRef1,d,stackIndsP,ct(1).pixA,100);
+    [projs,angs]=rlMakeRelionProjections(tmRef1,d,stackIndsP,0,100);
+    shifts=[d.rlnOriginXAngst(stackIndsP) d.rlnOriginYAngst(stackIndsP)]/s.pixA;
     npR=size(projs,3);
     disp(['Writing ' refDir projsFilename]);
-    save([refDir projsFilename],'projs','angs','shifts','tmRef1');
+    save([refDir projsFilename],'projs','angs','shifts','tmRef','tmRef1');
 else
     disp(['Reading ' refDir projsFilename]);
     load([refDir projsFilename]);
@@ -134,9 +136,13 @@ end;
 %% Operate on the projections with ctfs
 npR=npP; % I guess it's just a name change.
 cProjs=zeros(n0,n0,npR,'single');
+cFProjs=zeros(n0,n0,npR,'single');
+scProjs=zeros(n0,n0,npR,'single');
 for i=1:npR
     micInd=activeMicRPtrs(i);
-    cProjs(:,:,i)= -real(ifftn(fftn(Crop(projs(:,:,i),n0)).*ifftshift(ctfs(:,:,micInd))));
+    cFProjs(:,:,i)=-fftn(Crop(projs(:,:,i),n0)).*ifftshift(ctfs(:,:,micInd));
+    cProjs(:,:,i)= real(ifftn(cFProjs(:,:,i)));
+    scProjs(:,:,i)=real(ifftn(cFProjs(:,:,i).*FourierShift(n0,-shifts(i,:))));
 end;
 %% Show all the inner products
 %
@@ -151,46 +157,50 @@ end;
 % % imags(sVec'*sVec)
 % return
 %% Compute cross-correlations
+multiRef=1; % Try correlating with all references
 ct0=ceil((n0+1)/2);
 found=false(npR,1);
 shiftErrs=zeros(npR,3);
 figure(2);
 displayOn=1;
 listResults=1;
+ccs=zeros(n0,n0,npR);
 
 for i=1:npR
-    q=stackP(:,:,i);
-    pr=Crop(projs(:,:,i),n0);
-    rr=cProjs(:,:,i);
-    ccp=fftshift(real(ifftn(fftn(q).*conj(fftn(pr)))));
-    
-    cc=fftshift(real(ifftn(fftn(q).*conj(fftn(rr)))));
-    [ccMax,sx,sy]=max2di(cc);
+    img=stackP(:,:,i);
+    fImg=fftn(img);
+    sfImg=fImg.*FourierShift(n0,shifts(i,:));
+    if multiRef
+        for j=1:npR
+            ccs(:,:,j)=fftshift(real(ifftn(fImg.*conj(cFProjs(:,:,j)))));
+        end;
+        [cc,inds]=max(ccs,[],3);
+    else
+        cFProj=cFProjs(:,:,i);    
+        cc=fftshift(real(ifftn(fImg.*conj(cFProj))));
+    end;
+        [ccMax,sx,sy]=max2di(cc);
     rsx=sx-ct0;
     rsy=sy-ct0;
     
     if displayOn
-        subplot(331);
-        imags(GaussFilt(q,.2));
+        subplot(231);
+        imags(GaussFilt(img,.2));
         title(i);
         
-        subplot(332);
-        imags(pr);
+        subplot(232);
+        imags(Crop(projs(:,:,i),n0));
         
-        subplot(333);
-        imags(rr);
+        subplot(233);
+        imags(cProjs(:,:,i));
         
-        subplot(335);
-        imacs(ccp);
-        
-        
-        subplot(336);
+        subplot(235);
         imacs(cc);
         hold on;
-        plot(sx,sy,'w+','linewidth',2)
+        plot(sx,sy,'ko','markersize',15,'linewidth',1)
+        plot([0 n0 ct0 ct0 ct0],[ct0 ct0 ct0 0 n0],'k-','linewidth',.5);
         hold off;
-        
-        subplot(339);
+        subplot(236);
         imacs(Crop(cc,16))
         hold on;
         plot(9,9,'wd','linewidth',2);
@@ -212,6 +222,7 @@ for i=1:npR
         disp(['angs=  ' num2str(angs(i,:),'%8.1f') '  shifts=  ' num2str(shifts(i,:),'%8.1f')...
             '  ' num2str([rsx rsy],'%8.1f') '  correct:  ' sprintf('%d / %d %s', sum(found),i,marker)]);
     end;
+
 end;
 subplot(337);
 plot([activeMicRPtrs found]);
@@ -219,33 +230,49 @@ subplot(338);
 plot(shiftErrs(:,1),shiftErrs(:,2),'.');
 return
 
-%% Compute average projection spectrum
+%% Compute average projection spectrum and compare with spectrum of 3D ref
 spSum=zeros(n0,n0,'single');
 for i=1:npR
     spSum=spSum+abs(fftn(Crop(projs(:,:,i),n0)));
 end;
-%%
+%
 spMean=fftshift(spSum/npR);
 spM1=Radial(spMean);
 freqs=(1:n0/2)/(n0*s.pixA);
 figure(3);
+clf;
+
 subplot(221);
-imags(spMean);
+imags(spMean.^.4);
+title('Mean spectrum of projections');
+
 subplot(222);
 semilogy(freqs,spM1)
+title('Mean spectrum of projections');
+
 subplot(223);
-plot(freqs,spM1.*(1:n0/2)'*2*pi);
+spM1d=spM1.*freqs'*2*pi;
+% plot(freqs,spM1d);
+% title('Mean spectrum \times 2\pir');
+% grid on;
 
 spM3=RadialPowerSpectrum(tmRef);
+subplot(223);
+spM3d=spM3.*freqs'*2*pi*1.7e5;
+spM3d(1:10)=max(spM3d(11:end));
+plot(freqs,[spM1d spM3d*1.7e5]);
+title('Spectrum \times 2\pir');
+grid on;
+legend('Mean of projs','From 3D ref')
+
 subplot(224);
-spM3d=spM3.*(1:n0/2)'*2*pi;
-plot(freqs,spM3d);
+plot(freqs,cumsum([spM1 spM3d],1));
+title('Total SNR')
+
+
 
 %% Find signal as a function of defocus
-% Alternate version, where we don't multply by diameter, giving an
-% approximate SNR.
-spM3d=spM3*200; %% don't multiply by r.
-spM3d(1:8)=0;
+% SNR at B=0 is given by sp1 x 2\pi r
 figure(6)
 defs=[.05:.01:1];
 defs=[.08 .19 .31];
@@ -254,7 +281,7 @@ signals=zeros(nDefs);
 ctPars=ct(1);
 ctPars.B=80;
 subplot(223);
-plot(freqs,spM3d*20,'b-','linewidth',2);
+plot(freqs,spM3d*12,'b-','linewidth',2);
 hold on;
 for i=1:nDefs
     ctPars.defocus=defs(i);
@@ -263,18 +290,19 @@ for i=1:nDefs
     signals(i)=c*spM3d;
 end;
 hold off;
+grid on;
 % axis([0 inf 0 1])
-legend('ref','.08','.19','.31')
+legend('ref','.08 \mum','.19 \mum','.31 \mum')
 % subplot(222);
 % plot(defs,signals);
 
 %% Look at the individual radial spectra of the projections
 figure(5); clf;
 sp1s=RadialPowerSpectrum(Crop(projs,n0,1),1);
-%%
+%
 sp1sd=sp1s.*repmat(freqs',1,npP);
 plot(freqs,sp1sd);
-%% sort angles by tilt
+% sort angles by tilt
 [vals,inds]=sort(abs(angs(:,2)-90));
 for i=1:4
     lower=floor((i-1)*npP/4+1);
@@ -282,7 +310,7 @@ for i=1:4
     subplot(2,2,i);
     plot(freqs,sp1sd(:,lower));
 end;
-%%
+%
 for i=1:npP
     plot(freqs,sp1sd(:,i));
     title(vals(i));
@@ -306,7 +334,9 @@ for i=1
     if np<1
         continue;
     end;
-    fMic=GaussFilt(mic,.05);
+    micf=GaussFilt(-mic,.05);
+    fMic=fftn(-mic);
+
     [bX,bY,tX,tY]=MakeBoxDrawingVectors( ...
         [d.rlnCoordinateX(micParticles) d.rlnCoordinateY(micParticles)], ...
         op.rlnImageSize(1)/2,0.8);
@@ -315,7 +345,7 @@ for i=1
         tStrings{j}=num2str(micParticles(j));
     end;
     figure(10);
-    imags(fMic);
+    imags(micf);
     hold on;
     plot(bX,bY,'color',[1 1 0]);
     text(tX,tY,tStrings,'color',[1 1 0], ...
@@ -323,16 +353,26 @@ for i=1
     hold off;
     title(i);
     drawnow;
-    
-    %% try to find particles
-    for j=1:np
-        cp=cProjs(:,:,j);
-        cpx=Crop(cp,[s.mx s.my]);
+
+        % try to find particles
         
-        
-        
-        
-        
-        
-    end;
+
+nRefs=100;
+
+
+ccs=zeros(s.mx,s.my,nRefs,'single');
+for j=1:nRefs
+        cpx=Crop(cProjs(:,:,j),[s.mx s.my]);
+        ccs(:,:,j)=ifftshift(real(ifftn(fMic.*conj(fftn(cpx)))));
+end;
+cc=max(ccs,[],3);
+
+        figure(11);
+        imags(cc);
+
+%         
+%         
+%         
+%         
+%     end;
 end;
