@@ -15,6 +15,7 @@
 % ----------
 % W366F data start here:
 % cd ~/EMWork/Yangyu/20210224_YW_sel/
+cd /Volumes/EMWork/Yangyu/20210224_YW_sel/
 starDir='Refine3D/job110/';
 starName='run_data.star';
 % To use the reconstructed map
@@ -156,8 +157,12 @@ end;
 %
 % % imags(sVec'*sVec)
 % return
+
+% compute mean power spectrum of the stack
+sps=RadialPowerSpectrum(stackP,1);
+meanSP=ToRect(mean(sps,2));
 %% Compute cross-correlations
-multiRef=1; % Try correlating with all references
+multiRef=0; % Try correlating with all references
 ct0=ceil((n0+1)/2);
 found=false(npR,1);
 shiftErrs=zeros(npR,3);
@@ -166,17 +171,24 @@ displayOn=1;
 listResults=1;
 ccs=zeros(n0,n0,npR);
 
-for i=1:npR
+% for i=1:npR
+for i=1
     img=stackP(:,:,i);
-    fImg=fftn(img);
+
+    %% try pre-multiplying the image by the ctf, and pre-whitening
+    fImg=-fftn(img).*ifftshift(ctfs(:,:,1)./meanSP); %%
+    img=real(ifftn(fImg)); %%%
+
     sfImg=fImg.*FourierShift(n0,shifts(i,:));
+
     if multiRef
-        for j=1:npR
+        for j=1
             ccs(:,:,j)=fftshift(real(ifftn(fImg.*conj(cFProjs(:,:,j)))));
         end;
         [cc,inds]=max(ccs,[],3);
     else
         cFProj=cFProjs(:,:,i);    
+        cFProj=fftn(Crop(projs(:,:,i),n0)); %%
         cc=fftshift(real(ifftn(fImg.*conj(cFProj))));
     end;
         [ccMax,sx,sy]=max2di(cc);
