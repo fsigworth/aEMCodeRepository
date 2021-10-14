@@ -15,19 +15,19 @@
 % mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
 disp(['Working directory: ' pwd]);
 p=struct;
-p.baseName='SimTMStk1uDef01Ampa';
+p.baseName='SimTMStk1uDef04Ampa';
 % p.baseName='SimStack1uDef01Ampd';
-p.amps=[.01];
+p.amps=[.04];
 
 pa=fileparts(which('arGetRefVolumes'));
 p.mapName=[pa '/KvMap.mat'];
 p.dotCount=100; % number of computed templates per dot printed out.
 
-p.outDir='/Users/fred/EMWork/Simulations/Relion/';
-p.outDir='/Users/fred/EMWork/Simulations/Relion2/Fred2_HRPicking/SimStacks';
+% p.outDir='/Users/fred/EMWork/Simulations/Relion/';
+% p.outDir='/Users/fred/EMWork/Simulations/Relion2/Fred2_HRPicking/SimStacks';
 
 % p.outDir='/Users/fred/EMWork/Simulations/Relion/';
-% p.outDir='SimStacks/';
+p.outDir='SimTMStacks/';
 
 stackName=[p.baseName '.mrcs'];
 starName=[p.baseName '.star'];

@@ -3,7 +3,7 @@
 % locations.
 % Based roughly on DemoPicker
 
-starPath='Select/job025/';
+starPath='Select/job023/';
 starName='particles.star';
 
 % micPath='Merged_sms/';
@@ -12,7 +12,7 @@ starName='particles.star';
 % ds=4;
 % disDs=1;
 
-micPath='MotionCorr/job017/Movies/';
+micPath='MotionCorr/job002/Movies/';
 micSuffix='.mrc';
 micTrim=0; % no. of chars to trim from micrograph name (not extension)
 ds=1;    % Existing downsampling of the micrographs
