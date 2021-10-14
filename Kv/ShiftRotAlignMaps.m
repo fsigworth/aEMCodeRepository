@@ -4,12 +4,12 @@
 % m1c, m2c, msk1 (prelim. mask for m1c)
 
 m1cr=rsRotateImage(msk1.*m1c,34);
-n=size(m2c);
+n=size(m1c);
 figure;
 mysubplot(121);
 imags(squeeze(sum(m1cr,3)));
 msk=fuzzymask(n,3,n*.45,.1);
-m2cm=msk.*m2c;
+m2cm=msk.*Crop(m4,n);
 
 mysubplot(122);
 P=Simplex('init',[34 1]);

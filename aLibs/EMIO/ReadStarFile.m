@@ -1,5 +1,5 @@
-function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay)
-% function [blockNames,blockData,ok]=ReadStarFile(name)
+function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay,maxLines)
+% function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay,maxLines)
 % Read a Relion .star file and put its contents into two cell arrays.
 % blockNames is a cell array of the blockNames.  For example below are
 % values from reading a post_run.star file. doDisplay (default 0) enables
@@ -7,6 +7,8 @@ function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay)
 % - Sped up by pre-allocating fieldVals
 % - Changed to always return strings as cells of char arrays, even if there
 % is only one line in a _loop block.
+% doDisplay enables print-out of progress.
+% We stop reading after maxLines; default is inf.
 
 % >> blockNames{1} =
 %   1×12 char array
@@ -27,6 +29,9 @@ function [blockNames,blockData,ok]=ReadStarFile(name,doDisplay)
 
 if nargin<2
     doDisplay=0;
+end;
+if nargin<3
+    maxLines=inf;
 end;
 
 blockNames={};
@@ -49,7 +54,7 @@ if doDisplay
 end;
 
 numDots=0;
-while ~feof(fi)
+while nLines<maxLines && ~feof(fi)
     line=fgetl(fi);
     p=strfind(line,commentMarkers);
     hasComment = numel(p)>0;
@@ -72,6 +77,9 @@ while ~feof(fi)
         end;
     end;
 end;
+
+C{nLines+1}={{}};
+
 fclose(fi);
 fprintf(' %g lines\n',nLines);
 

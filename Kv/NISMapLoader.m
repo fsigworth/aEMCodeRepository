@@ -11,15 +11,19 @@ cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
 names.map1='MapsForSubtraction/210705/cryosparc_P1_J55_010_volume_map_sharp(6)_copy.mrc';
 names.map2='MapsForSubtraction/210705/cryosparc_P6_J40_010_volume_map_sharp(1).mrc';
 names.map3='MapsForSubtraction/210705/cryosparc_P8_J67_010_volume_map_sharp(1).mrc'; % perrhenate
+names.map4='210927/cryosparc_P1_J321_005_volume_map_sharp.mrc';
 
 names.pdb1='MapsForSubtraction/SR_7_1_21_dimer_copy.pdb';
 names.pdb2='MapsForSubtraction/model_fit_P8j67-07-12_ek-coot-9.pdb'; % Fig to perrhenate
 names.pdb3='MapsForSubtraction/Perrheate_0806.pdb'; % Fig to perrhenate
+names.pdb4='210927/IODO_SR_092721chainA-coot-0.pdb';
 
 disp('Loading maps');
 [m1,s]=ReadMRC(names.map1);
 m2=ReadMRC(names.map2);
 m3=ReadMRC(names.map3);
+m4=ReadMRC(names.map4);
+
 
 n1=size(m1,1); % it's 144
 % Working (cropped) map size is 96
@@ -74,9 +78,26 @@ baseShift2=P(2);
 basePhi3=basePhi2;
 baseShift3=baseShift2;
 
+disp('Rotating and padding map 4');
+P=[34 0];
+    m4c=Crop(m4,n);
+    m4cr=rsRotateImage(msk1.*m4c,P(1)); %
+    fsh=FourierShift(n,[0 0 P(2)]); % shift only in z
+    m4crs=real(ifftn(fsh.*fftn(m4cr)));
+    m4uc=Downsample(m4crs,n*us);
+    m4v=Downsample(m4uc,nv);
+mysubplot(2,2,4);
+imags(sum(m4v,3));
+title(names.map4,'interpreter','none');
+drawnow;
+basePhi4=P(1)*pi/180;
+baseShift4=P(2);
+
+
 %%
 % Handle the pdb file
-
+figure(8);
+clf;
 disp(['Loading the pdb file ' names.pdb1]);
 p1=pdb2mat(names.pdb1);
 mrot=EulerMatrix(basePhi,0,0);
@@ -88,7 +109,6 @@ mrot=EulerMatrix(basePhi,0,0);
     p1r.Y=p1rCoords(2,:);
     p1r.Z=p1rCoords(3,:);
     p1r.flipped=false(size(p1r.X));
-mysubplot(2,2,4);
 plot(p1r.X,p1r.Y,'.','markersize',1);
 
 
@@ -124,6 +144,26 @@ mrot=EulerMatrix(basePhi3,0,0);
 
 hold on;
 plot(p3r.X,p3r.Y,'g.','markersize',1);
+hold off;
+drawnow;
+
+disp(['Loading the pdb file ' names.pdb4]);
+p4=pdb2mat(names.pdb4);
+basePhi4=basePhi3;
+baseShift4=baseShift3;
+mrot=EulerMatrix(basePhi4,0,0);
+
+    ctr0=n1/2;
+    p4Coords=[p4.X;p4.Y;p4.Z]/s.pixA-ctr0;
+    p4rCoords=mrot*p4Coords;
+    p4r=p4;
+    p4r.X=p4rCoords(1,:); % Zero-based atom coordinates, in A
+    p4r.Y=p4rCoords(2,:);
+    p4r.Z=p4rCoords(3,:)+baseShift4;
+    p4r.flipped=false(size(p4r.X));
+
+hold on;
+plot(p4r.X,p4r.Y,'k.','markersize',1);
 hold off;
 drawnow;
 

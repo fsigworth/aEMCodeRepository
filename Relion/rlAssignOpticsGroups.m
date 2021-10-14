@@ -1,23 +1,25 @@
 
 % rlAssignOpticsGroups
 % Reads a movies.star file (maybe someday a micrographs.star also)
-% And assigns optics group numbers based on shot coordinates in the movie
+% And assigns optics group names and numbers, and write out a new file e.g.
+% movies_optics.star. Groups are based on shot coordinates in the movie
 % or micrograph name, e.g.  .....0053_X+1Y+1-0.tif
-% We detect this 6-character string by searching for the last 'X' in the name.
-% - Alternatively (useNameDigits>0) we assign them based on final digits in the filename, e.g.
-% slot11_1000_0001.tif or .mrc, with usenameDigits giving the number of
-% digits to consider.
+% - We detect a 6-character string by searching for the last 'X' in the name.
+%   (We ignore the '-0' which holds the index of exposures within a hole,
+%   which normally are grouped together.)
+% - Alternatively (useNameDigits>0) we assign groups based on final digits in the filename, e.g.
+%   slot11_1000_0001.tif, with useNameDigits giving the number of
+%   digits to consider.
 %
 % we start in the job directory where the star file is found.
-% inStarName='movies.star';
+inStarName='movies.star';
 % inStarName='corrected_micrographs.star';
 % inStarName='micrographs_sub_ctf.star';
-inStarName='movies.star'
 
 [pa,nm,ex]=fileparts(inStarName);
 outStarName=[nm '_optics' ex];
 
-useNameDigits=2;
+useNameDigits=2; % 0 to use coordinate string instead
 
 [dnm,da]=ReadStarFile(inStarName);
 d=da{2};
@@ -34,7 +36,7 @@ nl=numel(names);
 if useNameDigits>0
     posStrings=cell(nl,1);
     for i=1:nl
-        [~,nm]=fileparts(names{i});
+        [~,nm]=fileparts(names{i}); % strip off the extension
         posStrings{i}=nm(end-useNameDigits+1:end);
     end;
 else % Use coordinate encoding    
@@ -51,10 +53,10 @@ end;
 
 [uStrings,uFirst,uGroups]=unique(posStrings);
 ng=numel(uStrings);
-% Assign the optics groups
+% ----------Assign the optics groups here--------
 d.rlnOpticsGroup=uGroups;
 
-% Now expand the optics group block, assuming that we have one entry.
+% Now expand the data_optics block, based on the first entry.
 op=da{1};
 fNames=fieldnames(op);
 op1=struct;
@@ -74,6 +76,8 @@ for i=1:numel(fNames)
         op1.(field)=repmat(op.(field)(1),ng,1);
     end;
 end;
+
+% Replace the structs with our modified versions and write them out.
 da{1}=op1;
 da{2}=d;
 disp(['Writing ' outStarName]);

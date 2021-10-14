@@ -25,6 +25,7 @@ function h = CTF(n, pixA, lambda, defocus, Cs, B, alpha, deltadef, theta)
 % Cs term fixed.  fs 4 Apr 04
 % Struct option added fs 6 Jul 09
 % Astig option added fs 18 Aug 09
+% Changed B factor to include 1/4, i.e. exp(-Bf^2/4)
 
 astig=0;
 cuton=0;
@@ -70,7 +71,7 @@ f0 = 1./pixA;  % Spatial frequency unit (inverse Å)
 
 k2=-df*pi*lambda*1e4*f0.^2;  % this may be a matrix
 k4= pi/2*Cs*lambda^3*1e7*f0.^4;  % this is a scalar.
-kr=f0^2*B;  % B-factor
+kr=f0^2*B/4;  % B-factor
 
 if Cs==0
     h=sin(k2.*r2-alpha).*exp(-kr*r2);

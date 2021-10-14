@@ -13,6 +13,8 @@
 
 
 % mapName='/Users/fred/aEMCodeRepository/AMPAR/KvMap.mat';
+doWrite=0;
+
 disp(['Working directory: ' pwd]);
 p=struct;
 p.baseName='SimTMStk1uDef04Ampa';
@@ -25,7 +27,6 @@ p.dotCount=100; % number of computed templates per dot printed out.
 
 % p.outDir='/Users/fred/EMWork/Simulations/Relion/';
 % p.outDir='/Users/fred/EMWork/Simulations/Relion2/Fred2_HRPicking/SimStacks';
-
 % p.outDir='/Users/fred/EMWork/Simulations/Relion/';
 p.outDir='SimTMStacks/';
 
@@ -265,6 +266,7 @@ for iAmp=1:nAmps
 end;
 
 %%
+if doWrite
 fullStackName=[p.outDir stackName];
 disp(['Writing ' fullStackName]);
 WriteMRC(stack,p.pixA,fullStackName);
@@ -284,6 +286,10 @@ WriteMRC(m,p.pixA,fullRefName);
 
 disp(['Writing ' fullLogName]);
 WriteStructText(p,fullLogName);
+
+else
+    disp('No files written.')
+end;
 
 disp('done.');
 

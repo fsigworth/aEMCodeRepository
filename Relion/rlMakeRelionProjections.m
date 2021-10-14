@@ -2,10 +2,11 @@ function [projs,angs,shifts]=rlMakeRelionProjections(map,d,indices,shiftPixA,dot
 % function [projs,angs,shifts]=rlMakeRelionProjections(map,d,indices,shiftPixA,dotCount);
 % Given the struct d from reading a Relion data.star file, compute 2D
 % projections from the 3D map, with indices being the line numbers in the
-% file. shiftPixA, if nonzero, gives the pixel size of the images for shifts determined
-% by the d.rlnOriginAngst variables. Set shiftPixA=0 to make no shifts.
-% dotCount sets the number of projections made for each dot printed;
-% default is 0 which means no dots.
+% file. shiftPixA, if nonzero, gives the pixel size of the images for
+% shifts determined by the d.rlnOriginAngst variables. Set shiftPixA=0 to
+% make no shifts. Dots are written to the command window to show progress.
+% dotCount setsthe number of projections made for each dot printed; default
+% is 0 which means no dots.
 if nargin<3
     indices=[];
 end;
@@ -21,6 +22,7 @@ end;
 % rl_tilt=theta= angs(i,2)
 % rl_psi = -psi-90 = -angs(i,3)-90;
 % we apply shifts after rotating and projecting.
+% But actually we assign the angles one-to-one after all.
 
 np=numel(indices); % use all entries of indices is empty or too large.
 if np>numel(d.rlnAngleRot)
