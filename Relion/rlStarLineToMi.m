@@ -21,7 +21,7 @@ if nargin<4
     pars=struct; % use all defaults.
 end;
 
-pars=SetDefaultValues(defPars,pars,1);
+pars=SetDefaultValues(defPars,pars); % no checking for unused fields.
 
 % Default outputs
 readOk=false;

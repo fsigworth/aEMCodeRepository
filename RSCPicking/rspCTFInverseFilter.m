@@ -40,7 +40,7 @@ peakMask=abs(chi)<pi/4;  % mask up to just beyond the first peak
 mxAmp=max2d(peakMask.*abs(ctf));
 H=ones(n,'single');
 if compFraction>0
-    H(peakMask)=mxAmp*(1-compFraction+compFraction./abs(ctf(peakMask))+k);
+    H(peakMask)=mxAmp*(1-compFraction+compFraction./(abs(ctf(peakMask))+k));
 end;
 % Hp=GaussHPKernel(n,fHP);
 

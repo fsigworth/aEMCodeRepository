@@ -94,6 +94,7 @@ for i=1:nLines
     else
         oldImageName=newName;
     end;
+    disp(newName);
     [readOk,micFound,mi]=rlStarLineToMi(names,dat,i,pars);
     if ~readOk
         error(['Error reading star file data at line ' num2str(i)]);
@@ -127,7 +128,8 @@ for i=1:nLines
     end;
     
     %     scaleMode=1+(pars.estimateStatsFromNoise>0);
-    writeSomething=pars.writeMergedImage || pars.writeMergedSmall || pars.writeJpeg;
+    writeSomething=pars.writeMergedImage || pars.writeMergedSmall || ...
+        pars.writeJpeg || pars.writeJpegInv;
     if writeSomething
         [mi,m]=rlSetImageScale(mi,pars.scaleMode,pars.motionCorFrames);
         if pars.writeMergedImage
@@ -137,7 +139,7 @@ for i=1:nLines
         ms=Downsample(Crop(m,mi.padImageSize),mi.padImageSize/pars.dsSmall);
         msDis=imscale(GaussFilt(ms,pars.disFc),256,1e-4);
         
-        if pars.writeMergedSmall || pars.dwriteJpeg
+        if pars.writeMergedSmall || pars.writeJpeg || pars.writeJpegInv
             smallName=[mi.procPath_sm mi.baseFilename 'ms.mrc'];
             jpegName=[jpegPath mi.baseFilename 'ms.jpg'];
             jpegInvName=[jpegInvPath mi.baseFilename 'msinv.jpg'];
