@@ -47,11 +47,13 @@ dpars.setProcImage=0; % Set proc path to image path (if not writing merged image
 dpars.writeMergedImage=0;
 dpars.writeMergedSmall=1;
 dpars.writeJpeg=1;
-dpars.writeJpegInv=1;
+dpars.writeJpegInv=1;  % Make -1 to reverse the contrast.
 dpars.compFraction=0.3;
 dpars.dsSmall=4; % downscaling for Small and jpeg
+dpars.disHP=0;
 dpars.disFc=.4;
-
+dpars.lastLine=inf;
+dpars.firstPeakAmp=.5;
 
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
@@ -74,11 +76,14 @@ else % starName might be a string. If empty, we get starName from a file
         starName=[sPath sName];
     end;
     
-    [names,dat]=ReadStarFile(starName);
+    [names,dat]=ReadStarFile(starName,1,100+pars.lastLine);
 end;
 
 [~,~,~,nLines]=rlStarLineToMi(names,dat,0);
 disp([num2str(nLines) ' entries.']);
+nLines=min(nLines,pars.lastLine);
+disp([num2str(nLines) ' to process.']);
+
 if pars.skipMissingMrcs
     disp('Skipping lines with no micrographs');
 end;
@@ -150,8 +155,11 @@ for i=1:nLines
             if pars.writeJpeg
                 WriteJpeg(msDis,jpegName);
             end;
-            if pars.writeJpegInv
-                msInv=rspCTFInverseFilter(ms,mi,pars.compFraction);
+            if pars.writeJpegInv ~= 0
+                ipars=struct;
+                ipars.fHP=pars.disHP;
+                ipars.firstPeakAmp=pars.firstPeakAmp;
+                msInv=pars.writeJpegInv*rspCTFInverseFilter(ms,mi,pars.compFraction,ipars);
                 msInvDis=GaussFilt(msInv,pars.disFc);
                 msDis=WriteJpeg(msInvDis,jpegInvName);
             end;                

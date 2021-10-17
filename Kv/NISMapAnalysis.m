@@ -1,10 +1,14 @@
 % NISMapAnalysis.m
 
+doLoad=0;
+
 addpath ~/aEMCodeRepository/aLibs/HealpixLib
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
-disp('Loading...');
-load NISMapData
-disp('done.');
+if doLoad
+    disp('Loading...');
+    load NISMapData
+    disp('done.');
+end;
 % loads: m1v m2v p1r ptrsI ptrsL ligandLabels dsv nv s names
 %%
 figSizes = ...
@@ -25,8 +29,8 @@ mode='radial';
 % mode='ligands';
 showAllAngles=1;
 map=1;
+map=4;
 doSave=1;
-figPrefix='Figures4/Re3NaI';
 
 ptrsL=ptrsL1;
 yLimsAll=[-1.5 2.5];
@@ -65,9 +69,37 @@ switch map
         yLims1=[-1 6.6];
         nIons=numel(ptrsI);
         figSizes(2:3,3)=1890;
-end;
+    case 4
+        mv=circshift(m4v,[0 0 9]); % need to shift to match peaks.
+%         [0 0 9] for J322 works a bit better.
+        mapText='I-map_J321_009_model_100121'
+        figPrefix='Figures5/NaI_J321_model_100121';
+        pr=p4r;
+        ptrsI=ptrsI4;
+        nIons=numel(ptrsI);
+%  Tweaks for the "sh" version of the figures
+%         ptn=ptrsI(1);
+%         pr.Z(ptn)=pr.Z(ptn)-.3;
+%        ptn=ptrsI(2);
+%         pr.Z(ptn)=pr.Z(ptn)-.2;
+%         pr.Y(ptn)=pr.Y(ptn)+.4;
 
+% % fake map for checking cc to shift the map.
 ctrv=ceil((nv+1)/2);
+fakeM=zeros(nv,nv,nv,'single');
+for i=1:numel(pr.X)
+    fakeM(round(pr.X(i)*dsv+ctrv),round(pr.Y(i)*dsv+ctrV),round(pr.Z(i)*dsv+ctrV))=1;
+end;
+fakeM=GaussFilt(fakeM,.1);
+cc=fftshift(real(ifftn(fftn(circshift(mv,[0 0 0])).*conj(fftn(fakeM)))));
+ShowSections(cc);
+[val,ishift]=max3di(cc)
+
+
+end;    
+
+
+% convert from zero-based original voxels to pixel indices in mv
 cdIs=[pr.X(ptrsI)' pr.Y(ptrsI)' pr.Z(ptrsI)']*dsv+ctrv; % padded pixels
 cdIs(1,:)=cdIs(1,:)+[1 -1 0];
 cdIs(2,:)=cdIs(2,:)+[0 -1 0];

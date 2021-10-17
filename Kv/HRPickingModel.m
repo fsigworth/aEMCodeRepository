@@ -6,7 +6,8 @@ shiftToMatchModel=0;
 n1=144; % working map box size
 % n2=256; % Output map size, matches input map
 ct1=ceil((n1+1)/2);
-cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel'); % on Katz
+% cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel'); % on Katz
+cd('/Users/fred/EMWork/20210224_YW_sel'); % on Mini2
 % cd('/Volumes/EMWork/Yangyu/20210224_YW_sel'); % Katz mounted
 pdbName='W366F_v4.2(delete_loop add ion)_VSDchecked.pdb'; % TM only
 
@@ -95,36 +96,45 @@ ShowSections(tMapsh,[],45);
 aMapsh=mp1sh-mMap0;
 
 
-%% Unshift the TM map
+%% Unshift the maps
 tMap1=circshift(tMapsh,round(zShift-ct1)); % undo the shift of the TM region
 ShowSections(tMap1,[],45);
-aMap1=circshift(aMapsh,round(zShift-ct1));
+aMap1=circshift(aMapsh,round(zShift-ct1)); % whole alpha subunit, micelle subtracted
 micMap1=circshift(mMap0,round(zShift-ct1)); % undo the micelle shift too.
+
+% Try to solvent-flatten the alpha-subunit map
 protMsk1=circshift(protMask,round(zShift-ct1));
 aMsk1=GaussFilt(max(GaussFilt(aMap1,.05)>.006,protMsk1),.05); % Mask that includes T1 domains
 amMap1=aMap1-1.2*GaussFilt(aMap1,.004); % undo most of the overshoot
 % aMod1=GaussFilt(aMap1(:,:,[133 136]),.03); % get extra density at the top
 
-isT1=GaussFilt((GaussFilt(aMap1,.05)>.006) > protMsk1,.1)>.8;
+% Identify the T1 region
 isT1=GaussFilt(GaussFilt((GaussFilt(aMap1,.05)>.006) > protMsk1,.1)>.8,.1);
 
-compMap1=aMap1;
+compMap1=amMap1.*min((protMsk1+isT1),1); % overshoot-removed, masked alpha subunit.
 
 tMap2=DownsampleGeneral(tMap1,n2,1/s.pixA); % Convert back to the orig pixel size
-tmaMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
+% tmaMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
 compMap2=DownsampleGeneral(compMap1,n2,1/s.pixA);
 
+zShift2=CenterOfMass(tMap2); % get the CM of just the TM region
+tMap2u=circshift(tMap2,round(-zShift2));
+compMap2u=circshift(compMap2,round(-zShift2));
+
+return
 tMag=tMap2(:)'*tMap2(:)
 
-aMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
-amMap2=DownsampleGeneral(amMap1.*aMsk1,n2,1/s.pixA);
+% aMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
+% amMap2=DownsampleGeneral(amMap1.*aMsk1,n2,1/s.pixA);
 figure(4);
-ShowSections(amMap2,[ct2 ct2 ct2+10],45);
+% ShowSections(amMap2,[ct2 ct2 ct2+10],45);
+ShowSections(compMap2,[ct2 ct2 ct2+10],45);
 
 compMag=compMap2(:)'*compMap2(:)
 % Correct the micelle map also.
 mMap2=DownsampleGeneral(micMap1,n2,1/s.pixA);
 mtMag=tMap2(:)'*mMap2(:)
+
 % Show correlation of TM with micelle, and ACF of TM, and ACF of alpha
 mtCC=fftshift(real(ifftn(fftn(mMap2).*conj(fftn(tMap2)))));
 tmAC=fftshift(real(ifftn(abs(fftn(tMap2)).^2)));
@@ -145,18 +155,18 @@ ShowSections(compAC);
 mysubplot(3,3,1);
 title('alpha composite ACF');
 
-%% Write the output files
+%% ---------Write the output files---------
 outPath='HRPicking/';
 if doWrite
     CheckAndMakeDir(outPath);
-% WriteMRC(tMap2,s.pixA,[outPath 'tmMap.mrc']); % Map of TM Region
-% WriteMRC(mMap2,s.pixA,[outPath 'micMap.mrc']); % Micelle map
-WriteMRC(compMap2,s.pixA,[outPath 'compMap.mrc']);
+    WriteMRC(tMap2,s.pixA,[outPath 'tmMap.mrc']); % Map of TM Region
+    WriteMRC(mMap2,s.pixA,[outPath 'micMap.mrc']); % Micelle map
+    WriteMRC(compMap2,s.pixA,[outPath 'compMap.mrc']);
 end;
 
 %%
 % See the total power in acf as a function of resolution.
-    bVals=[0 50 100]; % first one is assumed to be zero.
+bVals=[0 50 100]; % first one is assumed to be zero.
 freqs2=(0:n2/2-1)'/(n2*s.pixA);
 freqs2pi=freqs2*2*pi;
 sp2=RadialPowerSpectrum(tMap2);
@@ -164,7 +174,7 @@ sp2(:,2)=RadialPowerSpectrum(compMap2);
 figs=[6 7];
 nBs=numel(bVals);
 freqs2pin=repmat(freqs2pi,1,nBs);
-    labels={'B=0'};
+labels={'B=0'};
 
 for i=1:size(sp2,2) % do for each spectrum type
     sps=sp2(:,i);
@@ -175,29 +185,29 @@ for i=1:size(sp2,2) % do for each spectrum type
         sps(:,k)=sps(:,1).*gaussB;
     end;
     % Compute the SNR as a function of frequency cutoff
-        cumPower=cumsum(sps.*freqs2pin,1).^2;
-        cumNoiseVar=cumsum(sps.*freqs2pin,1);
+    cumPower=cumsum(sps.*freqs2pin,1).^2;
+    cumNoiseVar=cumsum(sps.*freqs2pin,1);
     cumSNR=cumPower./cumNoiseVar;
     cumSNR=cumsum(sps.*freqs2pin,1);
-        cumSpect=cumsum(sps,1);
+    cumSpect=cumsum(sps,1);
 
-        figure(figs(i));
+    figure(figs(i));
     mysubplot(3,3,8);
     semilogy(freqs2,sps);
     legend(labels);
     title('Spectral density');
-    
-%     mysubplot(3,3,8);
-%     plot(freqs2,cumSpect);
-%     legend(labels);
-%     title('Image power');
+
+    %     mysubplot(3,3,8);
+    %     plot(freqs2,cumSpect);
+    %     legend(labels);
+    %     title('Image power');
 
     mysubplot(3,3,9);
     plot(freqs2,cumSNR);
     legend(labels);
     title('SNR');
-    
-    
+
+
     % text(0.35,cumPower(find(freqs2>.35,1)),['B=' num2str(B)],'verticalalignment','bottom');
     % hold off;
     % our final picking reference is tMap2. The final micelle model is tMap2
