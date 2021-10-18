@@ -26,8 +26,7 @@ p.mapName=[pa '/KvMap.mat'];
 p.dotCount=100; % number of computed templates per dot printed out.
 
 % p.outDir='/Users/fred/EMWork/Simulations/Relion/';
-% p.outDir='/Users/fred/EMWork/Simulations/Relion2/Fred2_HRPicking/SimStacks/';
-
+% p.outDir='/Users/fred/EMWork/Simulations/Relion2/Fred2_HRPicking/SimStacks';
 % p.outDir='/Users/fred/EMWork/Simulations/Relion/';
 p.outDir='SimTMStacks/';
 

@@ -15,6 +15,7 @@
 % ----------
 % W366F data start here:
 % cd ~/EMWork/Yangyu/20210224_YW_sel/
+cd /Volumes/EMWork/Yangyu/20210224_YW_sel/
 starDir='Refine3D/job110/';
 starName='run_data.star';
 % To use the reconstructed map
@@ -156,8 +157,12 @@ end;
 %
 % % imags(sVec'*sVec)
 % return
+
+% compute mean power spectrum of the stack
+sps=RadialPowerSpectrum(stackP,1);
+meanSP=ToRect(mean(sps,2));
 %% Compute cross-correlations
-multiRef=1; % Try correlating with all references
+multiRef=0; % Try correlating with all references
 ct0=ceil((n0+1)/2);
 found=false(npR,1);
 shiftErrs=zeros(npR,3);
@@ -166,17 +171,24 @@ displayOn=1;
 listResults=1;
 ccs=zeros(n0,n0,npR);
 
-for i=1:npR
+% for i=1:npR
+for i=1
     img=stackP(:,:,i);
-    fImg=fftn(img);
+
+    %% try pre-multiplying the image by the ctf, and pre-whitening
+    fImg=-fftn(img).*ifftshift(ctfs(:,:,1)./meanSP); %%
+    img=real(ifftn(fImg)); %%%
+
     sfImg=fImg.*FourierShift(n0,shifts(i,:));
+
     if multiRef
-        for j=1:npR
+        for j=1
             ccs(:,:,j)=fftshift(real(ifftn(fImg.*conj(cFProjs(:,:,j)))));
         end;
         [cc,inds]=max(ccs,[],3);
     else
         cFProj=cFProjs(:,:,i);    
+        cFProj=fftn(Crop(projs(:,:,i),n0)); %%
         cc=fftshift(real(ifftn(fImg.*conj(cFProj))));
     end;
         [ccMax,sx,sy]=max2di(cc);
@@ -319,60 +331,3 @@ end;
 
 return
 
-
-
-%% Try finding particles on micrographs
-
-nMic=numel(micUNames);
-for i=1
-    if ~exist(micUNames{i},'file')
-        continue;
-    end;
-    [mic,s]=ReadMRC(micUNames{i});
-    micParticles=find(micRPtrs==i);
-    np=numel(micParticles);
-    if np<1
-        continue;
-    end;
-    micf=GaussFilt(-mic,.05);
-    fMic=fftn(-mic);
-
-    [bX,bY,tX,tY]=MakeBoxDrawingVectors( ...
-        [d.rlnCoordinateX(micParticles) d.rlnCoordinateY(micParticles)], ...
-        op.rlnImageSize(1)/2,0.8);
-    tStrings=cell(np,1);
-    for j=1:np
-        tStrings{j}=num2str(micParticles(j));
-    end;
-    figure(10);
-    imags(micf);
-    hold on;
-    plot(bX,bY,'color',[1 1 0]);
-    text(tX,tY,tStrings,'color',[1 1 0], ...
-        'HorizontalAlignment','left',  'VerticalAlignment','top');
-    hold off;
-    title(i);
-    drawnow;
-
-        % try to find particles
-        
-
-nRefs=100;
-
-
-ccs=zeros(s.mx,s.my,nRefs,'single');
-for j=1:nRefs
-        cpx=Crop(cProjs(:,:,j),[s.mx s.my]);
-        ccs(:,:,j)=ifftshift(real(ifftn(fMic.*conj(fftn(cpx)))));
-end;
-cc=max(ccs,[],3);
-
-        figure(11);
-        imags(cc);
-
-%         
-%         
-%         
-%         
-%     end;
-end;

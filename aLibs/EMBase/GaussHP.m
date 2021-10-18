@@ -1,7 +1,7 @@
 function out=GaussHP(in, fc, stack)
 % function out=GaussHP(in, fc, stack)
 % GaussHp2: 2D gaussian highpass filter.
-% out = GaussHp2( in, fc)
+% out = GaussHP( in, fc)
 % Filter the input image to give the half-power frequency fc
 % (in units of the sampling frequency).  A typical value of fc
 % to give 2 cycles across the width n of the image is 2/n.

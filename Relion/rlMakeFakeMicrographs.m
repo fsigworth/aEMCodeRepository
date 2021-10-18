@@ -14,9 +14,11 @@ pa=fileparts(which('arGetRefVolumes'));
 mapName=[pa '/KvMap.mat'];
 % Output files
 outDir=pwd; % Assume we're in the working directory
-micDir='Micrographs3/';
-starDir='Stars3/';
-partStarName='particles_noVesPsi_varGroups_noOrigPix.star';
+
+mapName='../HRPicking/compMap.mrc'
+micDir='Micrographs1/';
+starDir='Stars1/';
+partStarName='particles1.star';
 micBaseName='mic'
 
 CheckAndMakeDir(micDir,1);
@@ -25,32 +27,40 @@ CheckAndMakeDir(starDir,1);
 BFactor=60;
 alpha=.05;
 Cs=2.7;
-kV=200;
+kV=300;
 
-nMicrographs=20
-defRange=[3 6]
-micSize=[4096 4096];
+nMicrographs=1
+% defRange=[3 6]
+defRange=[1 1.5]
+% micSize=[4096 4096];
+micSize=[5760 4092]
+
 micBorder=80
-minSpacing=100
-ppm=500 % particlesPerMicrograph
+minSpacing=200
+
+ppm=200 % particlesPerMicrograph
 maxParticlesPerMicrograph=prod(micSize-2*micBorder)/minSpacing^2
 
-makeMicrographs=0;
-writeMicrographs=0;
+makeMicrographs=1;
+writeMicrographs=1;
 
 
 ds=1;
-imgSize=128;
+imgSize=160;
 imgScale=.02; % 40 * 5e-4
 symmetry=4;
 
-shotSigma=3;
-iceSigma=2*[1 .1]; % filtered+const
+% shotSigma=3;
+% iceSigma=2*[1 .1]; % filtered+const
+shotSigma=.01;
+iceSigma=[0 0]; % filtered+const
 fcL=.05;
 % iceSigma=11.925 % noise makes unity variance (empirical)
 
+[m0,s]=ReadMRC(mapName);
+s.map=m0;
+% s=load(mapName);  % gets s.map, s.pixA; map is 108^3 in size.
 
-s=load(mapName);  % gets s.map, s.pixA; map is 108^3 in size.
 % ShowSections(s.map);
 map=DownsampleGeneral(s.map,imgSize,1/ds);
 pixA=s.pixA*ds;
@@ -166,6 +176,9 @@ for i=1:nMicrographs
     istart=(i-1)*ppm+1;
     iend=i*ppm;
     pts.rlnMicrographName(istart:iend,1)={micName};
+    pts.rlnDefocusU(istart:iend,1)=defs*1e4;
+    pts.rlnDefocusV(istart:iend,1)=defs*1e4;
+    pts.rlnDefocusAngle(istart:iend,1)=0;
     
 end;
 %%

@@ -1,4 +1,5 @@
 function templates=rlMakeTemplates(templateAngles,map,dotCount,shifts)
+% function templates=rlMakeTemplates(templateAngles,map,dotCount,shifts)
 % Given an array nim x 3 of templateAngles (in degrees), compute projections
 % of the 3D map using the gridding functions.
 % if the optional dotCount>0, write a dot to the command window every dotCount
