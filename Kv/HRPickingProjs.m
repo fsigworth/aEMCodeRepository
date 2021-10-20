@@ -1,40 +1,62 @@
 % HRPickingProjs.m
 % Make the big library of 2d projections
-% Stored as an expansion of eigenimages, with coeffs and squared norms of
-% the orginal projections.
+% Stored directly and as an expansion of eigenimages, with coeffs and
+% squared norms of the orginal projections.
 %
 
-% cd ~/EMWork/Yangyu/20210224_YW_sel/
 % cd /Volumes/EMWork/Yangyu/20210224_YW_sel/
-cd ~/EMWork/20210224_YW_sel/
+cd ~/EMWork/20210224_YW_sel/ % old Katz
+cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Yangyu/20210224_YW_sel') % mini2
 % starDir='Refine3D/job110/';
 %
-% To use our alpha-subunit composite map
 refDir='HRPicking/';
-refName='tmMap.mrc';
-zsh=[0 0 21]; % shift TM region to center
+ds=3;
+zShift=0;
+
+% To use our alpha-subunit composite map
+refName='compMap.mrc'
+% - Normal:
+outTypeString='Comp_'
+
+% - TM centered:
+outTypeString='Comp_TMCtr_'
+zShift=21;
+n=56;
+
+% % To use the TM only reference
+% refName='tmMap.mrc';
+% n=48;
+% zsh=[0 0 21]; % shift TM region to center. This brings it to COM
 
 outDir=[refDir 'Eigs/'];
-outBasename='EigsTM_'
-writeProjections=1;
-projsFilename=[outDir 'projsTm.mat'];
+eigsBasename=['Eigs' outTypeString];
+projsBasename=['projs' outTypeString];
 
-doWrite=0;
-ds=3;
-n=48
+writeProjections=1;
+writeEigs=1;
+
 angleSteps=4; % Figure 3 A steps at a radius of 40 A
 [map3,s]=ReadMRC([refDir refName]);
 pixA=s.pixA*ds;
-map=DownsampleGeneral(circshift(map3,zsh),n,1/ds);
+if zShift ~=0
+    sh=[0 0 zShift];
+else
+    sh=-CenterOfMass(map3)
+    end;
+    
+    map=DownsampleGeneral(circshift(map3,round(sh)),n,1/ds);
 ShowSections(map);
 %%
 angs=hrMakeProjectionAngles(angleSteps,4);
 np=size(angs,1);
-disp('Making Projections');
+dotCount=1000;
+disp(['Making ' num2str(np) ' projections, ' num2str(dotCount) ' per dot.']);
 tic;
 projs=rlMakeTemplates(angs,map,1000);
 toc;
 if writeProjections
+    projsFilename=[outDir projsBasename num2str(n) '.mat'];
+    disp(['Writing ' projsFilename])
     save(projsFilename,'pixA','map','angs','projs');
 end;
 
@@ -69,12 +91,12 @@ figure(3);
 for i=1:8,mysubplot(4,4,i); imags(projs(:,:,i*1000)); end;
 for i=1:8,mysubplot(4,4,i+8); imags(recProjs(:,:,i*1000)); end;
 
-if doWrite
+if writeEigs
     CheckAndMakeDir(outDir,1);
-    outName=[outDir outBasename num2str(n)];
+    outName=[outDir eigsBasename num2str(n)];
     disp(['Writing ' outName]);
     save(outName,'eigImgs','normCoeffs','norms2','pixA','ds','angs')
     disp('done.');
 else
-    disp('Nothing written.');
+    disp('Eigs not written.');
 end;
