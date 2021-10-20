@@ -2,15 +2,31 @@
 
 findClasses=[];
 
-% disp('Get a star file');
-% [nm,pa]=uigetfile('*.star');
-% disp(['Reading ' pa nm]);
-% [names,data]=ReadStarFile([pa,nm]);
+disp('Get a star file');
+[nm,pa]=uigetfile('*.star');
+disp(['Reading ' pa nm]);
+[names,data]=ReadStarFile([pa,nm]);
 % rootPath=ParsePath(ParsePath(pa));
-% cd(rootPath);
-s=data{1};
-fieldNames=fieldnames(s);
-nl=numel(s.(fieldNames{1}));
+% cd(rootPath)
+
+if numel(strfind(names{1},'opt'))>0 % we have an optics block
+    d=data{2}; % 2nd block will contain particle or micrograph data.
+else
+    d=data{1};
+end;
+nl=numel)(d.rlnMicrographName);
+
+[uNames,uLines]=unique(d.rlnMicrographName);
+nu=numel(uNames);
+
+for i=1:nu
+    if exist(uNames{i},'file')
+        mic=ReadMRC(uNames{i});
+        
+    cPars=rlCTFParsFromStar3Line(names,data,uLines(i),bValue);
+    
+
+
 disp([num2str(nl) ' lines']);
 
 disp('Scanning names');
