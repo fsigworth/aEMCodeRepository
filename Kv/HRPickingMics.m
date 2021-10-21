@@ -21,7 +21,7 @@ cd '/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Yangyu/20210224_YW_sel'
 % cd ~/EMWork/20210224_YW_sel/
 rootDir=AddSlash(pwd);
 realData=1;
-doCrossCorrelation=0;
+doCrossCorrelation=1;
 upsampling=1.5;
 
 if realData
@@ -37,10 +37,11 @@ end;
 % eigsName=[rootDir 'HRPicking/Eigs/Eigs_48.mat'];
 eigsName=[rootDir 'HRPicking/Eigs/EigsTM_48.mat'];
 projsName=[rootDir 'HRPicking/Eigs/projsTM.mat'];
+projsName=[rootDir 'HRPicking/Eigs/projsComp_56.mat'];
 useEigenimages=0;
 
 
-outName=[rootDir 'HRPicking/ETM_B0_W366F_CCs.mat'];
+outName=[rootDir 'HRPicking/ETM_B0_W366F_Comp_56CCs.mat'];
 % To use the reconstructed map
 % refDir='Postprocess/job171/';
 % refName='postprocess.mrc';
