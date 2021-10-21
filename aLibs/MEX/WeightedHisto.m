@@ -7,7 +7,10 @@ function [hist, norm]=WeightedHisto(indices, weights, nbins)
 % histogram of the 'indices'.  Indices out of bounds (<1, >nbins) are not used
 % at all.
 % This function calls the lower-level mex function WtHist.
-
+% 
+% -Maybe this function is redundant; the operations can be done with accumarray()
+%  i.e. hist=accumarray(indices,weights,nbins);
+%       norm=accumarray(indices,1,nbins);
 ind=int32(indices(:)); % bounds checking is now done in mex file.
 nb=int32(nbins);
 % if numel(weights) ~= numel(ind)

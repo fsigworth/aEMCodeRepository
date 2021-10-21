@@ -16,11 +16,13 @@
 % ----------
 % W366F data start here:
 % cd ~/EMWork/Yangyu/20210224_YW_sel/
+cd '/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Yangyu/20210224_YW_sel'
 % cd /Volumes/EMWork/Yangyu/20210224_YW_sel/
-cd ~/EMWork/20210224_YW_sel/
+% cd ~/EMWork/20210224_YW_sel/
 rootDir=AddSlash(pwd);
 realData=1;
-doCrossCorrelation=1;
+doCrossCorrelation=0;
+upsampling=1.5;
 
 if realData
     starDir='Refine3D/job110/';
@@ -34,6 +36,10 @@ end;
 
 % eigsName=[rootDir 'HRPicking/Eigs/Eigs_48.mat'];
 eigsName=[rootDir 'HRPicking/Eigs/EigsTM_48.mat'];
+projsName=[rootDir 'HRPicking/Eigs/projsTM.mat'];
+useEigenimages=0;
+
+
 outName=[rootDir 'HRPicking/ETM_B0_W366F_CCs.mat'];
 % To use the reconstructed map
 % refDir='Postprocess/job171/';
@@ -71,11 +77,14 @@ for i=1:nct
 end;
 
 
-
-
 %% Try finding particles on micrographs
-ei=load(eigsName);
-ds=ei.ds;
+if useEigenimages
+    ei=load(eigsName);
+    ds=ei.ds;
+elseif doCrossCorrelation
+    load(projsName);
+end;
+    ds=3;
 
 if sum(activeMics)<1
     disp('No micrographs found.')
@@ -115,9 +124,13 @@ for i=1
     %     imags(c);
     if doCrossCorrelation
         ncStep=1;
-        ei.normCoeffs=ei.normCoeffs(1:ncStep:end,:);
-        disp('Cross correlations...')
-        [mxVals,mxInds]=hrCCSearch(mc,ei);
+            disp('Cross correlations...')
+        if useEigenimages
+            ei.normCoeffs=ei.normCoeffs(1:ncStep:end,:);
+            [mxVals,mxInds]=hrCCSearch(mc,ei,upsampling);
+        else
+            [mxVals,mxInds]=hrProjSearch(mc,projs,upsampling);
+        end;
         figure(2);
         imags(mxVals);
 
@@ -125,41 +138,46 @@ for i=1
         %%
         cc2=mxVals;
 
-        nPks=300;
+        nPks=600;
         rMsk=25;
         nMsk=round(1.1*rMsk)*2;
         blankMask=1-fuzzymask(nMsk,2,rMsk);
-        ix=zeros(nPks,1,'int32');
-        iy=zeros(nPks,1,'int32');
+        gix=zeros(nPks,1,'int32');
+        giy=zeros(nPks,1,'int32');
         minVal=min(cc2(:));
-        pk=minVal*ones(nPks,1, 'single');
-        for i=1:300
-            [pk(i),ix(i),iy(i)]=max2d(cc2);
-            cc2=Mask(cc2,double([ix(i) iy(i)]),blankMask,(1-blankMask)*minVal);
+        gpk=minVal*ones(nPks,1, 'single');
+        for i=1:nPks
+            [gpk(i),gix(i),giy(i)]=max2d(cc2);
+            cc2=Mask(cc2,double([gix(i) giy(i)]),blankMask,(1-blankMask)*minVal);
             if mod(i,25)==0
                 imags(cc2); drawnow;
             end;
         end;
         figure(3);
-        plot(pk);
-
-        save(outName,'mxVals','mxInds','ix','iy','pk');
+        plot(gpk);
+        gCoords=double([gix giy]);
+        save(outName,'mxVals','mxInds','gix','giy','gpk','m1','mc','ct','c','s');
         disp(['Wrote ' outName]);
-
+    else
+        load(outName);
     end;
     return
 
     %%
+    rgnSize=100;
+    ctrReg=floor((rgnSize+1)/2);
     np=numel(micLines);
 dsd=1;
+        pX=d.rlnCoordinateX(micLines);
+        pY=d.rlnCoordinateY(micLines);
         [bX,bY,tX,tY]=MakeBoxDrawingVectors( ...
-            [d.rlnCoordinateX(micLines) d.rlnCoordinateY(micLines)]/dsd, ...
+            [pX pY]/dsd, ...
             op.rlnImageSize(1)/(2*dsd),0.8);
         tStrings=cell(np,1);
         for j=1:np
             tStrings{j}=num2str(micLines(j));
         end;
-%         figure(10);
+        figure(10);
         imags(GaussFilt(m1,.1));
 %         imags(mxVals.^2);
         hold on;
@@ -169,6 +187,37 @@ dsd=1;
         hold off;
         title(i);
         drawnow;
+%
+        figure(11);
+        imags(mxVals);
+        dsv=2;
+        hold on;
+        plot(bX/dsv,bY/dsv,'color',[1 1 0]);
+        text(tX/dsv,tY/dsv,tStrings,'color',[1 1 0], ...
+            'HorizontalAlignment','left',  'VerticalAlignment','top');
+        hold off;
+%     Get peak values near each particle    
+peaks=zeros(np,1);
+coords=zeros(np,2);
+minDist=zeros(np,1);
+matchInd=zeros(np,1);
+for j=1:np
+    pos=[pX(j) pY(j)]/dsv;
+    rgn=ExtractImage(mxVals,round(pos), rgnSize);
+    [peaks(j),xp,yp]=max2d(rgn);
+    coords(j,:)=[xp yp]+round(pos)-ctrReg;
+    matchDifs=sqrt(sum((repmat(coords(j,:),nPks,1)-gCoords).^2,2));
+    [minDist(j),matchInd(j)]=min(matchDifs);
+end;
+goodDists=minDist<20;
+goodDists=true(nPks,1);
+hold on;
+plot(coords(:,1),coords(:,2),'yo','markersize',10);
+plot(gCoords(goodDists,1),gCoords(goodDists,2),'s','markersize',20,'color',[1 .5 .5]);
+hold off;
+
+
+
 %%
     % try to find particles
 

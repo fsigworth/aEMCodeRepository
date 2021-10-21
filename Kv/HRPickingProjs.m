@@ -4,9 +4,9 @@
 % the orginal projections.
 %
 
-% cd ~/EMWork/Yangyu/20210224_YW_sel/
+cd ~/EMWork/Yangyu/20210224_YW_sel/
 % cd /Volumes/EMWork/Yangyu/20210224_YW_sel/
-cd ~/EMWork/20210224_YW_sel/
+% cd ~/EMWork/20210224_YW_sel/
 % starDir='Refine3D/job110/';
 %
 % To use our alpha-subunit composite map
@@ -15,6 +15,7 @@ refName='tmMap.mrc';
 zsh=[0 0 21]; % shift TM region to center
 
 outDir=[refDir 'Eigs/'];
+CheckAndMakeDir(outDir);
 outBasename='EigsTM_'
 writeProjections=1;
 projsFilename=[outDir 'projsTm.mat'];
@@ -30,11 +31,12 @@ ShowSections(map);
 %%
 angs=hrMakeProjectionAngles(angleSteps,4);
 np=size(angs,1);
-disp('Making Projections');
+disp(['Making ' num2str(np) ' Projections');
 tic;
 projs=rlMakeTemplates(angs,map,1000);
 toc;
 if writeProjections
+    disp(['Writing ' projsFilename])
     save(projsFilename,'pixA','map','angs','projs');
 end;
 
@@ -46,7 +48,7 @@ tic
 toc;
 
 %
-minFracVar=.98;
+minFracVar=.95;
 nv=n*n;
 coeffs=U*S;
 allVars=cumsum(coeffs.^2,2);
@@ -70,10 +72,9 @@ for i=1:8,mysubplot(4,4,i); imags(projs(:,:,i*1000)); end;
 for i=1:8,mysubplot(4,4,i+8); imags(recProjs(:,:,i*1000)); end;
 
 if doWrite
-    CheckAndMakeDir(outDir,1);
     outName=[outDir outBasename num2str(n)];
     disp(['Writing ' outName]);
-    save(outName,'eigImgs','normCoeffs','norms2','pixA','ds','angs')
+    save(outName,'eigImgs','normCoeffs','norms2','pixA','ds','angs','minFracVar')
     disp('done.');
 else
     disp('Nothing written.');

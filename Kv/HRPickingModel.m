@@ -6,8 +6,8 @@ shiftToMatchModel=0;
 n1=144; % working map box size
 % n2=256; % Output map size, matches input map
 ct1=ceil((n1+1)/2);
-% cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel'); % on Katz
-cd('/Users/fred/EMWork/20210224_YW_sel'); % on Mini2
+cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel'); % on Katz
+% cd('/Users/fred/EMWork/20210224_YW_sel'); % on Mini2
 % cd('/Volumes/EMWork/Yangyu/20210224_YW_sel'); % Katz mounted
 pdbName='W366F_v4.2(delete_loop add ion)_VSDchecked.pdb'; % TM only
 
