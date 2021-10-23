@@ -28,11 +28,13 @@ while ind<nRefs
     mxV(blockBigger)=bMxV(blockBigger);
     mxI(blockBigger)=bIndV(blockBigger);
     ind=ind+nBlock;
-    if mod(ind,1000)==0
-        if ind==1000
+    if mod(ind,1000)<=nBlock
+        if ind<=nBlock  % print out time for 1000 ccs
+            fprintf('For 1000 ccs ')
             toc;
-        end;
+        else
         fprintf('.'); % a dot every 1000 eigenimages.
+        end;
     end;
 end;
 fprintf('\n');
