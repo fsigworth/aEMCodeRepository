@@ -12,6 +12,7 @@ mxI=zeros(prod(nw),1,'int32');
 nBlock=NextNiceNumber(100/upFactor^2,7,-1);
 blockCCs=zeros([nw nBlock],'single');
 ind=0;
+first=1;
 tic;
 while ind<nRefs
     if nRefs-ind<nBlock
@@ -27,15 +28,16 @@ while ind<nRefs
     blockBigger=bMxV>mxV;
     mxV(blockBigger)=bMxV(blockBigger);
     mxI(blockBigger)=bIndV(blockBigger);
-    ind=ind+nBlock;
-    if mod(ind,1000)<=nBlock
-        if ind<=nBlock  % print out time for 1000 ccs
-            fprintf('For 1000 ccs ')
+    if mod(ind,1000)<nBlock
+        if first && ind>=1000  % print out time for 1000 ccs
+            fprintf(['For ' num2str(ind) ' ccs ']);
             toc;
+            first=0;
         else
         fprintf('.'); % a dot every 1000 eigenimages.
         end;
     end;
+    ind=ind+nBlock;
 end;
 fprintf('\n');
 
