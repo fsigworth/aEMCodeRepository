@@ -31,7 +31,7 @@ micDir=''
 
 rootDir=AddSlash(pwd);
 realData=1;
-doCrossCorrelation=1;  %%%%%
+doCrossCorrelation=0;  %%%%%
 ccUpsampling=1.5;
 micHP=.002;
 sharpHP=.04;
@@ -247,6 +247,7 @@ return
 
 %% %     cc2=GaussHP(mxVals,.005); %%%% in case we didn't do HP before.
 % Finding loop
+dsv=2; %%%%%%
     cc2=mxVals;
     nPks=300;
     rMsk=30*dsv;
