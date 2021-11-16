@@ -9,11 +9,10 @@ mi=[];
 actualName='';
 if nargin<1
     [name,pa]=uigetfile('*.txt');
-    if ~isnumeric(pa)
-        cd(pa);
-    else
+    if isnumeric(pa)
         return;
     end;
+    name=[pa name];
 end;
     
 if nargin<2
