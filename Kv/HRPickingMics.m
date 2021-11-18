@@ -31,10 +31,10 @@ micDir=''
 
 rootDir=AddSlash(pwd);
 realData=1;
-doCrossCorrelation=1;  %%%%%
+doCrossCorrelation=0;  %%%%%
 ccUpsampling=1.5;
 micHP=.002;
-sharpHP=.04;
+sharpHP=.06;
 
 if realData
     starDir='Refine3D/job110/';
@@ -51,16 +51,16 @@ eigsName=[rootDir 'HRPicking/Eigs/EigsTM_48.mat'];
 useEigenimages=0;
 
 projsName=[rootDir 'HRPicking/Eigs/projsTM.mat'];
-% projsName=[rootDir 'HRPicking/Eigs/projsComp_56.mat'];
+projsName=[rootDir 'HRPicking/Eigs/projsComp_56.mat'];
 
 
-outBasename=[rootDir 'HRPicking/CCsTM_HP04'];
+outBasename=[rootDir 'HRPicking/CCsComp56_HP06'];
 % To use the reconstructed map
 % refDir='Postprocess/job171/';
 % refName='postprocess.mrc';
 
 bValue=0;
-maxLines=inf;
+maxLines=1000;
 
 skipStar=0;
 if ~skipStar
@@ -212,7 +212,7 @@ for i=1:numel(activeMicInds)
     mdShift=(sz1-size(m0))/(2*ds);
 
     mdsh=SharpHP(m0,sharpHP*s.pixA*ds);
-    fMic=fftn(-md);
+    fMic=fftn(-mdsh);
     ct(i).B=bValue;
     ct(i).pixA=s.pixA*ds;
     c=CTF(nd,ct(i));
@@ -246,6 +246,7 @@ end; % for i
 return
 
 %% %     cc2=GaussHP(mxVals,.005); %%%% in case we didn't do HP before.
+dsv=2;
 % Finding loop
     cc2=mxVals;
     nPks=300;
@@ -272,7 +273,7 @@ return
     %
 % Draw boxes from the Relion coordinates
     rgnSize=100;
-    gMax=10;  % no. of our CC peaks to show
+    gMax=60;  % no. of our CC peaks to show
 
     ctrReg=floor((rgnSize+1)/2);
     npl=numel(mLines);
@@ -309,12 +310,13 @@ np=sum(activeParts);
 
 % Find true positive CC peaks
     ccDists=sqrt((pX-qX').^2+(pY-qY').^2);
-    truePos=false(np,1);
-    for j=1:np
-        if any(ccDists(j,:)<rgnSize,2)
-            truePos(j)=true;
-        end;
-    end;
+%     truePos=false(np,1);
+%     for j=1:np
+%         if any(ccDists(j,:)<rgnSize,2)
+%             truePos(j)=true;
+%         end;
+%     end;
+truePos=any(ccDists<rgnSize,2);
 nTruePos=sum(truePos)
 
     %     Make boxes for extracted particles, perhaps with Relion shifts
@@ -331,20 +333,23 @@ nTruePos=sum(truePos)
     [gX,gY,wX,wY]=MakeBoxDrawingVectors( ...
         [qX qY]/dsd, op.rlnImageSize(1)/3*dsd,1);
     aStrings=cell(gMax,1);
-    for j=1:gMax
-        if truePos(j)
-            ast='++';
-        else
+     for j=1:gMax
+%         if truePos(j)
+%             ast='++';
+%         else
             ast='';
-        end;
+%         end;
         aStrings{j}=[num2str(gpk(j),3) ast];
     end;
 
-    figure(10); % Label the original image
-    imags(GaussFilt(m1,.05));
+    figure(10); % --------------- Label the original image -------------
+%    imags(GaussFilt(m1,.05));
+%     imags(GaussFilt(mdsh,.1));
+disLP=.1;
+    imaga(imscale(GaussFilt(mdsh,disLP),256,.01));
     %         imags(mxVals.^2);
     hold on;
-    plot(bX,bY,'color',[1 1 0],'linewidth',1.5); % extracted particles
+    plot(bX,bY,'color',[1 1 0],'linewidth',1); % extracted particles
     text(tX,tY,tStrings,'color',[1 1 0], ...
         'HorizontalAlignment','left',  'VerticalAlignment','top');
     plot(gX,gY,'color',[0.6 1 .4],'linewidth',1); % CC peaks
@@ -352,7 +357,8 @@ nTruePos=sum(truePos)
         'HorizontalAlignment','left',  'VerticalAlignment','top');
 %         plot(gCoords(1:gMax,1)*dsv,gCoords(1:gMax,2)*dsv,'s','markersize',35,'color',[.8 1 .5]);
 hold off;
-    title([num2str(i) ':  ' num2str(np) ' original, ' num2str(gMax) ' CC peaks']);
+    title([num2str(i) ':  ' num2str(np) ' original, ' num2str(gMax) ' CC peaks ' ...
+    ' BP= [' num2str([sharpHP disLP]) ']']);
     drawnow;
 
     %     Get peak values near each particle

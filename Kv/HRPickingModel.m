@@ -6,8 +6,8 @@ shiftToMatchModel=0;
 n1=144; % working map box size
 % n2=256; % Output map size, matches input map
 ct1=ceil((n1+1)/2);
-cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel'); % on Katz
-% cd('/Users/fred/EMWork/20210224_YW_sel'); % on Mini2
+% cd('/Users/fred/EMWork/Yangyu/20210224_YW_sel'); % on Katz
+cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Yangyu/20210224_YW_sel/'); % on Mini2
 % cd('/Volumes/EMWork/Yangyu/20210224_YW_sel'); % Katz mounted
 pdbName='W366F_v4.2(delete_loop add ion)_VSDchecked.pdb'; % TM only
 
@@ -67,7 +67,7 @@ plot(micDens1);
 %% Replace protein with modeled micelle density to get the micelle map
 
 protMask=GaussFilt(GaussFilt(dProt,.05)>.01,.2);
-micelleDens=repmat(shiftdim(micDens1,-2),[n1 n1 1]);
+micelleDens=repmat(shiftdim(micDens1,-2),[n1 n1 1]); % spread the micelle density
 figure(3);
 ShowSections(GaussFilt( (1-protMask).*mp1sh+protMask.*micelleDens,.05),[ct1 ct1 ct1+28]);
 
@@ -88,12 +88,13 @@ ShowSections(mMap0,[ct1 ct1 ct1+28]);
 
 drawnow;
 %
-ShowSections(t1Maskf.*mp1sh-mMap0,[],45);
+
 % Get the subtracted TM region alone
 tMapsh=(t1Maskf.*mp1sh-mMap0).*protMask;
 ShowSections(tMapsh,[],45);
 % Get the subtracted alpha-subunits alone
 aMapsh=mp1sh-mMap0;
+
 
 
 %% Unshift the maps
@@ -112,6 +113,13 @@ amMap1=aMap1-1.2*GaussFilt(aMap1,.004); % undo most of the overshoot
 isT1=GaussFilt(GaussFilt((GaussFilt(aMap1,.05)>.006) > protMsk1,.1)>.8,.1);
 
 compMap1=amMap1.*min((protMsk1+isT1),1); % overshoot-removed, masked alpha subunit.
+compMap1shx=circshift(Crop(compMap1,n2),round(ct1-zShift));
+
+
+if doWrite % save the 1A pixel maps, all centered on the TM region: micelle, TM, whole alpha
+    save HRPicking/Figs/TM_Micelle_maps.mat mMap0 tMapsh compMap1shx micDens1
+end;
+
 
 tMap2=DownsampleGeneral(tMap1,n2,1/s.pixA); % Convert back to the orig pixel size
 % tmaMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
@@ -121,7 +129,7 @@ zShift2=CenterOfMass(tMap2); % get the CM of just the TM region
 tMap2u=circshift(tMap2,round(-zShift2));
 compMap2u=circshift(compMap2,round(-zShift2));
 
-return
+
 tMag=tMap2(:)'*tMap2(:)
 
 % aMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
@@ -164,57 +172,7 @@ if doWrite
     WriteMRC(compMap2,s.pixA,[outPath 'compMap.mrc']);
 end;
 
-%%
-% See the total power in acf as a function of resolution.
-bVals=[0 50 100]; % first one is assumed to be zero.
-freqs2=(0:n2/2-1)'/(n2*s.pixA);
-freqs2pi=freqs2*2*pi;
-sp2=RadialPowerSpectrum(tMap2);
-sp2(:,2)=RadialPowerSpectrum(compMap2);
-figs=[6 7];
-nBs=numel(bVals);
-freqs2pin=repmat(freqs2pi,1,nBs);
-labels={'B=0'};
-
-for i=1:size(sp2,2) % do for each spectrum type
-    sps=sp2(:,i);
-    for k=2:nBs % modify the spectra according to B
-        B=bVals(k);
-        labels{k,1}=['B=' num2str(B)];
-        gaussB=exp(-freqs2.^2*B/2);
-        sps(:,k)=sps(:,1).*gaussB;
-    end;
-    % Compute the SNR as a function of frequency cutoff
-    cumPower=cumsum(sps.*freqs2pin,1).^2;
-    cumNoiseVar=cumsum(sps.*freqs2pin,1);
-    cumSNR=cumPower./cumNoiseVar;
-    cumSNR=cumsum(sps.*freqs2pin,1);
-    cumSpect=cumsum(sps,1);
-
-    figure(figs(i));
-    mysubplot(3,3,8);
-    semilogy(freqs2,sps);
-    legend(labels);
-    title('Spectral density');
-
-    %     mysubplot(3,3,8);
-    %     plot(freqs2,cumSpect);
-    %     legend(labels);
-    %     title('Image power');
-
-    mysubplot(3,3,9);
-    plot(freqs2,cumSNR);
-    legend(labels);
-    title('SNR');
-
-
-    % text(0.35,cumPower(find(freqs2>.35,1)),['B=' num2str(B)],'verticalalignment','bottom');
-    % hold off;
-    % our final picking reference is tMap2. The final micelle model is tMap2
-end;
-
 return
-
 %% Which is the best postprocess map?
 % mp=circshift(mp,round(mCtr));
 

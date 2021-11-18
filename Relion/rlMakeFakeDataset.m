@@ -17,12 +17,14 @@ doWrite=0;
 
 disp(['Working directory: ' pwd]);
 p=struct;
-p.baseName='SimTMStk1uDef04Ampa';
+p.baseName='SimCompStk1uDef04Ampa';
 % p.baseName='SimStack1uDef01Ampd';
 p.amps=[.04];
 
 pa=fileparts(which('arGetRefVolumes'));
 p.mapName=[pa '/KvMap.mat'];
+
+
 p.dotCount=100; % number of computed templates per dot printed out.
 
 % p.outDir='/Users/fred/EMWork/Simulations/Relion/';

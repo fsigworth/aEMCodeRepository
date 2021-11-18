@@ -149,10 +149,12 @@ for iSlice=1:nim
     % X-Z plane
     mysubplot(nr,nc,iSlice*nc0-4);
     imdraw(xs,zs,map(:,cy,:,iSlice));
-    hold on;
-    plot([1 nx ],[cz cz],'b-');
-    plot([cx cx],[1 nz],'r-');
-    hold off;
+    if options.showLines
+        hold on;
+        plot([1 nx ],[cz cz],'b-');
+        plot([cx cx],[1 nz],'r-');
+        hold off;
+    end;
     if options.showLabels
         xlabel('X');
         ylabel('Z');

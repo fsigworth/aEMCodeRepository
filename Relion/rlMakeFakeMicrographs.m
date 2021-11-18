@@ -17,8 +17,8 @@ outDir=pwd; % Assume we're in the working directory
 
 mapName='../HRPicking/compMap.mrc'
 micDir='Micrographs1/';
-starDir='Stars1/';
-partStarName='particles1.star';
+starDir='Stars1Comp/';
+partStarName='particles1Comp.star';
 micBaseName='mic'
 
 CheckAndMakeDir(micDir,1);
