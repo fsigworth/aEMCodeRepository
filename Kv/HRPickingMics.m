@@ -248,6 +248,7 @@ return
 %% %     cc2=GaussHP(mxVals,.005); %%%% in case we didn't do HP before.
 dsv=2;
 % Finding loop
+dsv=2; %%%%%%
     cc2=mxVals;
     nPks=300;
     rMsk=30*dsv;

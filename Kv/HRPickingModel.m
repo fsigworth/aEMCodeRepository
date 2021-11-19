@@ -1,6 +1,10 @@
 % HRPickingModel.m
-% Create 3D model and 2D projections for high-res picking.
+% Create 3D models with and without the micelle
+% of Kv TM region and the complete alpha4
+% for high-res picking.
 
+targetPixA=1.09;
+computeCCs=0;
 doWrite=0; % Write out the models?
 shiftToMatchModel=0;
 n1=144; % working map box size
@@ -10,6 +14,7 @@ ct1=ceil((n1+1)/2);
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Yangyu/20210224_YW_sel/'); % on Mini2
 % cd('/Volumes/EMWork/Yangyu/20210224_YW_sel'); % Katz mounted
 pdbName='W366F_v4.2(delete_loop add ion)_VSDchecked.pdb'; % TM only
+outPath='/Volumes/D255/20181216/No5Graphene/sq05_1/HRRefs/';
 
 % [mp0,s]=ReadMRC('postprocess_masked_2.55A.mrc');
 % mCtr=CenterOfMass(mp0)
@@ -121,15 +126,16 @@ if doWrite % save the 1A pixel maps, all centered on the TM region: micelle, TM,
 end;
 
 
-tMap2=DownsampleGeneral(tMap1,n2,1/s.pixA); % Convert back to the orig pixel size
-% tmaMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
-compMap2=DownsampleGeneral(compMap1,n2,1/s.pixA);
+tMap2=DownsampleGeneral(tMap1,n2,1/targetPixA); % TM. Convert back to the orig pixel size
+% tmaMap2=DownsampleGeneral(amMap1,n2,1/targetPixA); % TM plus T1 domain: whole alpha subunit
+compMap2=DownsampleGeneral(compMap1,n2,1/targetPixA); % TM+T1
+mMap2=DownsampleGeneral(micMap1,n2,1/targetPixA); % micelle
 
 zShift2=CenterOfMass(tMap2); % get the CM of just the TM region
 tMap2u=circshift(tMap2,round(-zShift2));
 compMap2u=circshift(compMap2,round(-zShift2));
 
-
+%%
 tMag=tMap2(:)'*tMap2(:)
 
 % aMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
@@ -164,12 +170,55 @@ mysubplot(3,3,1);
 title('alpha composite ACF');
 
 %% ---------Write the output files---------
-outPath='HRPicking/';
 if doWrite
     CheckAndMakeDir(outPath);
-    WriteMRC(tMap2,s.pixA,[outPath 'tmMap.mrc']); % Map of TM Region
-    WriteMRC(mMap2,s.pixA,[outPath 'micMap.mrc']); % Micelle map
-    WriteMRC(compMap2,s.pixA,[outPath 'compMap.mrc']);
+    disp(['In ' outPath ' :']);
+    WriteMRC(tMap2,targetPixA,[outPath 'tmMap.mrc']); % Map of TM Region
+    disp('  tmMap.mrc');
+    WriteMRC(mMap2,targetPixA,[outPath 'micMap.mrc']); % Micelle map
+    disp('  micMap.mrc');
+    WriteMRC(compMap2,targetPixA,[outPath 'compMap.mrc']);
+    disp('  compMap.mrc');
+    disp('...written.');
+else
+    disp('Nothing writtten.');
+end;
+
+return
+%%
+if computeCCs
+    tMag=tMap2(:)'*tMap2(:)
+    
+    % aMap2=DownsampleGeneral(aMap1,n2,1/s.pixA);
+    % amMap2=DownsampleGeneral(amMap1.*aMsk1,n2,1/s.pixA);
+    figure(4);
+    % ShowSections(amMap2,[ct2 ct2 ct2+10],45);
+    ShowSections(compMap2,[ct2 ct2 ct2+10],45);
+    
+    compMag=compMap2(:)'*compMap2(:)
+    % Correct the micelle map also.
+    mtMag=tMap2(:)'*mMap2(:)
+    
+    % Show correlation of TM with micelle, and ACF of TM, and ACF of alpha
+    mtCC=fftshift(real(ifftn(fftn(mMap2).*conj(fftn(tMap2)))));
+    tmAC=fftshift(real(ifftn(abs(fftn(tMap2)).^2)));
+    compAC=fftshift(real(ifftn(abs(fftn(compMap2)).^2)));
+    
+    figure(5);
+    ShowSections(mtCC); % This is the cross-correlation of micelle with protein. The
+    % peak is about 3 while the autocorrelation of the protein peak is 75. The
+    % alpha peak is about 130.
+    
+    figure(6);
+    ShowSections(tmAC);
+    mysubplot(3,3,1);
+    title('TM region autocorrelation');
+    
+    figure(7);
+    ShowSections(compAC);
+    mysubplot(3,3,1);
+    title('alpha composite ACF');
+    
 end;
 
 return

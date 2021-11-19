@@ -1,14 +1,18 @@
-function [mxVals,mxInds]=hrProjSearch(mc,projs,upFactor)
+function [mxVals,mxInds,sumCCs,sumSquares]=hrProjSearch(mc,projs,upFactor)
 if nargin < 3
     upFactor=1; % upsampling factor
 end;
 n1=size(mc);
+
 nw=n1*upFactor;
 nRefs=size(projs,3);
 fM=fftn(ifftshift(mc));
 
 mxV=-ones(prod(nw),1,'single')*inf;
 mxI=zeros(prod(nw),1,'int32');
+sumCCs=zeros(prod(nw),1);
+sumSquares=zeros(prod(nw),1);
+
 nBlock=NextNiceNumber(100/upFactor^2,7,-1);
 blockCCs=zeros([nw nBlock],'single');
 ind=0;
@@ -24,10 +28,15 @@ while ind<nRefs
         fRef=conj(fftn(Crop(projs(:,:,ind+j),n1)));
         blockCCs(:,:,j)=real(ifftn(Cropo(fRef.*fM,nw,1)));
     end;
-    [bMxV,bIndV]=max(reshape(blockCCs,[prod(nw) nBlock]),[],2);
+    bCCs=reshape(blockCCs,[prod(nw),nBlock]);
+    [bMxV,bIndV]=max(bCCs,[],2);
+    
     blockBigger=bMxV>mxV;
     mxV(blockBigger)=bMxV(blockBigger);
     mxI(blockBigger)=bIndV(blockBigger);
+    sumCCs=sumCCs+sum(bCCs,2);
+    sumSquares=sumSquares+sum(bCCs.^2,2);
+    
     if mod(ind,1000)<nBlock
         if first && ind>=1000  % print out time for 1000 ccs
             fprintf(['For ' num2str(ind) ' ccs ']);
@@ -43,3 +52,5 @@ fprintf('\n');
 
 mxVals=reshape(mxV,nw);
 mxInds=reshape(mxI,nw);
+sumCCs=reshape(sumCCs,nw);
+sumSquares=reshape(sumSquares,nw);
