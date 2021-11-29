@@ -16,7 +16,7 @@ yVals=zeros(nPts,nIons);
 ionLabels=cell(nIons,1);
 steps=0.2*[1 1 1];
 % figure(10);
-for j=1:3
+for j=1:numel(ptrsI)
     ptr=ptrsI(j);
     cdI=cdIs(j,:);
     P=zeros(1,3);

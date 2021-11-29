@@ -17,13 +17,19 @@ outDir='HRRefs/';
 %
 ds=3;
 zShift=0;
+centroidShift=1; % if zShift is zero, move to centroid.
 
-% To use our alpha-subunit composite map
-refName='compMap.mrc'
-% - Normal:
-outTypeString='Comp_'
+% % To use our alpha-subunit composite map
+% refName='compMap.mrc'
+% outTypeString='Comp_';
+% n=56;
+% zShift=-10;
+
+% Weak TM domain
+refName='compWeakMap.mrc'
+outTypeString='CompWeakUnSh_';
 n=56;
-zShift=-10;
+centroidShift=0;
 
 % % - TM centered:
 % outTypeString='Comp_TMCtr_'
@@ -33,7 +39,17 @@ zShift=-10;
 % % To use the TM only reference
 % refName='tmMap.mrc';
 % n=48;
+% outTypeString='TM_';
 % zsh=[0 0 21]; % shift TM region to center. This brings it to COM
+
+angleSteps=[4 4 4];
+% angleSteps=[2.5 2.5 4];
+stepString=num2str(angleSteps(1));
+for i=2:3
+    stepString=[stepString '_' num2str(angleSteps(i))];
+end;
+disp(stepString);
+
 
 CheckAndMakeDir(outDir);
 eigsBasename=['Eigs' outTypeString];
@@ -43,12 +59,12 @@ writeProjections=1;
 makeEigs=0;
 writeEigs=0;
 
-angleSteps=4; % Figure 3 A steps at a radius of 40 A
+% angleSteps=4; % --produces 3 A steps at a radius of 40 A
 [map3,s]=ReadMRC([inDir refName]);
 pixA=s.pixA*ds;
 if zShift ~=0
     sh=[0 0 zShift];
-else
+elseif centroidShift
     sh=-CenterOfMass(map3)
 end;
 
@@ -63,7 +79,7 @@ tic;
 projs=rlMakeTemplates(angs,map,1000);
 toc;
 if writeProjections
-    projsFilename=[outDir projsBasename num2str(n) '.mat'];
+    projsFilename=[outDir projsBasename '_' stepString '_' num2str(n) '.mat'];
     disp(['Writing ' projsFilename])
     save(projsFilename,'pixA','map','angs','projs');
 end;

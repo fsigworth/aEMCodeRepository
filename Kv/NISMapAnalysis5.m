@@ -4,10 +4,13 @@ doLoad=0;
 
 addpath ~/aEMCodeRepository/aLibs/HealpixLib
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
+dataName='NISMapData7_REO.mat';
+
 if doLoad
     disp('Loading...');
-    load NISMapData5.mat
-    disp('done.');
+% % 
+    load(dataName);
+disp('done.');
 end;
 % loads: m5v p5r ptrsI ligandLabels dsv nv s names
 %%
@@ -32,8 +35,17 @@ doSave=1;
 doOptimizeShifts=0; % choose the cdIShifts to maximize density at ion positions.
 
 % ptrsL=ptrsL1;
-yLimsAll=[-1.5 2.5];
-yLims1=[-.5 1.6];
+% for data 5
+% yLimsAll=[-1.5 2.5];
+% yLims1=[-.5 1.6];
+
+% % for data 6
+% yLimsAll=[-1 1.5];
+% yLims1=[-.5 1];
+
+% for data 7
+yLimsAll=[-3 10];
+yLims1=[-1.5 10];
 
 %        mv=circshift(m4v,[0 0 9]); % need to shift to match peaks.
 %         [0 0 9] for J322 works a bit better.

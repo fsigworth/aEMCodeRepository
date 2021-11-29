@@ -103,6 +103,7 @@ aMapsh=mp1sh-mMap0;
 
 
 %% Unshift the maps
+t1Msk1=circshift(protMask.*t1Maskf,round(-zShift-ct1));
 tMap1=circshift(tMapsh,round(zShift-ct1)); % undo the shift of the TM region
 ShowSections(tMap1,[],45);
 aMap1=circshift(aMapsh,round(zShift-ct1)); % whole alpha subunit, micelle subtracted
@@ -120,6 +121,9 @@ isT1=GaussFilt(GaussFilt((GaussFilt(aMap1,.05)>.006) > protMsk1,.1)>.8,.1);
 compMap1=amMap1.*min((protMsk1+isT1),1); % overshoot-removed, masked alpha subunit.
 compMap1shx=circshift(Crop(compMap1,n2),round(ct1-zShift));
 
+compWeakMap1=t1Msk1.*max(0,2*(aMap1-.012))+tMap1;
+compWeakMap1shx=circshift(Crop(compWeakMap1,n2),round(ct1-zShift));
+
 
 if doWrite % save the 1A pixel maps, all centered on the TM region: micelle, TM, whole alpha
     save HRPicking/Figs/TM_Micelle_maps.mat mMap0 tMapsh compMap1shx micDens1
@@ -129,6 +133,7 @@ end;
 tMap2=DownsampleGeneral(tMap1,n2,1/targetPixA); % TM. Convert back to the orig pixel size
 % tmaMap2=DownsampleGeneral(amMap1,n2,1/targetPixA); % TM plus T1 domain: whole alpha subunit
 compMap2=DownsampleGeneral(compMap1,n2,1/targetPixA); % TM+T1
+compWeakMap2=DownsampleGeneral(compWeakMap1,n2,1/targetPixA); % TM+T1
 mMap2=DownsampleGeneral(micMap1,n2,1/targetPixA); % micelle
 
 zShift2=CenterOfMass(tMap2); % get the CM of just the TM region
@@ -179,6 +184,8 @@ if doWrite
     disp('  micMap.mrc');
     WriteMRC(compMap2,targetPixA,[outPath 'compMap.mrc']);
     disp('  compMap.mrc');
+    WriteMRC(compWeakMap2,targetPixA,[outPath 'compWeakMap.mrc']);
+    disp('  compWeakMap.mrc');
     disp('...written.');
 else
     disp('Nothing writtten.');
