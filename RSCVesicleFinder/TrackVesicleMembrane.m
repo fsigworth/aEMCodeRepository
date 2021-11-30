@@ -1,5 +1,5 @@
-function mi2=TrackVesicleMembrane(h);
-% function mi2=TrackVesicleMembrane(h);
+function mi2=TrackVesicleMembrane(h)
+% function mi2=TrackVesicleMembrane(h)
 % Given the handle from Vesicle_finding_GUI or VesicleFinder, use the initial
 % round vesicle models and try to track the membrane from the vesicle model in
 % polar coordinates, filling all high-order terms in mi2.vesicle.r The returned
@@ -47,7 +47,7 @@ end;
     pixA=mi.pixA*ds0;
 % compute the effective CTF along with filter functions
     effCTF=effCT.*GaussHPKernel(n,filtFreqs(1)*pixA)...
-        .*Gaussian(n,2,sqrt(1/(2*log(2)))*filtFreqs(2)*n);
+        .*Gaussian(n,2,sqrt(1/(2*log(2)))*filtFreqs(2)*pixA*n);
 
     scl.n=n;    
     scl.M=h.M2;
@@ -228,15 +228,15 @@ else
     v2x=ExtractImage(v1Model,round(v1ctr-[cx1 cy1]),nx);
     s1=ampRefitScale*v2x(:)'*mx(:)/(v2x(:)'*v2x(:));
 end;
-%     Explicit lin least squares yields essentially the same result:    
-%     n2x=numel(v2x);
-%     f=zeros(n2x,2);
-%     f(:,1)=sum(v2x(:));
-%     f(:,2)=v2x(:);
-%     sVals=LinLeastSquares(f,mx(:));
-% disp([ind s1 sVals(2)]);
-%     s1=sVals(2);
-    
+%    Explicit lin least squares yields essentially the same result:    
+    n2x=numel(v2x);
+    f=zeros(n2x,2);
+    f(:,1)=sum(v2x(:));
+    f(:,2)=v2x(:);
+    sVals=LinLeastSquares(f,mx(:));
+disp([ind s1 sVals(2)]);
+    s1=sVals(2);
+%    
     if displayOn
         title(['amps ' num2str(1000*mi.vesicle.s(ind,1)*[1 s1])]);
         subplot(233);

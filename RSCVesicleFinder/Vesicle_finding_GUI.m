@@ -1,12 +1,13 @@
-function varargout = Vesicle_finding_GUI(varargin)
+    function varargout = Vesicle_finding_GUI(varargin)
 % Find vesicles in micrographs.
-% 30 Apr 20 version.
 % Vesicle_finding_GUI() calls this in graphical interactive mode.
 % Vesicle_finding_GUI(fileList,[contextFile]) has this run in batch mode. fileList is a
 % cell array of strings being the mi.txt files to process, and the optional contextFile
 % is a string giving the VFContext.mat file to use for parameters;
 % otherwise the VFContextFile stored with the executable file is used.
+% Updated 29 Nov 2021
 %
+% ---boilerplate from Matlab follows.
 % VESICLE_FINDING_GUI M-file for Vesicle_finding_GUI.fig
 %      VESICLE_FINDING_GUI, by itself, creates a new VESICLE_FINDING_GUI or raises the existing
 %      singleton*.
