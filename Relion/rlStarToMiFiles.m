@@ -21,18 +21,20 @@ dpars=struct; % Set up the defaults.
 
 dpars.basePath=pwd; % assume we're in the relion project directory
 dpars.cameraIndex=5; % K2
-dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
+% dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
+dpars.cpe=14/4; % K3 is scaled up by 16, but mc2 handles superres incorrecly
+
 %  0.2 for superres image that is binned by MotionCor2.
 % ! For Falcon3: cameraIndex=6, I think cpe=64.
-dpars.dose=60; % Approx total movie dose in e/A^2. We have to guess this
+dpars.dose=50; % Approx total movie dose in e/A^2. We have to guess this
 % because MotionCor2 scaling doesn't allow the total dose to be calculated.
 dpars.estimateStatsFromNoise=0; % 1: don't use the above, estimate from image spectrum%
-dpars.nFrames=40;
-dpars.motionCorFrames=1; % either 1, or the number of frames if using MotionCor2
+dpars.nFrames=34;
+dpars.motionCorFrames=dpars.nFrames; % either 1, or the number of frames if using MotionCor2
 dpars.scaleMode=0; % 0: K3 micrographs, already normalized; imageNormScale set to 1.
 % 1: read micrograph and scale for k2
 % 2: estimate stats from noise
-dpars.BFactor=30; % Used by my CTF functions. Not critical.
+dpars.BFactor=40; % Used by my CTF functions. Not critical.
 dpars.noDamageModel=1; % No damage filtering.
 
 dpars.changeImagePath=0; % change from the path given in the star file

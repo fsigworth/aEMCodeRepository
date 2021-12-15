@@ -41,6 +41,7 @@ dpars.jpegPath='Merged_jpeg/';
 dpars.dsSmall=4; % downsampling factor for small output images
 dpars.maxPixA=4.5;  % downsampled image resolution for radius fitting
 dpars.forceDs4=4;  % Or, use this fixed downsampling factor instead
+dpars.forceAlpha=.02;
 
 % dpars.writeVesFiles=0;   % Write vesicle models into Temp/
 
@@ -76,7 +77,7 @@ dpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [
 dpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
 
 % -----------Merge the defaults with the given mpars-----------
-pars=SetOptionValues(dpars,mpars,1);
+pars=SetOptionValues(dpars,mpars);
 
 %     The following must have at least as many elements as dpars.fitModes!
 pars.xPeakPositionA=cell(1,numel(pars.fitModes));
@@ -313,7 +314,7 @@ end;
             %% ---------------Outputting------------------
 %             Write the mi file.
             outName='';
-            mi.ctf(1).alpha=originalAlpha;
+%             mi.ctf(1).alpha=originalAlpha; %% Keeep the modified alpha!
             if writeMiFile
                 mi.log{end+1,1}=['rsRefineVesicleFits ' TimeStamp];
                 outName=WriteMiFile(mi,[infoPath miNames{fileIndex}]);

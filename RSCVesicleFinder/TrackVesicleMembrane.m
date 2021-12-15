@@ -234,7 +234,7 @@ end;
     f(:,1)=sum(v2x(:));
     f(:,2)=v2x(:);
     sVals=LinLeastSquares(f,mx(:));
-disp([ind s1 sVals(2)]);
+% disp([ind s1 sVals(2)]);
     s1=sVals(2);
 %    
     if displayOn
