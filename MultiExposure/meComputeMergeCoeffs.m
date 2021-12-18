@@ -1,6 +1,6 @@
 function [coeffs, mergedCTF, dctfs]=meComputeMergeCoeffs( freqs, CTPars, doses, nzeros, weights)
 % [coeffs mergedCTF dctfs]=meComputeMergeCoeffs(freqs,CTPars,doses,nzeros,weights)
-% or: [coeffs mergedCTF dctfs]=meComputeMergeCoeffs(      freqs, mi, nzeros)
+% or: [coeffs mergedCTF dctfs]=meComputeMergeCoeffs( freqs, mi, nzeros)
 % obsolete version, use meComputeMergeCoeffs2.
 % Given frequency values, an array of nims CTPars structures and a vector
 % of nims doses, in e/A^2, compute the merging coefficients, which are the
@@ -130,10 +130,10 @@ dose1=doses(q);
 % --a fit to the data in the Rubenstein paper.
 %%%%%% n0=2*0.16./(abs(f)+.004)+5;  % twice the critical dose at 200 kV
 % modified to better match vesicle decay.
-    kV>200
+    if kV>200
         n0=.245*f.^-1.665+2.81; % Grant&Grigorieff 300 kV'
     else
-        n0.184*f.^-1.665+2.1; % Grant&Grigorieff 200 kV'
+        n0=.184*f.^-1.665+2.1; % Grant&Grigorieff 200 kV'
     end;
 
 
@@ -154,7 +154,7 @@ end;
 for i=find(doses(:)'>0)
     % compute the normalized signal amplitude after decay (=1
     %     given no decay)
-    if isfield(mi,'frameDose') && mi.frameDose>0  % we have a movie: do a calculation like
+    if isfield(mi,'frameDose') && numel(mi.frameDose)==1 && mi.frameDose>0  % we have a movie: do a calculation like
 %         in k2DamageCompCTF.
         startFrame=mi.frameSets(segIndex,1);
         nFrames=mi.frameSets(segIndex,2)-startFrame+1;

@@ -33,7 +33,9 @@ switch iCamera
     case 3
         n0=[3072 4096];
     case 5
-        n0=[3840 3840];  % k2 camera
+        n0=[3840 3840];  % k2 camera, padded
+    case 7
+        n0=[5760 4096];  % k3 camera, padded
     otherwise
         n0=[4096 4096]; % indices 1,2,4
 end;

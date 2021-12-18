@@ -8,18 +8,21 @@ function MakeJpegsFromEMFiles(pars)
 % of downsampling.  Its default value is 1.  If doDisplay=0 then no display
 % is shown. DefaultPixA affects only the labeling of the display.
 % fs July 2009 rev. Apr 2011, Nov 2017, Nov 2021.
+if nargin<1
+    pars=struct;
+end;
 
 dpars.inputExtensions={'.mrc' '.tif' '.mrcs'};
-dpars.suffixes={'ms' 'mvs' '_u' '_v' }; % {} ignores filename suffix
+dpars.suffixes={'ms' 'mvs' '_u' '_v'}; % {} ignores filename suffix
 
 dpars.outputExtension='.jpg';
 dpars.sumStacks=1; % sum the frames in an .mrcs file
 dpars.outputDir='Jpeg/'; % inside the current dir
-dpars.binning=1;
+dpars.binning=4;
 dpars.doDisplay=1;
 dpars.defaultPixA=0; % used for local display
 dpars.clipThreshold=1e-3;  % saturation of black and white pixels
-dpars.overwrite=1;
+dpars.overwrite=0;
 dpars.finalIndex=inf;  % write every file in the current directory
 dpars.listFilenames=1;  % show the input filenames
 
@@ -85,7 +88,7 @@ for i=1:numel(d);
         me=mean(m(:));
         m=Crop(m,n,1,me);
         if pars.binning>1
-            m=Downsample(m,n/binning);
+            m=Downsample(m,n/pars.binning);
         end;
         ms=uint8(imscale(m,256,pars.clipThreshold));
         if pars.doDisplay

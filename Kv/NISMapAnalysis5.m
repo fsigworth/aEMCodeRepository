@@ -1,13 +1,16 @@
 % NISMapAnalysis.m
 
-doLoad=0;
+doLoad=1;
 
 addpath ~/aEMCodeRepository/aLibs/HealpixLib
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
 dataName='NISMapData7_REO.mat';
+% dataName='NISMapData6_APO.mat';
+% dataName='NISMapData5.mat';
+disp(dataName);
 
 if doLoad
-    disp('Loading...');
+    disp(['Loading ' dataName '...']);
 % % 
     load(dataName);
 disp('done.');
@@ -30,22 +33,23 @@ figSizes = ...
 %
 mode='radial';
 % mode='ligands';
+medianMode=0; % Use the median rather than mean over directions.
 showAllAngles=1;
 doSave=1;
-doOptimizeShifts=0; % choose the cdIShifts to maximize density at ion positions.
+doOptimizeShifts=1; % choose the cdIShifts to maximize density at ion positions.
+iVersion=3;
 
 % ptrsL=ptrsL1;
-% for data 5
-% yLimsAll=[-1.5 2.5];
-% yLims1=[-.5 1.6];
+% for data 5,6
+yLimsAll=[-1 2]; % iVersion=2.
+
 
 % % for data 6
 % yLimsAll=[-1 1.5];
 % yLims1=[-.5 1];
 
-% for data 7
-yLimsAll=[-3 10];
-yLims1=[-1.5 10];
+% % for data 7
+yLimsAll=[-1.5 5];
 
 %        mv=circshift(m4v,[0 0 9]); % need to shift to match peaks.
 %         [0 0 9] for J322 works a bit better.
@@ -59,6 +63,10 @@ mv=m5v;
         if doOptimizeShifts
             figPrefix=[figPrefix '_sh'];
         end;
+        if ~medianMode
+            figPrefix=[figPrefix '_me'];
+        end;
+        figPrefix=[figPrefix num2str(iVersion)];
         pr=p5r;
         ptrsI=ptrsI5;
         nIons=numel(ptrsI);
@@ -86,12 +94,26 @@ cdIShifts=zeros(nIons,3);
 
 if doOptimizeShifts
     NISMapOptimizeShifts;
-    disp('Ion position shifts')
+    disp('Ion position shifts, A')
     disp(cdIShifts/dsv);
 end;
 % return
 
 cdIs=cdIs+cdIShifts;
+
+% Get the C-alpha norms
+cIndices=find(strncmp('C',ligandLabels5,1));
+nCs=numel(cIndices);
+pkVals=zeros(nCs,1);
+for i=1:nCs
+    cdI=round(cdIs(cIndices(i),:));
+    pkVals(i)=mv(cdI(1),cdI(2),cdI(3));
+end;
+disp(['C-alpha peak values before norm: ' num2str(pkVals',3)]);
+pkNorm=mean(pkVals)/2.2; % Makes Na+ to have density around 1.
+mv=mv/pkNorm;
+% cdIs(cIndices,:)=[]; % suppress these peaks.
+nIons=min(3,size(cdIs,1)); % now show only these ions.
 
 
 % cdLs=[pr.X(ptrsL)' pr.Y(ptrsL)' pr.Z(ptrsL)']*dsv+ctrv;
@@ -129,8 +151,10 @@ switch mode
             ionLabel=[pr.element{ptr} ' chain ' pr.chainID{ptr} ' ' ...
                 num2str(pr.resNum(ptr)) flipMark];
             ionLabel(15)=' ';
+            ionLabel(ionLabel==char(0))=' ';
             ionLabels{j}=ionLabel;
             mysubplot(2,nIons,j);
+%             subplot(2,nIons,j);
             cdI=cdIs(j,:);
             
             imags(mv(:,:,round(cdI(3)))); % show the section
@@ -138,8 +162,11 @@ switch mode
             plot(cdI(1),cdI(2),'yo','markersize',20);
             hold off;
             axis off;
-            ionLabelX=[ionLabel '  [' num2str(cdIShifts(j,:)/dsv,2) ']'];
-            ionLabelX
+            shiftStr=num2str(cdIShifts(j,:)/dsv,2);
+            ionLabelX=[ionLabel '  ' shiftStr ];
+%             titleText=[figPrefix '   ' ionLabelX]
+%             ionLabelX=[ionLabel '  [' num2str(cdIShifts(1,:)/dsv,2) ']'];
+%             ionLabelX
             if j==1
                 title([figPrefix '   ' ionLabelX],'interpreter','none');
 %                 title(ionLabelX,'interpreter','none');
@@ -153,8 +180,12 @@ switch mode
             %             sVecs=rand(10,3)-.5;
             %             for i=1:size(sVecs,1)
             mLoc=ExtractVolumeInterp(mv,cdI,nx);
-            [rMean,rMedian,rVals,rVals]=Radial3(mLoc,[]);
-            rVals=rMedian;
+            [rMean,rMedian]=Radial3(mLoc,[]);
+            if medianMode
+                rVals=rMedian;
+            else
+                rVals=rMean;
+            end;
             yVals(1:range,j)=rVals(end:-1:2);
             yVals(range+1:2*range+1,j)=rVals;
             
@@ -165,12 +196,12 @@ switch mode
             end;
             
             if showAllAngles
-                plot(xVals,yVals(:,j),'k-','linewidth',lw);
+                plot(xVals,yVals(:,j),'k-','linewidth',lw); % plot the mean/median
                 hold on;
                 for k=1:nDirs
                     lines(:,k)=ExtractLine3(mv,nPts,vecs(k,:),cdI);
                 end;
-                plot(xVals,lines);
+                plot(xVals,lines); % and superimpose the colored individual lines
                 yLims=yLimsAll;
             else
                 plot(xVals,yVals(:,j),'-','color',colors(j,:),'linewidth',lw);

@@ -1,7 +1,7 @@
-function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
+function [v,hFilt]=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
-% function v=meMakeModelVesicles(mi,img,vindex,doCTF,doPW,doCrossSection)
-% function v=meMakeModelVesicles(mi,scl,vindex,doCTF,doPW,doCrossSection)
+% function v=meMakeModelVesicles(mi,imgToFitAmp,vindex,doCTF,doPW,doCrossSection)
+% function v=meMakeModelVesicles(mi,sclStruct,vindex,doCTF,doPW,doCrossSection)
 % Given the info structure mi, make a CTF-filtered, scaled vesicle model
 % for each vindex value in the mi.vesicle arrays; default is every one for
 % which mi.vesicle.ok(index,1)==true.
@@ -14,9 +14,12 @@ function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % If the second argument is an image, then n is taken as size(img) and the
 % final v is scaled to match img by least-squares.
 % If the second argument is a struct we assum it's
-%   scl.n size of the output image
-%   scl.M image scale matrix from meGetImageScale() which is used in
+%   sclStruct.n size of the output image
+%   sclStruct.M image scale matrix from meGetImageScale() which is used in
 %   interpreting the vesicle coordinates.
+%
+% function [v,hFilt]=meMakeModelVesicles(...) returns the filtering funcion
+% (CTF, PW or CTF.*PW), zero centered, that was applied to v.
 
 if isa(n,'struct')% has n and an affine matrix
 %     dsShift=-n.M(1:2,3)';
@@ -130,15 +133,15 @@ end;
 
 end;
 v=sumv;  % default returned value
-H=1;
+hFilt=1;
 if doCTF % operate with the CTF
-    H=meGetEffectiveCTF(mi,n,ds);
+    hFilt=meGetEffectiveCTF(mi,n,ds);
 end;
 if doPW  % Pre-whitening filter
-    H=H.*meGetNoiseWhiteningFilter(mi,n,ds);
+    hFilt=hFilt.*meGetNoiseWhiteningFilter(mi,n,ds);
 end;
 if doCTF || doPW  % do the filtering
-    v=single(real(ifftn(fftn(double(sumv)).*ifftshift(double(H)))));  % Filter with the ctf.
+    v=single(real(ifftn(fftn(double(sumv)).*ifftshift(double(hFilt)))));  % Filter with the ctf.
 end;
 
 if doFitImage % do least-squares fit to supplied image

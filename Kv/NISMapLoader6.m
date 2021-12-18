@@ -33,7 +33,7 @@ figure(1); % Show the map, the model, and ion positions circled.
 msk1=fuzzymask(n,3,0.45*n,.1*n); % Avoid any artifacts from rotation.
 
 disp('Rotating and padding map 5');
-P=[34 0];  % rotation, z-translation
+P=[33.96 2.73];  % rotation, z-translation to match the iodide map
 m5c=Crop(m5,n);
 m5cr=rsRotateImage(msk1.*m5c,P(1)); % Rotation in XY plane
 fsh=FourierShift(n,[0 0 P(2)]); % shift only in Z
@@ -73,8 +73,10 @@ disp('Locating the ions in pdb 5');
 
 % This time, the sodiums are called 'HOH' :)
 ptrsI5=find(strcmp('HOH',p5.resName));
-ptrsI5=ptrsI5(3:end); % Pick the last two!
-
+ptrsI5=ptrsI5([3 4 2]); % Pick the last two!
+% ptrsI5=ptrsI5(1:3);
+QPtrs=find((p5.resNum==72 | p5.resNum==94) & strcmp('CA',p5.atomName)) 
+ptrsI5=[ptrsI5 QPtrs];
 % NaPtrs=find(strcmp('HOH',p5.element));
 % IPtrs=find(strcmp('IOD',p5.resName));
 
@@ -116,7 +118,7 @@ drawnow;
 % Valuable variables
 if doSave
     disp(['Saving variables in ' names.data5]);
-    save names.data5 m5v p5r ptrsI5 ligandLabels5 dsv nv s names
+    save (names.data5, 'm5v', 'p5r', 'ptrsI5', 'ligandLabels5', 'dsv', 'nv', 's', 'names');
     disp('done.');
 end;
 return

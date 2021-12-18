@@ -1,4 +1,6 @@
-% rsRefineMembraneModel
+% rsRefineMembraneModel3
+% Newer version with Relion compatibility.
+% 
 % Use linear least-squares fitting to deduce a membrane profile from the
 % vesicles in an image.  Given an info structure mi and a merged image, use
 % the stored vesicle centers and radii to create basis functions of shells
@@ -6,15 +8,15 @@
 
 
 ds=4;           % downsampling relative to raw image
-forceNewFile=1;
-symmetrize=0;   % force a symmetrical profile
+forceNewFile=0;
+symmetrize=1;   % force a symmetrical profile
 useAllVesicles=1;  % otherwise use the vesicles selected in SimpleRSPicker
-deselectSomeVesicles=1;
+
 % Modifications to the ctfs
-bScale=1;      % scaling of B-factors
-bInv=0;         % inverse B-factor
-% alpha0=0.2;    %
-writeMiFile=1;
+bFactor=80;
+alpha0=.02;
+
+writeMiFile=0;
 
 % Fitting
 modelHalfwidth=50;   % angstroms
@@ -37,73 +39,68 @@ nfiles=numel(fname);
 % nfiles=1;%%%%
 for fileIndex=1:numel(fname)
     disp(['Reading ' fname{fileIndex}]);
-    load([infoPath fname{fileIndex}]);
+    mi=ReadMiFile([infoPath fname{fileIndex}]);
     %%
-%     iname=[mi.procPath mi.baseFilename 'm.mrc'];
-%     disp(['Reading image: ' iname]);
-    m0=meReadMergedImage(mi);
-    ds0=mi.imageSize(1)/size(m0,1);
-    n=mi.imageSize/ds;
+    %     iname=[mi.procPath mi.baseFilename 'm.mrc'];
+    %     disp(['Reading image: ' iname]);
+    m0=meLoadNormalizedImage(mi,mi.padImageSize);
+    ds0=1;
+    n=mi.padImageSize/ds;
     m=Downsample(m0,n);
     subplot(2,2,1);
     imacs(GaussFilt(m,256/n(1)));
     drawnow;
-    
+
     if ~isfield(mi,'tempPath')
         mi.tempPath='Temp';
     end;
     if ~exist(mi.tempPath,'dir')
         mkdir(mi.tempPath);
     end
-    
-    %     Try to read the vesicle model image if it exists
-    vname=[mi.tempPath mi.baseFilename 'v.mrc'];
-    if 0 %exist(vname,'file')
-        disp(['Reading vesicle image: ' vname]);
-        v0=ReadEMFile(vname);
-        v=Downsample(v0,n);
-    else
-        disp('Making model vesicles');
-        v=meMakeModelVesicles(mi,n);
-    end;
-    
-    msub=m-v;  % basic subtracted image
-    drawnow;
-    
+
+%     %     Try to read the vesicle model image if it exists
+%     vname=[mi.tempPath mi.baseFilename 'v.mrc'];
+%     if 0 %exist(vname,'file')
+%         disp(['Reading vesicle image: ' vname]);
+%         v0=ReadEMFile(vname);
+%         v=Downsample(v0,n);
+%     else
+%         disp('Making model vesicles');
+%         v=meMakeModelVesicles(mi,n);
+% 
+% if subtractUnfittedVesicles
+%     msub=m-v;  % basic subtracted image
+% end;
+% drawnow;
+    mres=m; % this is what we'll fit.
+    msub=m;
     if useAllVesicles
         mi.vesicleModel=Crop(ones(27,1),33);
-mi.vesicle.ok= mi.vesicle.r<150 & ~isnan(mi.vesicle.s);
+        mi.vesicle.ok= mi.vesicle.r<150 & ~isnan(mi.vesicle.s(:,1));
 
-numOk=sum(mi.vesicle.ok)
+        numOk=sum(mi.vesicle.ok(:,3))
         subplot(2,2,2);
-        imacs(GaussFilt(msub,256/n(1)));
-        vesIndices=find(mi.vesicle.ok);
-        mres=m;
-    elseif deselectSomeVesicles
-        indices=find(mi.particle.picks(:,3)==3);  % rejected vesicles
-        disp([num2str(numel(indices)) ' vesicles not fitted']);
-        ok=ones(1,numel(mi.vesicle.x));
-        ok(mi.particle.picks(indices,4))=0;
-        vesIndices=find(ok);  % indices of vesicles to restore
+        imacs(GaussFilt(mres,256/n(1)));
+        vesIndices=find(mi.vesicle.ok(:,3));
     else % use only the selected ones
         vesPicks=find(mi.particle.picks(:,3)==2);  % type=2 means a picked vesicle.
         vesIndices=mi.particle.picks(vesPicks,4);
         nv=numel(vesIndices);
         disp([num2str(nv) ' vesicles to be fitted']);
     end;
-    if numel(vesIndices)>0  % restore these vesicles
-        vr=meMakeModelVesicles(mi,n,vesIndices);
-        mres=msub+vr;
-        subplot(2,2,2);
-        imacs(GaussFilt(mres,256/n(1)));
-    end;
-    drawnow;
+%     if numel(vesIndices)>0  % restore these vesicles
+%         vr=meMakeModelVesicles(mi,n,vesIndices);
+%         mres=msub+vr;
+%         subplot(2,2,2);
+%         imacs(GaussFilt(mres,256/n(1)));
+%     end;
+%     drawnow;
     %%
-    
+
     % Create an mi structure for modification
     mi1=mi;
-%         Force all the vesicles to the same amplitude
-    mi1.vesicle.s=ones(size(mi1.vesicle.s))*median(mi.vesicle.s(mi.vesicle.ok));        
+    %         Force all the vesicles to the same amplitude
+    mi1.vesicle.s=ones(size(mi1.vesicle.s,1),1)*median(mi.vesicle.s(mi.vesicle.ok(:,1),1,1),'omitnan');
     % Make basis images
     nvs=round(modelHalfwidth/(ds*mi.pixA));
     nxs=nvs*ds;  % halfwidth of the oversampled model.
@@ -116,11 +113,11 @@ numOk=sum(mi.vesicle.ok)
     end;
     R=zeros(prod(n), nt);    % basis functions
     R0=zeros([n nt]);   % basis without CTF
- 
+
     %%
     disp(['Computing ' num2str(nt) ' terms']);
     tic
-    for i=1:nt
+    for i=1:nt % For each term, make the vesicle model vm one (or two symmetric) delta functions.
         j=(i-1-nvs)*ds+nxs+1;
         vm1=zeros(nx,1);
         vm1(j)=1;  % scale it according to thickness
@@ -131,8 +128,8 @@ numOk=sum(mi.vesicle.ok)
         %         mi.vesicleModel=vm1*mi.pixA;
         %         r0=meMakeModelVesicles(mi,n*ovs,vesIndices,0,0); % no filtering
         r0=meMakeModelVesicles(mi1,n,vesIndices,0,0); % no filtering
-        R0(:,:,i)=r0;
-        
+        R0(:,:,i)=r0; % ith model image
+
         q=Crop(r0,256);
         subplot(2,2,4);
         imacs(q);
@@ -144,30 +141,30 @@ numOk=sum(mi.vesicle.ok)
     disp('done');
     toc
     %%
-alpha0=.05;
+    alpha0=.02;
     disp('filtering');
-for i=1:numel(mi1.ctf)
-    mi1.ctf(i).alpha=alpha0;
-    mi1.ctf(i).B=mi.ctf(i).B*bScale-bInv;
-    mi.ctf(i).alpha=alpha0;
-end;
+    for i=1:numel(mi1.ctf)
+        mi1.ctf(i).alpha=alpha0;
+        mi1.ctf(i).B=bFactor
+        mi.ctf(i).alpha=alpha0;
+    end;
 
     H0=ifftshift(meGetEffectiveCTF(mi1,n,ds)); % This is slow, so we compute it once.
     subplot(2,2,2);
     plot((0:n(1)/2-1)/(n(1)*ds*mi.pixA),sectr(fftshift(H0)));
     xlabel('Spatial frequency');
     ylabel('CTF')
-   drawnow;
+    drawnow;
     for i=1:nt
         r=real(ifftn(fftn(R0(:,:,i)).*H0));  % Filter with the ctf
         R(:,i)=r(:);
     end;
-%     R1=reshape(R0,[prod(n) nt]);
-    
+    %     R1=reshape(R0,[prod(n) nt]);
+
     % Loop to fit complex CTF result
-%     disp('Fitting complex CTF');
-%     s0=mi1.vesicle.s(1);  % effective scale
-%     aScale=.5;
+    %     disp('Fitting complex CTF');
+    %     s0=mi1.vesicle.s(1);  % effective scale
+    %     aScale=.5;
     niter=1;
     % Do the actual least-squares here
     mResidual=mres;
@@ -188,29 +185,29 @@ end;
             a0=a;
         end;
         vFitted=reshape(R*aAccum,n);
-%         v0Fitted=reshape(R1*aAccum,n);
-%         vCFitted = meSimulateComplexCTF(v0Fitted*aScale*s0,mi1)/(aScale*s0);
-%         mResidual=mres-vCFitted;
-%         mResidualC=Crop(mResidual,n/2);
-%         subplot(2,2,4);
-%         imacs(mResidualC);
-%         subplot(2,2,2);
-%         plot(sect(mResidualC));
+        %         v0Fitted=reshape(R1*aAccum,n);
+        %         vCFitted = meSimulateComplexCTF(v0Fitted*aScale*s0,mi1)/(aScale*s0);
+        %         mResidual=mres-vCFitted;
+        %         mResidualC=Crop(mResidual,n/2);
+        %         subplot(2,2,4);
+        %         imacs(mResidualC);
+        %         subplot(2,2,2);
+        %         plot(sect(mResidualC));
         title(['Iteration ' num2str(j)]);
         subplot(2,2,3);
         plot([a0 aAccum]);
-%         err=mResidual(:);
-%         title(err'*err);
+        %         err=mResidual(:);
+        %         title(err'*err);
         drawnow;
     end;
     a=aAccum;
-%
+    %
 
-msub2=mres-vFitted;
+    msub2=mres-vFitted;
     msub2c=Crop(msub2,n/2);
     msub1c=Crop(msub,n/2);
     imacs(msub2c);
-    
+
     if symmetrize
         ax=[a ; flipud(a(1:nt-1))];  % full profile
     else
@@ -225,7 +222,7 @@ msub2=mres-vFitted;
     % upsample the model
     amu=meDownsampleVesicleModel(ax,1/ds);
     %
-    
+
     % Try subtracting the model
     mi.vesicleModel=amu;
     %         r1=meMakeModelVesicles(mi,n,vesIndices); %  filtering on
@@ -236,7 +233,7 @@ msub2=mres-vFitted;
     % drawnow;
     %
     %
-    
+
     % Try to force zero baseline.
     pedpt=0;  % number of points remaining before zero crossing
     a=a0;
@@ -269,7 +266,7 @@ msub2=mres-vFitted;
     % R1=[R*a R*pedestal R*spike];
     R1=[R*a R*pedestal];
     a1=LinLeastSquares(R1,mres);
-    
+
     % d1=[a pedestal spike]*a1;
     d1=[a pedestal]*a1;
     if symmetrize
@@ -277,7 +274,7 @@ msub2=mres-vFitted;
     end;
     d1x=meDownsampleVesicleModel(d1,1/ds);
     d1x=circshift(d1x,-1);
-    
+
     ndx=numel(d1x);
     ndxc=ndx-2*(ds*(p1-1)+1);
     d1xc=Crop(d1x,ndxc);
@@ -293,7 +290,7 @@ msub2=mres-vFitted;
     print('-djpeg','-r300',[outName '.jpg']);  % save the plots as a jpeg.
     disp('Figure image:');
     disp(outName);
-    
+
     vm.vesicleModel=d1xc;
     vm.pixA=mi.pixA;
     save([outName '.mat'],'vm');

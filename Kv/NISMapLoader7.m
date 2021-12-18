@@ -33,7 +33,7 @@ figure(1); % Show the map, the model, and ion positions circled.
 msk1=fuzzymask(n,3,0.45*n,.1*n); % Avoid any artifacts from rotation.
 
 disp('Rotating and padding map 5');
-P=[34 0];  % rotation, z-translation
+P=[67 2.3];  % rotation, z-translation
 m5c=Crop(m5,n);
 m5cr=rsRotateImage(msk1.*m5c,P(1)); % Rotation in XY plane
 fsh=FourierShift(n,[0 0 P(2)]); % shift only in Z
@@ -75,10 +75,11 @@ disp('Locating the ions in pdb 5');
 % ptrsI5=find(strcmp('HOH',p5.resName));
 % ptrsI5=ptrsI5(3:end); % Pick the last two!
 
-NaPtrs=find(strcmp('HOH',p5.resName));
+NaPtrs=find(strcmp('NA',p5.atomName));
+NaPtrs(1,2)=find(strcmp('HOH',p5.resName),1); % the second HOH is outside the molecule.
 IPtrs=find(strcmp('Re',p5.element))
-
-ptrsI5=[IPtrs NaPtrs(1)]; % the second one is outside the molecule.
+QPtrs=find((p5.resNum==72 | p5.resNum==94) & strcmp('CA',p5.atomName)) 
+ptrsI5=[IPtrs NaPtrs QPtrs]; 
 nL=numel(ptrsI5);
 
 ligandLabels5=cell(nL,1);

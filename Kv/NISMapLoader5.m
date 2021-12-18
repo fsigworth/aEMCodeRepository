@@ -32,7 +32,7 @@ figure(1); % Show the map, the model, and ion positions circled.
 msk1=fuzzymask(n,3,0.45*n,.1*n); % Avoid any artifacts from rotation.
 
 disp('Rotating and padding map 5');
-P=[34 0];  % rotation, z-translation
+P=[35 0];  % rotation, z-translation
 m5c=Crop(m5,n);
 m5cr=rsRotateImage(msk1.*m5c,P(1)); % Rotation in XY plane
 fsh=FourierShift(n,[0 0 P(2)]); % shift only in Z
@@ -72,8 +72,9 @@ disp('Locating the ions in pdb 5');
 
 NaPtrs=find(strcmp('Na',p5.element));
 IPtrs=find(strcmp('IOD',p5.resName));
+QPtrs=find((p5.resNum==72 | p5.resNum==94) & strcmp('CA',p5.atomName)) 
 
-ptrsI5=[IPtrs NaPtrs];
+ptrsI5=[IPtrs NaPtrs QPtrs];
 nL=numel(ptrsI5);
 
 ligandLabels5=cell(nL,1);
@@ -111,7 +112,7 @@ drawnow;
 % Valuable variables
 if doSave
     disp(['Saving variables in ' names.data5]);
-    save names.data5 m5v p5r ptrsI5 ligandLabels5 dsv nv s names
+    save (names.data5, 'm5v', 'p5r', 'ptrsI5', 'ligandLabels5', 'dsv', 'nv', 's', 'names');
     disp('done.');
 end;
 return

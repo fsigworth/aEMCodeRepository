@@ -35,7 +35,7 @@ mi=[];
 % dpars.cameraIndex=5; % K2
 % dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
 % %  0.2 for superres image that is binned by MotionCor2.
-% % ! For Falcon3: cameraIndex=6, I think cpe=64.
+% % ! For Falcon3: cameraIndex=6, I think cpe=16.
 % dpars.dose=60; % Approx total movie dose in e/A^2. We have to guess this
 % % because MotionCor2 scaling doesn't allow the total dose to be calculated.
 % dpars.nFrames=40;
@@ -150,104 +150,6 @@ end;
 
 readOk=true; % We got the data from the star line.
 return
-
-
-% The following code is now in rlSetImageScale()
-%
-%   Set up to use the original micrograph as the "processed" or "merged"
-%   image.
-%     Compute the normalization we'll have to apply to make the AC image component
-%     approximately equal to fractional contrast. We'll estimate the variance
-%     by averaging the 1D power spectrum from 0.3 to 0.7 * Nyquist. Assuming
-%     an arbitrary image scaling by a, the est variance of a counting image should be
-%     a^2 * pixelDose, which will be (a * size of original pixel)^2 * doses(1),
-%     with a being the unknown scaling factor. (By
-%     the scaling used by MotionCor2, the "size of original pixel" should be a
-%     superres pixel. The final fractional-contrast image will
-%     have the variance 1/pixelDose. We get it by scaling the raw image by
-%     1/sqrt(est variance*pixelDose).
-%     In the end we'll get the scaled micrograph as
-%     scaledImg = (m-mi.imageMedian)*mi.imageNormScale;
-
-% if pars.readMicrographForScale || pars.readMicrographHeader
-%     micName=[mi.imagePath mi.imageFilenames{1}];
-%     micFound=exist(micName,'file');
-% %         ok=false;
-% %         return  % Return with ok=false.
-% %     end;
-% % else
-% %     ok=true;
-% % end;
-% 
-% if micFound && pars.readMicrographForScale % We'll read the actual micrograph
-%     m=ReadMRC(micName);
-%     mi.imageSize=size(m);
-%     sds=floor(min(mi.imageSize)/256); % Downsampling factor for spectrum
-%     mc=single(Crop(m,256*sds)); % Grab a square region of the image.
-%     sp1=RadialPowerSpectrum(mc,0,sds);
-%     spN=numel(sp1);
-%     spLims=round(spN*[.3 .7]);
-%     estVar=sum(sp1(spLims(1):spLims(2)))/diff(spLims);
-%     mi.imageNormScale=1/(mi.pixA*sqrt(mi.doses*estVar));
-%     mi.imageMedian=median(m(:)); % best estimate we have of the main image mean.
-%     img=(single(m)-mi.imageMedian)*mi.imageNormScale;
-% else
-%     %      Image statistics: in the absence of image data,
-%     %         we assume a true counting camera, binned from superres, and
-%     %         just wing it for scale, don't compute median.
-%     mi.imageNormScale=1/(mi.cpe*mi.pixA^2*mi.doses(1));
-% 
-%     %  Image Size: if we don't read the header we leave the mi.imageSize as
-% %     zero, which is a marker that this image was not read.
-%     if micFound % Try to get the size from the header at least.
-%         [~,s]=ReadMRC(micName);
-%         mi.imageSize=[s.nx s.ny];
-%     else
-%         mi.imageSize=pars.defaultImageSize;
-%     end;
-%     
-% end;
-% 
-%     disp(iLine);
-
-% %     %     Read the micrograph; pad and rescale it.
-% %     mrcFilename=[mi.imagePath mi.imageFilenames{1}];
-% %     if exist(mrcFilename,'file') && (writeFullSize || WriteDownsampled)
-% %         disp([num2str(iLine) ': Reading ' mrcFilename]);
-% %         [m,s]=ReadMRC(mrcFilename);
-% %         n0=size(m);
-% %         n=NextNiceNumber(n0,5,8);  % new size, e.g. 3840 x 3840
-% %         mi.imageSize=n;
-% %
-% %         %     Pad and scale the image. We no longer calculate absolute
-% %         %     contrast, but simply scale according to the STD of the image.
-% %         me=mean(m(:));
-% %         m1=Crop(m,n,0,me);
-% %         m2=(m1-me)/(5*std(m1(:))); % arbitrary simple scaling, rather than absolute contrast.
-% %
-% %         %     Write out processed images into the Merged folder.
-% %         if writeFullSize
-% %             disp(['Writing ' num2str(n) ' pixels: ' mi.procPath mi.baseFilename 'm.mrc']);
-% %             WriteMRC(m2,mi.pixA,[mi.procPath mi.baseFilename 'm.mrc']);
-% %         end;
-% %         if writeDownsampled
-% %             nd=n/ds;
-% %             m2d=Downsample(m2,nd);
-% %             disp(['Writing ' num2str(nd) ' pixels: ' mi.procPath mi.baseFilename 'ms.mrc']);
-% %             WriteMRC(m2d,mi.pixA*ds,[mi.procPath mi.baseFilename 'ms.mrc']);
-% %         end;
-% %     else
-% %         disp(['Micrograph file not written: ' mrcFilename]);
-% %         [~,s]=ReadMRC(mrcFilename,1,0); % Get just the header
-% %         n0=[s.nx s.ny];
-% %         n=NextNiceNumber(n0,5,8);  % new size, e.g. 3840 x 3840
-% %         mi.imageSize=n;
-% %     end;
-% %     if writeMiFile
-% %         disp(['Writing ' mi.baseFilename 'mi.txt']);
-% %         writeMiFile(mi);
-% %     end;
-% % end;
 
     function val=GetOptField(fieldName,ind)
         % if mic.(fieldName) doesn't exist, pick it up from the opt structure.

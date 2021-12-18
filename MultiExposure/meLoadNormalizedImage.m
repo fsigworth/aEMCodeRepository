@@ -7,7 +7,7 @@ function [mOut,M,ok,rawImg]=meLoadNormalizedImage(mi,targetSize,imgType,allowFra
 % assuming that we have normalization information in the mi structure.
 % rawImg=true if we loaded the raw micrograph, false if we loaded some sort
 % of merged (i.e. padded) image, even though we convert it to a padded
-% image anyway.
+% image anyway. If it's a raw image, we call RemoveOutliers() too.
 % We assume that the size of any 'small' merged image we read will be a submultiple
 % of mi.padImageSize, i.e. has an integer downsampling factor.
 % 
@@ -88,6 +88,7 @@ if ~ok && ~any(imgType=='v')
             error(['Micrograph size doesn''t match mi: ' num2str(size(m0)) ' vs ' num2str(mi.imageSize)]);
         end;
         mIn=Crop((m0-mi.imageMedian)*mi.imageNormScale,mi.padImageSize);
+        mIn=RemoveOutliers(mIn);
         rawImg=true;
         ok=true;
     end;

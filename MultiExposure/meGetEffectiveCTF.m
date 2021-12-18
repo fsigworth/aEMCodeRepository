@@ -1,16 +1,17 @@
 function c=meGetEffectiveCTF(mi,n,ds,mergeMode,nzeros)
 % function c=meGetEffectiveCTF(mi,n,ds,mergeMode,nzeros)
+% function c=meGetEffectiveCTF(mi,n,ds)
 % Given the micrograph info structure mi, the size n of the desired 2D ctf
 % and the downsampling ratio ds, return the effective ctf including the
-% effects of merging and CCD (after doing CCD pre-whitening).
+% effects of merging and the camera MTF.
 % By default, ds=mi.imageSize(1)/n.  You shouldn't use the default if n
 % represents a cropped image, e.g. a particle image. The default is used if
-% ds is given as 0.  The returned c has zero frequency in the center.  By
-% default c is non-negative.  mergeMode selects the various merging modes
-% in meComputeMergeCoeffs2(). if mergeMode=3 there is no phase-flipping,
-% and c is based on the first image's raw ctf. if mi.mergeMode exists, this
-% value is the default, otherwise the default is 1.
+% ds is given as 0.  The returned c has zero frequency in the center.
+% If mergeMode=3 (default) there is no phase-flipping,
+% and c is based on the first image's raw ctf; first peak is negative.
+% If mi.mergeMode exists, this value is the default, otherwise the default is 3.
 % fs 3 Sep 11, 15 Aug 16, 13 Nov 18
+% Mergemode default changed from 1 to 3: 2 Dec 21
 
 if numel(n)<2
     n=[1 1]*n;
@@ -22,7 +23,7 @@ if nargin<4
     if isfield(mi,'mergeMode')
         mergeMode=mi.mergeMode;
     else
-        mergeMode=1;
+        mergeMode=3; %%% Changed!
     end;
 end;
 mergeMode=max(1,mergeMode);

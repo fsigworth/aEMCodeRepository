@@ -231,10 +231,14 @@ end;
 %    Explicit lin least squares yields essentially the same result:    
     n2x=numel(v2x);
     f=zeros(n2x,2);
-    f(:,1)=sum(v2x(:));
+    f(:,1)=.01; % a small constant
     f(:,2)=v2x(:);
-    sVals=LinLeastSquares(f,mx(:));
-disp([ind s1 sVals(2)]);
+    if std(f(:,2))>1e-12 % typically around .01
+        sVals=LinLeastSquares(f,double(mx(:)));
+    else
+        sVals=[0 0];
+    end;
+%         disp([ind s1 sVals(2)]);
     s1=sVals(2);
 %    
     if displayOn

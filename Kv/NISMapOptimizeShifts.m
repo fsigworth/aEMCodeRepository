@@ -6,6 +6,7 @@
 % Variables expected:
 %     s, dsv,nIons, ptrsI, cdIs, mv
 %     we'll return cdIShifts(nIons,3)
+doDisplay=1;
 
 cdIShifts=zeros(nIons,3);
 range=5*dsv; % range, in pixels
@@ -29,7 +30,7 @@ for j=1:numel(ptrsI)
         yVals(1:range,j)=rVals(end:-1:2);
         yVals(range+1:2*range+1,j)=rVals;
         P=Simplex(-rVals(1));
-        if mod(i,10)==0
+        if mod(i,10)==0 && doDisplay
             disp(P);
 %             plot(xVals,yVals);
 %             drawnow;

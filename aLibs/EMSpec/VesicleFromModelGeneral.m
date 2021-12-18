@@ -42,7 +42,11 @@ if nargin<6
 end;
 
 a=a(:); % make it a column vector;
-nterms=numel(a);
+ptr=find(a==0,1,'last');
+if numel(ptr)>0
+    a(ptr:end)=[]; % remove trailing zeros.
+end;
+    nterms=numel(a);
 
 if numel(aw)<nterms
     aw(nterms)=0;  % extend the array.
