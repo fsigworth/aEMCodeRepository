@@ -31,7 +31,7 @@ dpars.scaleOriginalAmplitudes=1; % multiply amplitudes by this value
 
 dpars.writeSubMRC=1; % Write out subtracted image <basename>mv.mrc
 
-dpars.writeSmallMRC=0; % Write out image downsampled to M4. Otherwise, we 
+dpars.writeSmallMRC=1; % Write out image downsampled to M4. Otherwise, we 
 % match the size of any existing small image e.g. Merged_sm/*ms.mrc when we
 % write a small sub mrc.
 dpars.writeJpeg=1;

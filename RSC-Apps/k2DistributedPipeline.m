@@ -27,14 +27,14 @@ doMultiFindVesicles   = 0;
 %                  'KvLipo121_2w10_v3.7/';'KvLipo121_2w10_v3.8/'};
 %***
 doPrelimInverseFilter =0;
-doRefineVesicles      =0;
+doRefineVesicles      =1;
 forceRefineVesicles   =0;
 refineVesicleAmpsOnly=0;
 minRefineVesiclesSequence=0;  % 0 if don't consider.
 % minRefineVesiclesSequence=inf ;    % inf forces refinement
 doInverseFilter       =0;
 forceInverseFilter=0;
-maxAge=0;  % Re-run if the old file is older than this number of days.
+maxAge=1;  % Re-run if the old file is older than this number of days.
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
@@ -45,6 +45,7 @@ doPickingPreprocessor =1;
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/200707/';
 workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/200816/025015_1_1/';
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20211122/';
+infoDir='Info_xchg/';
 
 compressedDir=[workingDir 'Compressed/'];
 localWorkingDir=workingDir;
@@ -86,6 +87,7 @@ pars.doPreSubtraction=1;  % rsRefineVesicleFits: pre-subtract old vesicle fit.
 % pars.rTerms=[100 150 200 300  inf];
 pars.rTerms=[90 100 120 150 200 250 300 inf];
 pars.dsSmall=4; % downsampling of 'small' merged image
+pars.overwrite=0;
 
 pars.loadFilenames=0; % pick up allNames.mat in base directory
 pars.cpe=0;  % 0 means no change.
@@ -169,7 +171,7 @@ if pars.loadFilenames
     load allNames.mat
 else
     disp('Finding the mi files');
-    allNames=f2FindInfoFiles;
+    allNames=f2FindInfoFiles(infoDir);
 end;
 nNames=numel(allNames);
 disp([num2str(nNames) ' files total']);

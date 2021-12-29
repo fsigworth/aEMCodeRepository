@@ -19,20 +19,21 @@ pwd% rlMisToParticleStar.m
 % We can also write a vesicle star file which contains particle and vesicle
 % coordinates, for predicting psi angles from geometry.
 
-
+boxSize=256;
 
 % ----Our picking data----
 % First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
 % Then give the name here:
 % allMisName='Picking_9/allMis9_intens+frac_7505.mat';
 %allMisName='Picking_9/allMis_holes_i2_ov_cls.mat';
-allMisName='RSC1/allMis.mat';
+allMisName='RSC2/allMis.mat';
 
 % ----Inputs Micrograph star file
-inMicStarName='CtfFind/job003/micrographs_ctf.star'; % Existing file to read
+% inMicStarName='CtfFind/job003/micrographs_ctf.star'; % Existing file to read
+inMicStarName='CtfFind/job007/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
 
 % ----Output star files
-outStarDir='RSC1/';  % Place to put our particle star files
+outStarDir='RSC2/';  % Place to put our particle star files
 CheckAndMakeDir(outStarDir,1);
 
 useMergedUnsubMicrograph=0; % Look for Merged/_u.mrc for unsub micrographs.
@@ -62,7 +63,7 @@ setParticlesActive=1; % ignore particle.picks(:,10) flag.
 setMisActive=1; % ignore mi.active field.
 
 checkForMicrographs=1;
-skipLoadingMis=1;
+skipLoadingMis=0;
 
 if useMergedUnsubMicrograph
     unsubMicrographSuffix='_u.mrc';

@@ -6,7 +6,7 @@ function ShowSections( map, ctr, yAngle, options )
 % taken.  Default is FFT center, also taken when ctr=[].
 % The optional yAngle is the angle in degrees of the y-projection (Y' axis)
 % relative to the X-axis; default is 90.
-% if map is nxnxnxnim, we show multiple lines
+% if map is nxnxnxnim, we show multiple lines, 6 images per line.
 %
 % Now handls complex maps too:
 %   ShowSections(map,ctr,exponent)
@@ -95,7 +95,7 @@ end;
 
 for iSlice=1:nim
     % 1st column: X-Y plane
-    mysubplot(nr,nc,iSlice*nc0-5);
+    subplot1(nr,nc,iSlice*nc0-5);
     imdraw(xs,ys,map(:,:,cz,iSlice));
     if options.showLines
         hold on;
@@ -107,21 +107,15 @@ for iSlice=1:nim
             plot(yxs,yys,'g-');
         end;
         hold off;
-    end;
+    end
+    axis off equal
     if showRowLabels
-        xlabel(options.rowLabels{iSlice});
-        if ~options.showLabels && iSlice==1
+        title(options.rowLabels{iSlice});
+    elseif iSlice==1
             title('Sections XY');
-        end;
-    else
-        if options.showLabels
-            xlabel('X');
-        else % no labeling at all
-            axis off equal;
-        end;
     end;
     
-    mysubplot(nr,nc,iSlice*nc0-2);
+    subplot1(nr,nc,iSlice*nc0-2);
     imdraw(xs,ys,sum(map(:,:,:,iSlice),3));
     if options.showLines
         hold on;
@@ -147,7 +141,7 @@ for iSlice=1:nim
     end;
     
     % X-Z plane
-    mysubplot(nr,nc,iSlice*nc0-4);
+    subplot1(nr,nc,iSlice*nc0-4);
     imdraw(xs,zs,map(:,cy,:,iSlice));
     if options.showLines
         hold on;
@@ -166,7 +160,7 @@ for iSlice=1:nim
         end;
     end;
     
-    mysubplot(nr,nc,iSlice*nc0-1);
+    subplot1(nr,nc,iSlice*nc0-1);
     imdraw(xs,ys,sum(map(:,:,:,iSlice),2));
     if options.showLines
         hold on;
@@ -191,7 +185,7 @@ for iSlice=1:nim
     end;
     
     % Y-Z plane
-    mysubplot(nr,nc,iSlice*nc0-3);
+    subplot1(nr,nc,iSlice*nc0-3);
     imdraw(ys,zs,rotMap(cx,:,:,iSlice));
     if options.showLines
         hold on;
@@ -210,7 +204,7 @@ for iSlice=1:nim
         
     end;
     
-    mysubplot(nr,nc,iSlice*nc0);
+    subplot1(nr,nc,iSlice*nc0);
     imdraw(xs,ys,sum(rotMap(:,:,:,iSlice),1));
     if options.showLines
         hold on;
@@ -259,4 +253,9 @@ end;
         end;
         
     end
+    function subplot1(nr,nc,ind)
+%       mysubplot(nr,nc,ind,0,0,0,0);
+         subplot(nr,nc,ind);
+    end;
+    
 end

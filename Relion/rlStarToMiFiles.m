@@ -45,6 +45,13 @@ dpars.imagePath='Micrographs/'; % ...new image path
 % the actual image. Slower because each file is read.
 dpars.skipMissingMrcs=true; % Skip over any absent micrographs
 dpars.writeMiFile=1; % Write out each mi.txt file.
+
+dpars.infoPath='Info/';
+dpars.mergedPath='Merged/';
+dpars.mergedPath_sm='Merged_sm/';
+dpars.jpegPath='Jpeg/';
+dpars.jpegInvPath='JpegInv/';
+
 dpars.setProcImage=0; % Set proc path to image path (if not writing merged images)
 dpars.writeMergedImage=0;
 dpars.writeMergedSmall=1;
@@ -59,10 +66,10 @@ dpars.firstPeakAmp=.5;
 
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
+pars
+
 cd(pars.basePath);
 
-jpegPath='Jpeg/';
-jpegInvPath='JpegInv/';
 
 if isa(starName,'cell') % Contains output from ReadStarFile()
     names=starName{1};
@@ -106,6 +113,12 @@ for i=1:nLines
     if ~readOk
         error(['Error reading star file data at line ' num2str(i)]);
     end;
+    
+    mi.infoPath=pars.infoPath;
+    mi.procPath=pars.mergedPath;
+    mi.procPath_sm=pars.mergedPath_sm;
+
+
     if first
         if pars.writeMiFile && skipCount==0
             CheckAndMakeDir(mi.infoPath,1);
@@ -118,10 +131,10 @@ for i=1:nLines
             CheckAndMakeDir(mi.procPath_sm,1);
         end;
         if pars.writeJpeg
-            CheckAndMakeDir(jpegPath,1);
+            CheckAndMakeDir(pars.jpegPath,1);
         end;
         if pars.writeJpegInv
-            CheckAndMakeDir(jpegInvPath,1);
+            CheckAndMakeDir(pars.jpegInvPath,1);
         end;
     end;
     if pars.skipMissingMrcs % silently skip these lines.
@@ -148,8 +161,8 @@ for i=1:nLines
         
         if pars.writeMergedSmall || pars.writeJpeg || pars.writeJpegInv
             smallName=[mi.procPath_sm mi.baseFilename 'ms.mrc'];
-            jpegName=[jpegPath mi.baseFilename 'ms.jpg'];
-            jpegInvName=[jpegInvPath mi.baseFilename 'msinv.jpg'];
+            jpegName=[pars.jpegPath mi.baseFilename 'ms.jpg'];
+            jpegInvName=[pars.jpegInvPath mi.baseFilename 'msinv.jpg'];
             
             if pars.writeMergedSmall
                 WriteMRC(ms,mi.pixA*pars.dsSmall,smallName);
@@ -180,8 +193,10 @@ for i=1:nLines
         disp(['The first image median, normScale: ' num2str([mi.imageMedian mi.imageNormScale])]);
     end;
     
-    miName=WriteMiFile(mi);
-    disp([num2str(i) ': ' miName]);
-    first=false;
+    if pars.writeMiFile
+        miName=WriteMiFile(mi);
+        disp(['   ' num2str(i) ': ' miName]);
+        first=false;
+    end;
 end;
 
