@@ -5,11 +5,9 @@ insertVesiclePsis=0;
 
 % Load a particles.star file, may contsain a selected subset from Refine3D etc.
 % pStarName='Refine3D/job140/run_data.star';
-% pStarName='Refine3D/job056/run_data.star';  % Yangyu/20211122_farnam dataset
-pStarName='Refine3D/job082/run_data.star';  % 20211122_farnam (buf exchd)
+pStarName='Refine3D/job097/run_data.star';  % 2o0211122 dataset
 
 % Load a vesicle-particle file from the entire dataset.
-% vStarName='RSC1/ves_particles_v.star';
 vStarName='RSC2/ves_particles_v.star';
 
 

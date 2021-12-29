@@ -7,7 +7,7 @@
 % according to the defocus values.
 
 getNamesOnly=0;
-batchMode=1;  % Simply load everything we find in the Info directory, and write out
+batchMode=0;  % Simply load everything we find in the Info directory, and write out
 %               to the outPath.
 if batchMode
     outPath='';

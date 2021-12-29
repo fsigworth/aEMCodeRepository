@@ -2,8 +2,8 @@
 
 displayAngle=45;
 % displayAngle=90
-zFraction=.6; % relative Z-height of slice
-skipLoading=1;
+zFraction=.75; % relative Z-height of slice
+skipLoading=0;
 
 if ~(skipLoading && exist('maps','var'))
 [modelName,modelPath]=uigetfile('*model.star');
@@ -55,7 +55,7 @@ maps=zeros(n,n,n,nim,'single');
 opts=struct;
 opts.rowLabels=cell(nim,1);
 for i=1:nim
-    probString=num2str(mapProbs(i));
+    probString=num2str(mapProbs(i),3);
     disp([mapNames{i} '  ' probString]);
     opts.rowLabels{i}=probString;
     maps(:,:,:,i)=ReadMRC(mapNames{i});
@@ -65,7 +65,8 @@ end; % if ~skipLoading
 n=size(maps,1);
 n2=ceil((n+1)/2);
 nz=round(n*zFraction);
-ShowSections(maps,[n2,n2,nz],displayAngle); % not using opts because ShowSections can't make labels.
+ShowSections(maps(:,:,[1 5 6 9]),[n2,n2,nz],displayAngle,opts); % not using opts because ShowSections can't make labels.
+%ShowSections(maps(:,:,:,[1 5 6 9]),[n2,n2,nz],displayAngle); % not using opts because ShowSections can't make labels.
 
 return;
 

@@ -13,7 +13,7 @@ if nargin<5
     xs=.03;
     ys=.025;
 end;
-if nargin<6
+if nargin<7
     xo=0;
     yo=0;
 end;
