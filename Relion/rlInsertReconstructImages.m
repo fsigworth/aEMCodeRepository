@@ -7,12 +7,14 @@
 %  000001@Extract/job220/Merged/001_X-1Y-1-2_u.mrcs 
 % so we have to copy the image index, replace the path and the final character of the name.
 
-newPath='Extract/job282/Merged/'
-newSuffix='u'
-nSuffChars=numel(newSuffix);
+newPath='Extract/job068/C15-2/' % Where to find the _u particles.
+newSuffix='';
+oldSuffix='_v';
+nSuffChars=numel(oldSuffix);
 
-particleStarName='Extract/job281/particles.star'
-outStarName='~/hd0/temp/RSC9/Extract281_VplusU_particles.star_test';
+% particleStarName='Extract/job281/particles.star'
+particleStarName='Refine3D/job056/run_data.star'
+outStarName='RSC1/Refine3D056_VplusU_particles.star';
 
 disp(['Reading ' particleStarName]);
 [pnms,pdats]=ReadStarFile(particleStarName);

@@ -665,7 +665,7 @@ for i=1:nim
     disp([num2str(mi.ctf(i).defocus,3) 'um.  dose: ' num2str(mi.doses(i),3)]);
 end;
 h.sav.baseName=mi.baseFilename;
-mi.ctf.B=100;
+mi.ctf.B=60;
 
 
 [h, ok]=GetImageFile(mi,h);

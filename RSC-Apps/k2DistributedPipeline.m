@@ -6,6 +6,7 @@
 
 f2Mode        =0;  % 0 means k2 data
 serialMode    =0;   % go through all the steps before moving to next micrograph
+% -- currently doesn't work with serialMode=0 !
 %checkLogs     =0;  % not yet in use.
 
 findUnfinished=0; % Don't process data, just make a new allNamesUnf.mat file.
@@ -33,7 +34,7 @@ minRefineVesiclesSequence=0;  % 0 if don't consider.
 % minRefineVesiclesSequence=inf ;    % inf forces refinement
 doInverseFilter       =0;
 forceInverseFilter=0;
-maxAge=.001;  % if the corresponding log entry has a date stamp < minAge
+maxAge=0;  % Re-run if the old file is older than this number of days.
 % days before the present we go ahead and re-run the
 % function.  So, to re-run processing if the latest log entry is < 1 day old,
 % set minAge=1.
@@ -43,7 +44,7 @@ doPickingPreprocessor =1;
 
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/200707/';
 workingDir='/gpfs/ysm/scratch60/sigworth/hs468/DataFromRIKEN/200816/025015_1_1/';
-workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20210216/';
+workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20211122/';
 
 compressedDir=[workingDir 'Compressed/'];
 localWorkingDir=workingDir;
@@ -52,7 +53,7 @@ logDir='Log/';
 createMiFiles=0;
 
 pars=struct;
-pars.overwrite=1;
+pars.overwrite=0;
 pars.useParfor=0;
 
 pars.forceTracking=0;  % Drift Tracker
@@ -82,8 +83,8 @@ pars.UsePWFilter=doPrelimInverseFilter;
 
 % ---for rsRefineVesicleFits----
 pars.doPreSubtraction=1;  % rsRefineVesicleFits: pre-subtract old vesicle fit.
-pars.rTerms=[100 150 200 300  inf];
-
+% pars.rTerms=[100 150 200 300  inf];
+pars.rTerms=[90 100 120 150 200 250 300 inf];
 pars.dsSmall=4; % downsampling of 'small' merged image
 
 pars.loadFilenames=0; % pick up allNames.mat in base directory
@@ -216,6 +217,7 @@ while iName(end)<=numJobNames
         [logSequence,dates]=miDecodeLog(mi);
     else
         logSequence=true(1,10);
+        dates=zeros(1,10);
     end;
     
     % find jump (sequence 1)

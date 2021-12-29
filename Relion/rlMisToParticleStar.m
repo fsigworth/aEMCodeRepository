@@ -1,4 +1,4 @@
-% rlMisToParticleStar.m
+pwd% rlMisToParticleStar.m
 % Given a set of mi files and a micrographs_ctf.star file,
 % create two particles.star files that can be used by
 % Relion's particle extraction jobs. One is for unsubtracted and one is for
@@ -25,17 +25,17 @@
 % First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
 % Then give the name here:
 % allMisName='Picking_9/allMis9_intens+frac_7505.mat';
-allMisName='Picking_9/allMis_holes_i2_ov_cls.mat';
-%allMisName='allMis.mat';
+%allMisName='Picking_9/allMis_holes_i2_ov_cls.mat';
+allMisName='RSC1/allMis.mat';
 
 % ----Inputs Micrograph star file
-inMicStarName='CtfFind/job029/micrographs_ctf.star'; % Existing file to read
+inMicStarName='CtfFind/job003/micrographs_ctf.star'; % Existing file to read
 
 % ----Output star files
-outStarDir='RSC9/';  % Place to put our particle star files
+outStarDir='RSC1/';  % Place to put our particle star files
 CheckAndMakeDir(outStarDir,1);
 
-useMergedUnsubMicrograph=1; % Look for Merged/_u.mrc for unsub micrographs.
+useMergedUnsubMicrograph=0; % Look for Merged/_u.mrc for unsub micrographs.
 % We'll also write the new micrographs_ctf_unsub.star file.
 usePaddedSubMicrograph=0; % Look for Merged/*mv.mrc for padded micrographs.
 % Otherwise, look for Merged/*_v.mrc files.
@@ -46,14 +46,14 @@ writeMicrographStarV=1;
 
 outParticleStarBasename='particles';
 writeParticleStarU=1;
-writeParticleStarV=0;
+writeParticleStarV=1;
 
 %   If desired, we write a subtracted file with vesicle coordinates and particle angles too.
 outVesicleStarNameV=['ves_' outParticleStarBasename '_v.star'];
-writeVesicleStar=0;
-writeVesicleMat=0;
+writeVesicleStar=1;
+writeVesicleMat=1;
 
-useGroupsFromMi=1; % Read the assigned group no. from mi.ok(20)
+useGroupsFromMi=0; % Read the assigned group no. from mi.ok(20)
 % OR ELSE just use an incrementing index of micrographs, with
 minGroupParts=200; % minimun number of particles in a group
 maxNMicrographs=inf; % limit the number of micrographs to consider
@@ -62,7 +62,7 @@ setParticlesActive=1; % ignore particle.picks(:,10) flag.
 setMisActive=1; % ignore mi.active field.
 
 checkForMicrographs=1;
-
+skipLoadingMis=1;
 
 if useMergedUnsubMicrograph
     unsubMicrographSuffix='_u.mrc';
@@ -89,14 +89,16 @@ end;
 disp([num2str(nMics) ' micrographs in star file.']);
 disp(' ');
 
-inMicPath=fileparts(mic.rlnMicrographName{1}); % pick up the path from the first one.
+%inMicPath=fileparts(mic.rlnMicrographName{1}); % pick up the path from the first one.
 
 uMicNames=cell(nMics,1);
 vMicNames=cell(nMics,1);
 % %
 
+if ~skipLoadingMis
 disp(['Loading ' allMisName ' ...']);
 load(allMisName); % Get allMis cell array
+end;
 ni=numel(allMis);
 disp([num2str(ni) ' mi files']);
 disp(' ');
@@ -108,37 +110,55 @@ partSubMicName=cell(1,1);
 partUnsubMicName=cell(1,1);
 
 ves=struct; % structure for the vesicle info
-outOpt=opt;
-
+outOpt=opt; % copy the optics from the micrograph.star
+nOpt=numel(outOpt.rlnOpticsGroup);
+    outOpt.rlnImageSize=boxSize*ones(nOpt,1);
+    outOpt.rlnImageDimensionality=2*ones(nOpt,1);
+    
 boxSize=256; % nominal starting size
 FlagRange=[16 32]; % flags for valid particles
 groupIndex=1; % if we're not reading from mi.ok
 groupParts=0;
 nTotal=0; % particle counter
-j=0; % line counter
 pSkip=0; % counter of micrographs with no particles
 zSkip=0; % counter of micrographs with group=0
 nSkip=0; % total micrographs skipped.
 miSkip=0; % no. mi files skipped.
-nBad=0;  % counter for mismatched micrograph names
-namesMatched=1;
 
 disp('Accumulating the structures. List: line; micrograph; particles; total particles.');
 for i=1:ni
     mi=allMis{i};
-    if ~isfield(mi,'opticsGroup')
-        mi.opticsGroup=1;
-    end;
-    if i==1 % pick up optics parameters from the very first mi file, and
-        %         put in a few more fields.
-        nlOpt=numel(outOpt.rlnOpticsGroup);
-        outOpt.rlnImagePixelSize=outOpt.rlnMicrographPixelSize; % copy the vector
-        outOpt.rlnImageSize(1:nlOpt,1)=boxSize; % we're setting the default particle image size.
-        outOpt.rlnImageDimensionality(1:nlOpt,1)=2;
-        outOpt=rmfield(outOpt,'rlnMicrographPixelSize');
-    end;
+%     if ~isfield(mi,'opticsGroup')
+%         mi.opticsGroup=1;
+%     end;
+%     if i==1 % pick up optics parameters from the very first mi file, and
+%         %   the input star file.
+%         nlOpt=numel(outOpt.rlnOpticsGroup);
+%         outOpt=opt;
+% %         outOpt.rlnImagePixelSize=outOpt.rlnMicrographPixelSize; % copy the vector
+% %         outOpt.rlnImageSize(1:nlOpt,1)=boxSize; % we're setting the default particle image size.
+% %         outOpt.rlnImageDimensionality(1:nlOpt,1)=2;
+% %         outOpt=rmfield(outOpt,'rlnMicrographPixelSize');
+%     end;
 
             %         Get the micrograph names
+            fullImageName=[mi.imagePath mi.imageFilenames{1}];
+            match=strcmp(fullImageName,mic.rlnMicrographName);
+            micStarLine=find(match);
+            if numel(micStarLine)<1
+                disp(['Image name couldn''t be matched. mi: ' fullImageName ' typical Star name: ' mic.rlnMicrographName{i}]);
+                nSkip=nSkip+1;
+                continue
+            elseif numel(micStarLine)>1
+                disp(['?duplicate micrograph names in star file? ' fullImageName]);
+            end;
+            micStarLine=micStarLine(1); % This is the index into the micrographs.star file.
+            % Pick up parameters from the mic star file.
+            opticsGroup=mic.rlnOpticsGroup(micStarLine);
+            ctfMaxRes=mic.rlnCtfMaxResolution(micStarLine);
+            ctfFOM=mic.rlnCtfFigureOfMerit(micStarLine);
+            
+            
         if useMergedUnsubMicrograph
             newUnsubMicName=[mi.procPath mi.baseFilename '_u.mrc'];
         else
@@ -151,31 +171,29 @@ for i=1:ni
             newSubMicName=[mi.procPath mi.baseFilename '_v.mrc'];
         end;
         
-        % We might have new files missing.
-        
-    [oldMicPath, oldMicBasename]=fileparts(mic.rlnMicrographName{i});
-    nmLength=numel(oldMicBasename);
-    [~,newVMicBasename]=fileparts(newSubMicName);
-    [~,newUMicBasename]=fileparts(newUnsubMicName);
-    if ~strncmp(oldMicBasename,newVMicBasename,nmLength) ...
-          || ~strncmp(newUMicBasename,newVMicBasename,nmLength)% should match up to the end
-      disp([ oldMicBasename '  ' newVMicBasename '  ' newUMicBasename]);
-      return     
-    end;
+%         % We might have new files missing.
+%         
+%     [oldMicPath, oldMicBasename]=fileparts(mic.rlnMicrographName{j});
+%     nmLength=numel(oldMicBasename);
+%     [~,newVMicBasename]=fileparts(newSubMicName);
+%     [~,newUMicBasename]=fileparts(newUnsubMicName);
+%     if ~strncmp(oldMicBasename,newVMicBasename,nmLength) ...
+%           || ~strncmp(newUMicBasename,newVMicBasename,nmLength)% should match up to the end
+%       disp(['Discrepancy: ' oldMicBasename '  ' newVMicBasename '  ' newUMicBasename]);
+%       return     
+%     end;
     
     vMicNames{i}=newSubMicName; % replace the micrograph name.
     uMicNames{i}=newUnsubMicName;
-    if mic.rlnOpticsGroup(i)~=mi.opticsGroup % not one to one
-        error(['Discrepancy in optics group indices at ' num2str(i)]);
-    end;
-
+    
     if useGroupsFromMi
         groupIndex=mi.ok(20); % a zero groupIndex means a bad micrograph
         if groupIndex==0
-            zSkip=zSkip+1;
+            nSkip=nSkip+1;
+            continue;
         end;
     end;
-
+        
     % Now starts code that is conditional on particle number.
     if isfield(mi.particle,'picks') && numel(mi.particle.picks)>0 && groupIndex>0
         % ----- Accumulate the particle star data -----
@@ -200,8 +218,6 @@ for i=1:ni
         ys=mi.particle.picks(active,2);
         amps=mi.particle.picks(active,5);
         
-        
-        
         if mod(i,1000)==0
             disp(sprintf('%7d  %s %4d %8d',i,mi.baseFilename,nParts,nParts+nTotal));
             if checkForMicrographs
@@ -220,8 +236,14 @@ for i=1:ni
         iend=nTotal+nParts;
         pts.rlnCoordinateX(istart:iend,1)=xs;
         pts.rlnCoordinateY(istart:iend,1)=ys;
+        pts.rlnClassNumber(istart:iend,1)=1;
         pts.rlnAutopickFigureOfMerit(istart:iend,1)=amps;
-        
+        pts.rlnAnglePsi(istart:iend,1)=-999; % We could assign these...
+        pts.rlnOpticsGroup(istart:iend,1)=opticsGroup;
+        % no image name, just micrograph name...
+        partUnsubMicName(istart:iend,1)={newUnsubMicName}; % The only fields that differ.
+        partSubMicName(istart:iend,1)={newSubMicName};       
+%         
         pts.rlnGroupName(istart:iend,1)={['group_' num2str(groupIndex)]};
         if ~useGroupsFromMi
             groupParts=groupParts+nParts;
@@ -232,17 +254,21 @@ for i=1:ni
                 groupIndex=groupIndex+1;
             end;
         end;
+        
         % For reference, this is how we got the mi.ctf parameters from the original star files:
         % mi.ctf.defocus=(mic.rlnDefocusU(iLine)+mic.rlnDefocusV(iLine))/2e4;
         % mi.ctf.deltadef=(mic.rlnDefocusU(iLine)-mic.rlnDefocusV(iLine))/2e4;
         % mi.ctf.theta=mic.rlnDefocusAngle(iLine)*pi/180;
-        
+        %         pts.rlnAstigmatism(istart:iend,1)=-mi.ctf.deltadef*1e4;
+ 
         pts.rlnDefocusU(istart:iend,1)=(mi.ctf.defocus+mi.ctf.deltadef)*1e4;
         pts.rlnDefocusV(istart:iend,1)=(mi.ctf.defocus-mi.ctf.deltadef)*1e4;
-        %         pts.rlnAstigmatism(istart:iend,1)=-mi.ctf.deltadef*1e4;
-        pts.rlnDefocusAngle(istart:iend,1)=mi.ctf.theta*180/pi;
-        pts.rlnOpticsGroup(istart:iend,1)=mi.opticsGroup;
-        
+        % not assigned: CtfBfactor, CtfMaxResolution, CtffigureOfMerit
+        pts.rlnDefocusAngle(istart:iend,1)=mi.ctf.theta*180/pi;%         pts.rlnOpticsGroup(istart:iend,1)=mi.opticsGroup;
+        pts.rlnCtfScalefactor(istart:iend,1)=1;
+        pts.rlnPhaseShift(istart:iend,1)=0;
+        pts.rlnCtfMaxResolution(istart:iend,1)=ctfMaxRes;
+        pts.rlnCtfFigureOfMerit(istart:iend,1)=ctfFOM;
         % ----- Accumulate the vesicle star -----
         rsos=mi.particle.picks(active,7); % rso flags
         vInds=mi.particle.picks(active,4); %vesicle indices
@@ -273,8 +299,6 @@ for i=1:ni
 %        pts.vesicleRadius(istart:iend,1)=vrs;
 %        pts.vesiclePsi(istart:iend,1)=vpsis;
         
-        partUnsubMicName(istart:iend,1)={newUnsubMicName}; % The only fields that differ.
-        partSubMicName(istart:iend,1)={newSubMicName};
         
         nTotal=iend;
     else
@@ -303,7 +327,7 @@ vMics.rlnMicrographName=vMicNames;
 
 % --Prepare the particles.star structure
 % Fill in the constant fields
-pts.rlnClassNumber(1:nTotal,1)=1;
+% pts.rlnClassNumber(1:nTotal,1)=1;
 % pts.rlnAnglePsi(1:nTotal,1)=-999; % Alas!! this field causes Extract to hang.
 
 uPts=pts;

@@ -233,12 +233,17 @@ end;
     f=zeros(n2x,2);
     f(:,1)=.01; % a small constant
     f(:,2)=v2x(:);
+<<<<<<< HEAD
     if std(f(:,2))>1e-12 % typically around .01
         sVals=LinLeastSquares(f,double(mx(:)));
     else
         sVals=[0 0];
     end;
 %         disp([ind s1 sVals(2)]);
+=======
+    sVals=LinLeastSquares(f,mx(:));
+% disp([ind s1 sVals(2)]);
+>>>>>>> 9b0195765ed89cad40793ee158489cb02a87406c
     s1=sVals(2);
 %    
     if displayOn

@@ -93,6 +93,20 @@ if ~ok && ~any(imgType=='v')
         ok=true;
     end;
 end;
+if ~ok && any(imgType=='v')
+        % try for reading an image of the raw micrograph size. We then subtract the median and
+    %     scale it to reflect fractional image intensity, and pad it.
+    fullImageName=[mi.procPath mi.baseFilename '_v.mrc']; % expect a *_v.mrc file in the Merged/ directory.
+    if exist(fullImageName,'file')
+        m0=single(ReadEMFile(fullImageName));
+        if ~all(size(m0)==mi.imageSize)
+            error(['Micrograph size doesn''t match mi: ' num2str(size(m0)) ' vs ' num2str(mi.imageSize)]);
+        end;
+        mIn=Crop((m0-mi.imageMedian)*mi.imageNormScale,mi.padImageSize);
+        rawImg=true;
+        ok=true;
+    end;
+end;
 
 if ok
 %     Fill in the scaling of the image we read in.

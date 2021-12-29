@@ -173,13 +173,16 @@ for iRound=1:nRounds % we'll do one round if nTerms(1)=0
         if numel(p.vr)<nTermsRound
             p.vr(1,nTermsRound)=0; % pad with zeros
         end;
-disp(nParsRound);
+%disp(nParsRound);
         p.initPars=unpack(p.vr,nTermsRound);
         p.simpMask=false(1,nPars);
         p.simpMask(1:nParsRound)=true;
         p.simpSteps=startingSteps;
         p.simpSteps(1:oldnParsRound)=startingSteps(1:oldnParsRound)*stepFraction;
-        
+        if iRound>1
+            p.simpSteps(1)=p.simpSteps(1)/10; % suppress the round part.
+            p.simpSteps(2:end)=p.simpSteps(2:end)*5;
+    end;
         [p.vr,s,t,err,vesFit]=SimplexFit(p,nIters(iRound));
         %         p.vr=vr1;  % update the starting radius
     else % Just doing a linear fit of amplitudes

@@ -3,8 +3,10 @@ function [map,s,hdr,extraHeader]=ReadMRC(filename,startSlice, numSlices,test)
 % function map=ReadMRC(filename);  --all defaults.   Or,
 % function [map,s]=ReadMRC(filename,startSlice, numSlices,test)  or,
 % function [fh,s]=ReadMRC(filename,startSlice,-1,test)
-% Read a 3D map from an .mrc file and return a structure containing various parameters read from the file.
-% This function reads 2d and 3d real maps in byte, int16 and float32 modes.
+% function [map,s,hdr,extraHeader]=ReadMRC(...)
+% Read a 3D map from an .mrc file and return a structure containing various
+% parameters read from the file. This function reads 2d and 3d real maps in
+% byte, int16, uint16 and float32 modes. Also packed-byte and float16.
 % s.nz gives the total number of slices, and calling [m s]=ReadMRC(name,1,0)
 % will give you that value.  startSlice starts at 1.
 % The test argument is a boolean.  If true, diagnostic information is
@@ -14,7 +16,8 @@ function [map,s,hdr,extraHeader]=ReadMRC(filename,startSlice, numSlices,test)
 % data.  For example,
 %   [h s]=ReadMRC(name,1,-1);
 %   for i=1:s.nz
-%       m1=fread(h,s.nx*s.ny,s.string);
+%       m1=fread(h,s.nx*s.ny,s.string); % (m1 may need unpacking or conversion
+% %        for modes 12, 32, 101)
 %       m1=reshape(m1,s.nx,s.ny);
 %        --do something with m1--
 %   end;
@@ -35,8 +38,9 @@ function [map,s,hdr,extraHeader]=ReadMRC(filename,startSlice, numSlices,test)
 % s.pixA=s.rez/s.mx.  The minimum, maximum and average pixel values are
 % returned as s.mi, s.ma and s.ma.fs 10 Jul 11
 %
-% Added support for packed bytes (we called it mode 32 but SerialEM calls
-% it mode 101. Both are recognized. The result is returned as uint8s fs 17 Sep 13 
+% Added support for packed bytes. (We called it mode 32 but SerialEM calls
+% it mode 101. Both are recognized.) The result is returned as uint8s fs 17 Sep 13 
+% Added support for half-precision float16, mode 12. fs 23 Dec 21
 % Added s.err to give an error message when the file is incomplete.
 % s.err=1 means the header was read, but not enough data;
 % s.err=2 means the file didn't even contain a complete header.
@@ -74,7 +78,7 @@ end;
 % We first try for little-endian data
 f=fopen(filename,'r','ieee-le');
 if f<0
-    error(['in ReadMRC the file could not be opened: ' filename])
+    error(['the file could not be opened: ' filename])
 end;
 
 % Check the file size
@@ -160,6 +164,7 @@ s.pixA=s.rez/s.mx;
 
 nx1=s.nx;
 packedBytes=0;
+halfPrecision=0;
 switch s.mode
     case 0
         string='*uint8';
@@ -172,6 +177,9 @@ switch s.mode
         pixbytes=4;
     case 6
         string='*uint16';
+    case 12
+        string='*uint16'; % read as 16 bit, then typecast
+        halfPrecision=1;
     case {32 101}
         packedBytes=1;
         string='*uint8';
@@ -244,6 +252,10 @@ if packedBytes  % have to unpack bytes
     else
         map=reshape(tempMap,[s.nx s.ny nz]);
     end;
+end;
+
+if halfPrecision % convert uint16 to half-precision float
+    map=typecast(map,'half');
 end;
 
 if nargout>2 % We read an image of the header

@@ -281,6 +281,7 @@ for j=1:nvToFit  % Loop over vesicles
             rStep=pars.radiusStepsA/miInput.pixA;
             newR1=max(miInput.vesicle.r(ind,1)+rStep(jr),minRadiusA/miInput.pixA);
             miInput.vesicle.r(ind,1)=newR1; % Replace the constant radius
+            
             %      --------------nonlinear fitting---------------
             [miTemps{jr},fitIms,vesFits]=rsQuickFitVesicle2(msf-vsf,vs1f,msmask,miInput,...
                 ind,ndsCTF.*ndsPW,ps,displayOn);

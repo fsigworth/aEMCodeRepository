@@ -13,6 +13,9 @@ function m1=rspCTFInverseFilter(m,mi,compFraction,pars)
 %   padImageSize (or imageSize if padImageSize not given)
 %   ctf
 
+if nargin<4
+    pars=struct;
+end;
 % Here are default parameters
 dPars.phaseFlip=1;
 dPars.firstPeakAmp=.5;  % Constrained amplitude during first peak
