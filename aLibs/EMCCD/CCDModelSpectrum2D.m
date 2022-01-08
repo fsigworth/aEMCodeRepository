@@ -26,8 +26,10 @@ switch iCamera
         n0=[3072 4096];
     case 5
         n0=[3840 3840];  % k2 camera
+    case 7
+        n0=[5760 4096]; % k3 camera
     otherwise
-        n0=[4096 4096]; % indices 1,2,4,7
+        n0=[4096 4096]; % indices 1,2,4
 end;
 if nargin<2
     n=n0;

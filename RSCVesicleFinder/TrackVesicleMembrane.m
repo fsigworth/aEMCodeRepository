@@ -57,8 +57,8 @@ numRefined=0;
 
 for ind=startInd:nv;
 %   Pick up the vesicle x,y and radius in our image
-    cx=(mi.vesicle.x(ind)-h.M2(1,3))/ds0+1;
-    cy=(mi.vesicle.y(ind)-h.M2(2,3))/ds0+1;
+    cx=(mi.vesicle.x(ind)-h.M2(1,3))/ds0+1;  % one-based local coords
+    cy=(mi.vesicle.y(ind)-h.M2(2,3))/ds0+1;  % equiv to c=M2\[vesiclexy]+1
     cr=mi.vesicle.r(ind,1)/ds0;
     if ~mi.vesicle.ok(ind,1) || cr<minRadiusA/pixA % skip nonexistent or small vesicles
         continue
@@ -66,8 +66,8 @@ for ind=startInd:nv;
     % r0=ceil(shiftWidthA/pixA); % shift of polar coordinates to include the peak
 %   Make a centered vesicle model
     mi1=mi;
-    mi1.vesicle.x=imctr(1);
-    mi1.vesicle.y=imctr(2);
+    mi1.vesicle.x=imctr(1)-1; % zero-based center of our image
+    mi1.vesicle.y=imctr(2)-1;
     mi1.vesicle.r=mi.vesicle.r(ind,1);
     vModel=meMakeModelVesicles(mi1,scl,1,0,0);
     vModel=real(ifftn(fftn(vModel).*ifftshift(effCTF))); % apply ctf
@@ -75,10 +75,10 @@ for ind=startInd:nv;
     % Extract the vesicle from the image, and the model
     r0=round(cr);
     nx=NextNiceNumber(8*r0);  % make a box with room for 4 x nominal radius
-    mx=ExtractImage(m,round([cx cy]),nx);
-    vx=ExtractImage(vModel,ceil((n+1)/2),nx);
+    mx=ExtractImage(m,round([cx cy]),nx); % Image centered on ves. center
+    vx=ExtractImage(vModel,ceil((n+1)/2),nx); % Corresponding model
     [x,y]=CircleLineSegments(mi1.vesicle.r/ds0,10);
-    xi=double(round(x+nx/2+1));
+    xi=double(round(x+nx/2+1)); % nx is always even
     yi=double(round(y+nx/2+1));
     if displayOn
         subplot(231);
@@ -233,17 +233,12 @@ end;
     f=zeros(n2x,2);
     f(:,1)=.01; % a small constant
     f(:,2)=v2x(:);
-<<<<<<< HEAD
     if std(f(:,2))>1e-12 % typically around .01
         sVals=LinLeastSquares(f,double(mx(:)));
     else
         sVals=[0 0];
     end;
 %         disp([ind s1 sVals(2)]);
-=======
-    sVals=LinLeastSquares(f,mx(:));
-% disp([ind s1 sVals(2)]);
->>>>>>> 9b0195765ed89cad40793ee158489cb02a87406c
     s1=sVals(2);
 %    
     if displayOn

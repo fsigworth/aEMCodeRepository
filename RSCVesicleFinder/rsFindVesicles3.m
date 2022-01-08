@@ -274,8 +274,11 @@ else % m is a string, 'next' or 'end'
                         t.nfound=t.nfound+1; %%%%% increment nfound
                         t.mi.vesicle.r(t.nfound,1)=refri*t.ds;
 %                         We allow vesicle x and y to be out of bounds.
-                        t.mi.vesicle.x(t.nfound,1)=(jx-1-t.borderShift(1))*t.ds+1-t.dsShift(1);
-                        t.mi.vesicle.y(t.nfound,1)=(jy-1-t.borderShift(2))*t.ds+1-t.dsShift(2);
+%                       t.mi.vesicle.x(t.nfound,1)=(jx-1-t.borderShift(1))*t.ds+1-t.dsShift(1);
+%                       t.mi.vesicle.y(t.nfound,1)=(jy-1-t.borderShift(2))*t.ds+1-t.dsShift(2);
+                     % Output global coords are zero based:
+                        t.mi.vesicle.x(t.nfound,1)=(jx-1-t.borderShift(1))*t.ds-t.dsShift(1);
+                        t.mi.vesicle.y(t.nfound,1)=(jy-1-t.borderShift(2))*t.ds-t.dsShift(2);
                         t.mi.vesicle.s(t.nfound,1)=ampi/(1-fracMasked);
                         t.mi.vesicle.ok(t.nfound,1:4)=[1 flag 0 0];  % flag indicates a vesicle in bounds.
                         vref=ampi*circshift(t.rrefs(:,:,jz),round([jx jy]-nsx/2-1));

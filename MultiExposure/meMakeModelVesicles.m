@@ -13,7 +13,7 @@ function [v,hFilt]=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % mi.vesicle.ok that are all 1s.
 % If the second argument is an image, then n is taken as size(img) and the
 % final v is scaled to match img by least-squares.
-% If the second argument is a struct we assum it's
+% If the second argument is a struct we assume it's
 %   sclStruct.n size of the output image
 %   sclStruct.M image scale matrix from meGetImageScale() which is used in
 %   interpreting the vesicle coordinates.
@@ -94,10 +94,9 @@ vd=meDownsampleVesicleModel(mi.vesicleModel,ds)*ds*mi.pixA;
 nim=numel(vindex);
 sumv=single(zeros(n));
 nv=numel(mi.vesicle.x);
-% Transform from original micrograph coordinates to local coords
+% Transform from original micrograph coordinates (zero-based) to local coords
 globalXY=[mi.vesicle.x mi.vesicle.y ones(nv,1)]';
-% vesXY=1+M\globalXY;
-vesXY=M\globalXY; % zero-based local coordinates.
+vesXY=M\globalXY+1; % one-based local coordinates. %%%%%%%
 for k=1:nim
     ind=vindex(k);
     % Get the coordinates and radius, scaled down by ds
