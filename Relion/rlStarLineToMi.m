@@ -125,6 +125,10 @@ mi.camera=pars.cameraIndex;
 mi.cpe=pars.cpe;
 mi.weights=1;
 
+if isfield(mic,'rlnOpticsGroup')
+    mi.opticsGroup=mic.rlnOpticsGroup(iLine);
+end;
+
 %     CTF parameters
 mi.ctf=struct;
 mi.ctf.defocus=(mic.rlnDefocusU(iLine)+mic.rlnDefocusV(iLine))/2e4;
