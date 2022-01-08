@@ -7,7 +7,8 @@ function rlStarToMiFiles(starName,pars)
 % to contain the mi files.
 % If the first argument is missing or is '' a file selector is put up.
 % If the first argument starCells is a cell array, it contains the outputs from
-% ReadStarFile() so the file doesn't have to be read again.
+% ReadStarFile() so the file doesn't have to be read again; in that case
+% starName = {names dat}.
 % The optinal second argument pars is a struct; see below for defaults.
 
 if nargin<1
@@ -20,7 +21,7 @@ end;
 dpars=struct; % Set up the defaults.
 
 dpars.basePath=pwd; % assume we're in the relion project directory
-dpars.cameraIndex=5; % K2
+dpars.cameraIndex=7; % K2
 % dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
 dpars.cpe=14/4; % K3 is scaled up by 16, but mc2 handles superres incorrecly
 
@@ -35,7 +36,7 @@ dpars.scaleMode=0; % 0: K3 micrographs, already normalized; imageNormScale set t
 % 1: read micrograph and scale for k2
 % 2: estimate stats from noise
 dpars.BFactor=40; % Used by my CTF functions. Not critical.
-dpars.noDamageModel=1; % No damage filtering.
+dpars.noDamageModel=1; % No damage filtering in calculating effCTF.
 
 dpars.changeImagePath=0; % change from the path given in the star file
 dpars.imagePath='Micrographs/'; % ...new image path
@@ -61,6 +62,7 @@ dpars.compFraction=0.3;
 dpars.dsSmall=4; % downscaling for Small and jpeg
 dpars.disHP=0;
 dpars.disFc=.4;
+dpars.firstLine=1;
 dpars.lastLine=inf;
 dpars.firstPeakAmp=.5;
 
@@ -90,8 +92,8 @@ end;
 
 [~,~,~,nLines]=rlStarLineToMi(names,dat,0);
 disp([num2str(nLines) ' entries.']);
-nLines=min(nLines,pars.lastLine);
-disp([num2str(nLines) ' to process.']);
+endLine=min(nLines,pars.lastLine);
+disp([num2str(endLine-pars.firstLine+1) ' to process.']);
 
 if pars.skipMissingMrcs
     disp('Skipping lines with no micrographs');
@@ -101,7 +103,7 @@ end;
 first=true;
 skipCount=0;
 oldImageName='';
-for i=1:nLines
+for i=pars.firstLine:endLine
     newName=dat{end}.rlnMicrographName{i};
     if strcmp(newName,oldImageName)
         continue;
@@ -191,12 +193,12 @@ for i=1:nLines
     %     end;
     if first
         disp(['The first image median, normScale: ' num2str([mi.imageMedian mi.imageNormScale])]);
+        first=false;
     end;
     
     if pars.writeMiFile
         miName=WriteMiFile(mi);
         disp(['   ' num2str(i) ': ' miName]);
-        first=false;
     end;
 end;
 
