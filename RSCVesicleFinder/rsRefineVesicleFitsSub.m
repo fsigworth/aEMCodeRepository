@@ -24,9 +24,12 @@ dpars.disA=1200;  % display/fitted window size in angstroms
 dpars.M4=zeros(3,3,'single');
 dpars.M8=zeros(3,3,'single');
 dpars.nRoundIters=300;  % simplex iters
+dpars.fHP=.003; % 300 A Gauss high-pass filter for fitting
 
 % Merge the defaults with the given mpars
 pars=SetOptionValues(dpars,pars);
+
+pars.doPreSubtraction=0; %%%%%%%%%%%%%%
 
 ps=struct; % structure to pass to sub-function for small fits
 
@@ -53,7 +56,6 @@ maxMaskLayers=2;   % Don't include any masking beyond merge and beam
 useOkField=1;      % refine every vesicle for which ok is true.
 % doDownsampling=1;  % Downsample for speed
 disA=pars.disA;          % size of displayed/fitted window in angstroms
-fHP=.0003;          % Gauss high-pass filter for fitting: 300 A^-1
 nZeros=1;          % number of zeros used in the merged CTF
 tinySValue=1e-4;   % negligible amplitude threshold
 %       Calculate variance from .30 to .45 x Nyquist; this is faster than using RadialPowerSpectrum:
@@ -137,7 +139,7 @@ scls.M=pars.M8;
 dss=pars.M8(1,1);
 
 %   Compute the old subtraction (small image size)
-nsPW=meGetNoiseWhiteningFilter(miOld,ns,dss,nZeros,fHP*pixAs);
+nsPW=meGetNoiseWhiteningFilter(miOld,ns,dss,nZeros,pars.fHP);
 nsCTF=meGetEffectiveCTF(miOld,ns,dss);
 msf=real(ifftn(fftn(ms).*ifftshift(nsPW)));  % High-pass filtered image
 if pars.doPreSubtraction
@@ -150,7 +152,7 @@ end;
 
 % Get the CTF information for the fitting regions
 nds=NextNiceNumber(disA/pixAs);  % size of display/fitting image
-ndsPW=meGetNoiseWhiteningFilter(miOld,nds,dss,nZeros,fHP*pixAs);
+ndsPW=meGetNoiseWhiteningFilter(miOld,nds,dss,nZeros,pars.fHP);
 ndsCTF=meGetEffectiveCTF(miOld,nds,dss);
 
     dsb=pars.M4(1,1); % downsampling of the big image m0
@@ -159,7 +161,7 @@ ndsCTF=meGetEffectiveCTF(miOld,nds,dss);
 if doFitAmp  % Get big-sized CTF and PW functions also
     sclb.n=nb;
     sclb.M=pars.M4;
-    nbPW=meGetNoiseWhiteningFilter(miOld,nb,dsb,nZeros,fHP*pixAb);
+    nbPW=meGetNoiseWhiteningFilter(miOld,nb,dsb,nZeros,pars.fHP);
     nbCTF=meGetEffectiveCTF(miOld,nb,dsb);
     mbf=real(ifftn(fftn(mb).*ifftshift(nbPW)));  % High-pass filtered image
     
@@ -183,7 +185,7 @@ if doFitAmp  % Get big-sized CTF and PW functions also
         vfb=0;
     end;
     ndb=NextNiceNumber(disA/pixAb);  % size of fit for full-size image
-    ndbPW=meGetNoiseWhiteningFilter(miOld,ndb,dsb,nZeros,fHP*pixAb);
+    ndbPW=meGetNoiseWhiteningFilter(miOld,ndb,dsb,nZeros,pars.fHP);
     ndbCTF=meGetEffectiveCTF(miOld,ndb,dsb);
 end;
 
@@ -220,8 +222,8 @@ end;
 miNew.vesicle.ok(:,3)=miNew.vesicle.ok(:,1);  % we'll mark unfitted vesicles here.
 
 if pars.listFits
-    disp('  ind   1000s    r (A) pick   ok     nTerms ------- 100s/s(1) -------------');
-    %        1    2.779     205   2  1 1 1 1    4    24.80   23.71    0.00    0.00   0
+    disp('  ind 1000s  ---r (A)----   pick   ok   nTerms ------- 100s/s(1) -------------');
+    %        1  2.779  205   0  20     2  1 1 1 1    4    24.80   23.71    0.00    0.00   0
 end;
 figure(2);
 
@@ -259,6 +261,7 @@ for j=1:nvToFit  % Loop over vesicles
     ps.rConstraints=ones(finalNRTerms,1);
     ps.rConstraints(2:finalNRTerms)=0.4./((2:finalNRTerms).^2)';
     ps.nRoundIters=pars.nRoundIters;
+    ps.fHP=pars.fHP;
     %-------------------Basic fit------------------
     if doFitRadius % we're doing nonlinear fit
         if pars.doPreSubtraction
@@ -299,6 +302,7 @@ for j=1:nvToFit  % Loop over vesicles
         [~,jr0]=min(abs(pars.radiusStepsA));
         
         miNew=miTemps{jr};
+
         if displayOn && ndr>1 % show the various fit results
             figure(3);
             for k=1:ndr
@@ -344,9 +348,11 @@ for j=1:nvToFit  % Loop over vesicles
     nsTerms=size(miNew.vesicle.s,2);
     ampString=repmat('%6.2f  ',1,nsTerms-2);
     if pars.listFits
-        str=sprintf(['%4d %8.3f  %6.1d  %2d  %2d%2d%2d%2d  %2d  ' ampString],...
+        rvals=round(abs(miNew.vesicle.r(ind,:)*miNew.pixA));
+        rvals(5)=0;
+        str=sprintf(['%4d %6.3f %4.1d %4.1d %4.1d  %2d %2d%2d%2d%2d  %2d  ' ampString],...
             ind, 1000*miNew.vesicle.s(ind,1),...
-            round(miNew.vesicle.r(ind,1)*miNew.pixA),...
+            rvals(1),rvals(2),rvals(3),...
             jr-jr0,...
             miNew.vesicle.ok(ind,:), sum(miNew.vesicle.r(ind,:)~=0),...  % insert s(1)
             100*abs(miNew.vesicle.s(ind,3:end,1))/miNew.vesicle.s(ind,1,1));

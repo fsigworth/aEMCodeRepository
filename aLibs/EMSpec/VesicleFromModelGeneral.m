@@ -11,6 +11,8 @@ function W = VesicleFromModelGeneral(n,a,model,org,aw,doCrossSection)
 % W=W0*re(aw(1)+aw(2)*exp(iTheta)+aw(3)*exp(2iTheta)+...) up to the same
 % number of terms as in a.
 
+% fixed the case where a had an embedded 0 element.
+
 % Test code
 % for iq=1:360;
 %     q=exp(1i*iq*pi/180);
@@ -30,7 +32,7 @@ rBoundFactor=.9; % radius for damping the angular dependence of radius and
 if numel(n)<2  % scalar means a square image
     n=[n n];
 end;
-ctr=ceil((n+1)/2);  % correct also for odd n
+ctr=ceil((n+1)/2);  % this is correct also for odd n
 if nargin<4
     org=ctr;
 end;
@@ -42,6 +44,7 @@ if nargin<6
 end;
 
 a=a(:); % make it a column vector;
+a(end+1)=0;
 ptr=find(a==0,1,'last');
 if numel(ptr)>0
     a(ptr:end)=[]; % remove trailing zeros.

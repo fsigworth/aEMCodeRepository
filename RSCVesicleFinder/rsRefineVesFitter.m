@@ -1,73 +1,72 @@
-function [miNew, imgc, vesFit]=rsQuickFitVesicle2(img,oldVes,mask,mi,vIndex,effCTF,pars,displayOn)
-% function [miNew,imgc,vesFit]=rsQuickFitVesicleN(img,oldVes,mask,mi,vIndex,effCTF,pars,displayOn)
-% Given a subtracted image, restore the original modeled vesicle oldVes and fit by
-% least-squares a vesicle model with fractional shifts, fourier expansion
-% of radius and amplitude.
+function [miNew, imgc, vesFit]=rsRefineVesRadius(img,oldVes,mask,mi,vIndex,effCTF,pars,displayOn)
+% Fit the radius (i.e. shape) to the vesicle vIndex in the (downsampled, vesicle-subtracted, CTF-filtered)
+% micrograph img. To do the fitting we'll add back the model of
+% vesicle(vIndex) if it was pre-subtracted.
 % effCTF has zero frequency at the origin.
-% A small image of size ndis=size(effCTF) is extracted from img and this is the portion
-% that is fitted.  The default for displayOn = 1.
+% A small image of size ndis=size(effCTF), imgc, is extracted from img and this is the portion
+% that is fitted.  The corresponding fit is vesFit. The default for displayOn = 1.
 % The starting vesicle info is taken from entry vindex in the mi.vesicle
 % arrays, and the refined information is updated into the mi copy, miNew.
+% miNew.vesicle.s(vIndex,1) is set to the overall amplitude of this vesicle
+% as determined by least squares.
 % Also miNew.vesicle.err(vIndex) is set, to give an error estimate.
 %
-% The pars.nTerms is an array of nRounds x 2 elements.
-% if nTerms(i,1)=0 fit amplitudes only
-% nTerms(i,1)=1 fit radius too.
-% nTerms(:,1)>1 include higher-order radius terms
-% nTerms(:,2) elements specify the number of terms to use in
-% the expansion of the amplitude vesicle.s(vIndex).  If missing, these values are
-% set equal to ceil(nTerms(:,1)/2+1).
+% pars.preservedTerms is the number of radius terms to preserve from
+%   previous fitting, in initializing the fitting. Can be inf.
+% pars.finalTerms is the number of terms total to be fitted.
+%   nTerms(:)>1 include higher-order radius terms
 % The other fields of pars are
 % pars.hfVar
 % pars.rConstraints
-% pars.nRoundIters
+% pars.nIters
+% pars.M is the affine matrix to go from zero-based coordinates in img to
+% the global zero-based coordinates in the original micrograph.
 
-minUnmaskedFraction=0.3; % Don't mask at all if less than this remains of a vesicle.
-maxShiftA=200;    % max shift in A
-% maxShiftFrac=0.2; % additional shift as a fraction of radius
-maxShiftFrac=0.3; %%%%%%%
+maxShiftA=200;    % max shift in A in fitting radius
+maxShiftFrac=0.3;
 initStepA=30;  % initial step is ~ membrane width
-
-convCriterion=1e-3;
+convCriterion=1e-3; % std of simplex variations
+minUnmaskedFraction=0.3; % Don't mask at all if less than this remains of a vesicle.
 maskWeight=0.2;  % Scaling of old fit to replace the masked region.
-
+stepFraction=0.5; % decrement of simplex steps per round
 ndis=size(effCTF,1);
+termStep=2; % number of terms to add in each round
+
 
 if nargin<8
     displayOn=1;
 end;
 
-
-dmask=single(mask);
-
-if size(pars.nTerms,2)<2 % only gave the first column which are radius
-    pars.nTerms(:,2)=1+floor(nTerms(:,1)/2); % number of amplitude terms
-end;
-
 % Set up the number of iterations and free parameters for each round
-stepFraction=0.25; % decrement of simplex steps per round
-finalNTerms=pars.nTerms(end,1); % Final number of radius terms
-nPars=max(0,1+(finalNTerms-2)*2);  % overall number of simplex parameters
-nRounds=size(pars.nTerms,1);  % number of simplex rounds
+totalPars=CountPars(pars.finalTerms);  % overall number of simplex parameters
+% totalTerms=2 yields only 1 parameter as we ignore the 1st angular term.
 
-nIters=(1:nRounds)*pars.nRoundIters;
+roundNTerms=1:termStep:pars.finalTerms;
+
+nRounds=numel(roundNTerms);  % number of simplex rounds
+nIters=(1:nRounds)*pars.nIters; % number of simplex iters
 
 sigmaT=4;  % SD of prior for shifts
-% n=size(img,1);
-ds=pars.M(1,1);
+% Set the prior for translations
+logP=-Radius(ndis).^2./(2*sigmaT^2);  % unscaled log prior
+
+ds=pars.M(1,1); % Downsampling factor
 
 % Get the vesicle coordinates in the downsampled image
 origXY=[mi.vesicle.x(vIndex); mi.vesicle.y(vIndex); 1];
 localXY=pars.M\origXY+1; % i.e. inv(M)*origXY; one-based
 
-vx=localXY(1);  % start with one-based coordinates in downsampled image
+vx=localXY(1);
 vy=localXY(2);
-vr0=mi.vesicle.r(vIndex,:)/ds;
-if numel(vr0)<finalNTerms
-    vr0(finalNTerms)=0; % pad with zeros
-end;
-vs=mi.vesicle.s(vIndex,1,1); % use only constant term for amplitude
+numPreservedTerms=min(pars.finalTerms,pars.preservedTerms);
 
+% set up the starting parameters vr (radius vector) and vs (ampl scalar)
+vr=mi.vesicle.r(vIndex,:)/ds;
+vr(pars.finalTerms+1)=0; % Procrustean match of vector size.
+vr(pars.finalTerms+1:end)=[];
+
+vr(numPreservedTerms+1:end)=0; % zero out non-preserved terms
+vs=mi.vesicle.s(vIndex,1,1); % use only constant term for amplitude
 maxShiftPix=(maxShiftA/mi.pixA+maxShiftFrac*vr0(1))/ds; % max shift in our pixels
 
 % Get the membrane cross-section density
@@ -75,15 +74,14 @@ pixA=mi.pixA*ds;
 vd1=mi.vesicleModel;
 vd=meDownsampleVesicleModel(vd1,ds)*pixA;  % for new fit
 
-approxLoc=round([vx vy]);
+approxLoc=floor([vx vy]);
 fracLoc=[vx vy]-approxLoc;
 % approxLoc is the approximate position of the vesicle the whole image,
 % one-based.
-
-% Get a centered, cropped portion of the image.
+% Get a centered, cropped portion of the image, initial vesicles, mask
 imgc0=ExtractImage(img,approxLoc,ndis);
 ves0=ExtractImage(oldVes,approxLoc,ndis);
-mask0=ExtractImage(mask,approxLoc,ndis);
+mask0=ExtractImage(single(mask),approxLoc,ndis);
 
 % Make a mask for the ccf to prevent excessive shifts
 ccmaskR=maxShiftPix+2;  % radius: add 2 pixels for offset errors
@@ -91,49 +89,43 @@ ccMask=fuzzymask(ndis,2,ccmaskR,ccmaskR/4);
 
 ctr=floor(ndis/2+1);
 
-% -----------Determine the unmasked fraction----------
+% -----------Deal with masking----------
 vv=ves0(:);
 unmaskedFraction=(vv'*(vv.*mask0(:)))/(vv'*vv);
 if isnan(unmaskedFraction)
     unmaskedFraction=1;
 end;
-mi.vesicle.af(vIndex,1)=unmaskedFraction;  % active fraction
-
-% Do no masking if the majority would be masked.
+mi.vesicle.af(vIndex,1)=unmaskedFraction;  % put in the active fraction
+% Do no masking if the majority would be masked. Or maybe we should just
+% skip this vesicle??
 if unmaskedFraction<minUnmaskedFraction
     mask0=1;
 end;
+% Here we use the old fit to partly fill in the masked region
+imgc=(imgc0+ves0).*mask0+(1-mask0).*ves0*maskWeight;  % put the old vesicle into the masked region.
+mask1=mask0+(1-mask0)*maskWeight;  % use this mask for fitting
 
 % -----------construct the image to be fitted------------
 % We assume that img has been filtered equivalently to effCTF.  That is, if
 % prewhitening has been done to img, it should also be included in effCTF.
 
-% Here we use the old fit to partly fill in the masked region
-imgc=(imgc0+ves0).*mask0+(1-mask0).*ves0*maskWeight;  % put the old vesicle into the masked region.
-mask1=mask0+(1-mask0)*maskWeight;  % use this mask for fitting
-
-if displayOn
+if displayOn % Show the region to be fitted.
     subplot(2,2,1);
     imags(imgc);
-    title(vIndex(1));
-    
-    subplot(2,2,2);
+    title(['Vesicle ' num2str(vIndex)]);
+
+    subplot(2,2,2); % Show the same, but with masking
     imags(imgc0);
     title(unmaskedFraction);
     drawnow;
     subplot(2,2,3);  % in case we are displaying in LLSFit
 end;
 
-% Set the prior for translations
-logP=-Radius(ndis).^2./(2*sigmaT^2);  % unscaled log prior
-
-% Copy nrt previous radius terms into the vr vector
-vr=vr0(1:finalNTerms); % copy at most nt1 values into vr, the working radius vector.
-
-frac=.5; % decrement of starting steps for radial terms
+% Establish the initial Simplex steps
+startingSteps=zeros(totalPars,1);
 startingSteps(1)=initStepA/pixA;
-for i=2:2:nPars
-    startingSteps(i:i+1)=startingSteps(1)*frac/i;
+for i=2:2:totalPars
+    startingSteps(i:i+1)=startingSteps(i-1)*termStepFraction;
 end;
 
 % We update the shift values by locating the CC peak; the amplitude (and dc
@@ -141,7 +133,6 @@ end;
 
 % Here is the fitting loop.  We do multiple rounds, increasing the number
 % of radius terms with each round
-oldnParsRound=0;
 
 p=struct;  % Struct of fitting parameters
 
@@ -152,53 +143,39 @@ p.pixA=pixA;
 p.t=[ctr ctr]+fracLoc; % translation
 p.vd=vd;  % vesicle model
 p.vr=vr;    % initial radius vector, updated as we fit
-p.vr0=vr0;  % full radius vector as read from mi file, to fill in missing vr elements.
 p.effCTF=effCTF;
-p.mask0=mask1;
+p.mask1=mask1;
 p.ccMask=ccMask;
 p.logPScaled=logP*pars.hfVar/max(abs(vs),pars.hfVar);  % scale up to match ccf
 p.convCriterion=convCriterion;
 p.displayOn=displayOn;
+
 %     ----------------rounds of simplex fitting ----------------
 for iRound=1:nRounds % we'll do one round if nTerms(1)=0
-    nTermsRound=pars.nTerms(iRound,1);
-    p.nTerms=pars.nTerms(iRound,:);
-    p.rConstraints=pars.rConstraints(1:nTermsRound);
+    p.initPars=unpack(p.vr);
+    p.activeTerms=roundNTerms(iRound);
+    nActivePars=CountPars(p.nActiveTerms);
+    p.rConstraints=pars.rConstraints(1:p.activeTerms);
     p.rConstraints=p.rConstraints(:)';
-    %     P=unpack(vr,nTermsRound);
-    if nTermsRound>0 % we are doing nonlinear fitting
-        % Create the simplex mask and step values for setting the active parameters
-        nParsRound=1+(nTermsRound-2)*2;  % number of active parameters in each round
-        %     Parameters for the fitting program
-        if numel(p.vr)<nTermsRound
-            p.vr(1,nTermsRound)=0; % pad with zeros
-        end;
-        %disp(nParsRound);
-        p.initPars=unpack(p.vr,nTermsRound);
-        p.simpMask=false(1,nPars);
-        p.simpMask(1:nParsRound)=true;
-        p.simpSteps=startingSteps;
-        p.simpSteps(1:oldnParsRound)=startingSteps(1:oldnParsRound)*stepFraction;
-        if iRound>1
-            p.simpSteps(1)=p.simpSteps(1)/10; % suppress the round part.
-            p.simpSteps(2:end)=p.simpSteps(2:end)*5;
-        end;
-        [p.vr,s,t,err,vesFit]=SimplexFit(p,nIters(iRound));
-rvals=p.vr;
-save v2 p s vesFit rvals
-disp('saved v2.mat'); %%%%%%%%%%%%%%%%%%
-        %         p.vr=vr1;  % update the starting radius
-    else % Just doing a linear fit of amplitudes
-        p.vr=p.vr0;
-% p.nTerms=[1 1]; %%%%%%
-        [vesFit,s,err]=AmpFitNX(p);
-save v1 p s vesFit
-disp('saved v1.mat')%%%%%%%%%%%%
-        p.simpMask=[];
+    % Create the simplex mask and step values for setting the active parameters
+    p.simpMask=false(1,totalPars);
+    p.simpMask(1:nActivePars)=true;
+    p.simpSteps=startingSteps; % true for round 1
+    if iRound>1
+%         We scale down the steps of all previously-fit parameters
+        p.simpSteps(2:2:oldNParsRound)=startingSteps(2:2:oldnParsRound)*roundStepFraction;
+        p.simpSteps(3:2:oldNParsRound)=startingSteps(3:2:oldnParsRound)*roundStepFraction;
     end;
+    %         -----------Do the fit-----------
+    [p.vr,s,t,err,vesFit]=SimplexFit(p,nIters(iRound));
 
+
+%     rvals=p.vr;
+%     save v2 p s vesFit rvals
+%     disp('saved v2.mat'); %%%%%%%%%%%%%%%%%%
+%     %         p.vr=vr1;  % update the starting radius
+% 
     if p.displayOn
-        %     disp(xShift);
         subplot(2,2,3);
         imags(vesFit);
         title(num2str(p.simpMask));
@@ -218,21 +195,15 @@ end;
 % update the info structure
 miNew=mi;
 sh=approxLoc-ctr; % zero-based shift to move to full image
-if pars.nTerms(1,1)>0  % we fitted position and radius
-    t=gather(t);
-    miNew.vesicle.r(vIndex,:)=0;
-    miNew.vesicle.r(vIndex,1:finalNTerms)=p.vr*ds;   % complex radius
-    localXY=[t+sh 1]'; % zero-based
-    globalXY=pars.M*localXY;
-%     miNew.vesicle.x(vIndex)=(t(1)+sh(1)-1)*ds;  % zero-based position in image
-%     miNew.vesicle.y(vIndex)=(t(2)+sh(2)-1)*ds;
-    miNew.vesicle.x(vIndex)=globalXY(1); % zero-based position in image
-    miNew.vesicle.y(vIndex)=globalXY(2);
-end;
-miNew.vesicle.s(vIndex,:,:)=0;
-nxc=numel(mi.vesicle.extraPeaks);  % number of extra amplitude terms
-miNew.vesicle.s(vIndex,1:pars.nTerms(end,2),1:nxc+1)=s;
+miNew.vesicle.r(vIndex,:)=0;
+miNew.vesicle.r(vIndex,1:finalTerms)=p.vr*ds;   % complex radius
+localXY=[t+sh 1]'; % zero-based
+globalXY=pars.M*localXY;
+miNew.vesicle.x(vIndex)=globalXY(1); % zero-based position in image
+miNew.vesicle.y(vIndex)=globalXY(2);
+miNew.vesicle.s(vIndex,1,1)=s;
 miNew.vesicle.err(vIndex,1)=err;
+
 end % of main function
 
 
@@ -266,9 +237,12 @@ for j=3:nTerms
 end;
 end
 
+function np=CountPars(nt) % Convert number of terms to number of pars
+    np=max(1,1+2*(nt-2));
+end;
 % ------------------------------------------------------
 
-function [vR,s,t,lsErr,vFit]=SimplexFit(p,nIters)
+function [newVr,s,t,lsErr,vFit]=SimplexFit(p,nIters)
 %   Simplex fit of radius parameters, followed by amplitude fit.
 %   Inside the simplex loop are calls to LLSFit
 %   to tune the overall amplitude and the translation t.
@@ -314,13 +288,13 @@ if ~any(isnan(vfit(:)))
     P1=Simplex('centroid');
     p.vr=Pack(P1,p.nTerms);
     [vFit,a,p.t,s]=LLSFit(p); % Get the translation one last time
-%     [vFit,s]=AmpFitNX(p);
+    %     [vFit,s]=AmpFitNX(p);
     res=p.imgc(:)-vFit(:);
     lsErr=res'*res;
     t=p.t;
-    vR=p.vr;
+    newVr=p.vr;
 else
-    vR=p.vr;
+    newVr=p.vr;
     [vFit,s]=AmpFitNX(p); % go ahead and get extra terms
     s=0*s;
     lsErr=p.imgc(:)'*p.imgc(:); % zero model fit.
@@ -372,73 +346,73 @@ end
 
 % -----------------------------------------------------
 
-function [vfit,s,lsErr]=AmpFitNX(p)
-%         Linear fit of p.imgc with general model {p.vr,p.vd,p.t} as filtered
-%         with p.effCTF, to determine amplitudes s having theta dependence
-%           returns s with terms s(2...) complex-valued.  Also fits rings
-%           with additional LS fitted amplitudes.  The number of terms
-%           fitted nsTerms is set by p.nTerms(2) so that in the end s has the size
-%           nsTerms * (nx+1), where nx = numel(p.ringPeaks).
-nx=numel(p.ringPeaks);
-nt=nx+1;
-nsTerms=p.nTerms(2);
-ndis=size(p.imgc,1);
-vArray=zeros([ndis ndis nx+1],'single');
-vArray(:,:,1)=-VesicleFromModelGeneral(ndis,p.vr,p.vd,p.t);
-vAFilt=vArray;
-exPos=p.ringPeaks;
-exSigma=p.ringSigma;
-Ndis=ndis;
-if nt>1
-    vArray(:,:,2:nt)=-p.pixA*VesicleFromRings(ndis,exPos,exSigma,p.vr,p.t);
-end;
-F=zeros(ndis^2,(2*nsTerms-1)*nt,'single');
-
-for k=1:nt
-    vAFilt(:,:,k)=real(ifftn(fftn(vArray(:,:,k)).*ifftshift(p.effCTF))).*p.mask0;
-end;
-
-% Initialize the complex exponential
-[~,theta2D]=Radius(Ndis,p.t);
-theta=theta2D(:);
-w=exp(-1i*theta);  % complex exponential
-
-% Get powers of the complex exponential
-%         vW=reshape(vAFilt,prod(imgSize),nx+1);
-%         fit will be of dc, 2*nsTerms-1 other terms.
-F(:,1)=ones(Ndis^2,1);  % constant term
-for l=1:nt
-    lOffset=(l-1)*(2*nsTerms-1);
-    vW=reshape(vAFilt(:,:,l),Ndis^2,1);
-    F(:,2+lOffset)=vW;  % const amplitude term
-    for k=2:nsTerms
-        vW=vW.*w;
-        F(:,2*k-1+lOffset)=real(vW);
-        F(:,2*k+lOffset)=imag(vW);
-    end;
-end;
-warning('off','MATLAB:singularMatrix');
-rs=LinLeastSquares(F,p.imgc(:));
-warning('on','MATLAB:singularMatrix');
-vfit=F*rs;  % fitted vesicle (amplitude and const)
-res=p.imgc(:)-vfit;
-lsErr=res'*res;
-vfit=reshape(vfit,Ndis,Ndis);
-
-rs(1)=[];  % remove the dc term
-if nsTerms==1
-    s=rs;
-else
-    s=zeros(nsTerms*nt,1,'single');
-    for l=1:nt
-        lOffset=(l-1)*nsTerms;
-        lOffset2=(l-1)*(2*nsTerms-1);
-        s(1+lOffset)=rs(1+lOffset2);
-        s(2+lOffset:nsTerms+lOffset)...
-            =(rs(2+lOffset2:2:2*nsTerms-2+lOffset2))...
-            +1i*(rs(3+lOffset2:2:2*nsTerms-1+lOffset2));
-    end;
-end;
-s=reshape(s,nsTerms,nx+1);
-end
+% function [vfit,s,lsErr]=AmpFitNX(p)
+% %         Linear fit of p.imgc with general model {p.vr,p.vd,p.t} as filtered
+% %         with p.effCTF, to determine amplitudes s having theta dependence
+% %           returns s with terms s(2...) complex-valued.  Also fits rings
+% %           with additional LS fitted amplitudes.  The number of terms
+% %           fitted nsTerms is set by p.nTerms(2) so that in the end s has the size
+% %           nsTerms * (nx+1), where nx = numel(p.ringPeaks).
+% nx=numel(p.ringPeaks);
+% nt=nx+1;
+% nsTerms=p.nTerms(2);
+% ndis=size(p.imgc,1);
+% vArray=zeros([ndis ndis nx+1],'single');
+% vArray(:,:,1)=-VesicleFromModelGeneral(ndis,p.vr,p.vd,p.t);
+% vAFilt=vArray;
+% exPos=p.ringPeaks;
+% exSigma=p.ringSigma;
+% Ndis=ndis;
+% if nt>1
+%     vArray(:,:,2:nt)=-p.pixA*VesicleFromRings(ndis,exPos,exSigma,p.vr,p.t);
+% end;
+% F=zeros(ndis^2,(2*nsTerms-1)*nt,'single');
+% 
+% for k=1:nt
+%     vAFilt(:,:,k)=real(ifftn(fftn(vArray(:,:,k)).*ifftshift(p.effCTF))).*p.mask0;
+% end;
+% 
+% % Initialize the complex exponential
+% [~,theta2D]=Radius(Ndis,p.t);
+% theta=theta2D(:);
+% w=exp(-1i*theta);  % complex exponential
+% 
+% % Get powers of the complex exponential
+% %         vW=reshape(vAFilt,prod(imgSize),nx+1);
+% %         fit will be of dc, 2*nsTerms-1 other terms.
+% F(:,1)=ones(Ndis^2,1);  % constant term
+% for l=1:nt
+%     lOffset=(l-1)*(2*nsTerms-1);
+%     vW=reshape(vAFilt(:,:,l),Ndis^2,1);
+%     F(:,2+lOffset)=vW;  % const amplitude term
+%     for k=2:nsTerms
+%         vW=vW.*w;
+%         F(:,2*k-1+lOffset)=real(vW);
+%         F(:,2*k+lOffset)=imag(vW);
+%     end;
+% end;
+% warning('off','MATLAB:singularMatrix');
+% rs=LinLeastSquares(F,p.imgc(:));
+% warning('on','MATLAB:singularMatrix');
+% vfit=F*rs;  % fitted vesicle (amplitude and const)
+% res=p.imgc(:)-vfit;
+% lsErr=res'*res;
+% vfit=reshape(vfit,Ndis,Ndis);
+% 
+% rs(1)=[];  % remove the dc term
+% if nsTerms==1
+%     s=rs;
+% else
+%     s=zeros(nsTerms*nt,1,'single');
+%     for l=1:nt
+%         lOffset=(l-1)*nsTerms;
+%         lOffset2=(l-1)*(2*nsTerms-1);
+%         s(1+lOffset)=rs(1+lOffset2);
+%         s(2+lOffset:nsTerms+lOffset)...
+%             =(rs(2+lOffset2:2:2*nsTerms-2+lOffset2))...
+%             +1i*(rs(3+lOffset2:2:2*nsTerms-1+lOffset2));
+%     end;
+% end;
+% s=reshape(s,nsTerms,nx+1);
+% end
 

@@ -65,6 +65,7 @@ dpars.disFc=.4;
 dpars.firstLine=1;
 dpars.lastLine=inf;
 dpars.firstPeakAmp=.5;
+dpars.displayOn=1;
 
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
@@ -181,9 +182,11 @@ for i=pars.firstLine:endLine
                 msDis=WriteJpeg(msInvDis,jpegInvName);
             end;                
         end;
-        imaga(msDis);
-        title([num2str(i),': ' mi.baseFilename],'interpreter','none');
-        drawnow;
+        if pars.displayOn
+            imaga(msDis);
+            title([num2str(i),': ' mi.baseFilename],'interpreter','none');
+            drawnow;
+        end;
     else % not writing anything, don't need to read the original image
         mi=rlSetImageScale(mi,pars.scaleMode,pars.motionCorFrames);
     end; % writeSomething

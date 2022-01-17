@@ -7,7 +7,7 @@ function [H,filterOk]=meGetNoiseWhiteningFilter(mi,n,ds,nzeros,fHP,effCTF)
 %     H=sqrt(mean(shot(:))./(spec.*effCTF.^2+shot)); % =1 at high frequencies
 %
 % If fHP is given and >0,
-% an additional Gaussian HP with half-power frequency fHP (in pix^-1) is applied.
+% an additional Gaussian HP with half-power frequency fHP (in A^-1) is applied.
 % The result is for an image downsampled by ds (default ds=mi.imageSize/n).
 % No need to give ds, or ds=0 is ok, if the image wasn't cropped.
 % If effCTF is not given, it is computed from meComputeMergeCoeffs2.

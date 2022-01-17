@@ -15,7 +15,8 @@ end;
 if numel(y)~=n
     error('Number of rows in F and y don''t match');
 end;
-y=y(:);
+y=double(y(:));
+F=double(F);
 if suppressWarnings
     warning('off','MATLAB:singularMatrix');
     a=(F'*F)\(F'*y);

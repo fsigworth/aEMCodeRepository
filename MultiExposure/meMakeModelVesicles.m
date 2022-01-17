@@ -1,4 +1,4 @@
-function [v,hFilt]=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
+function [v,hFilt]=meMakeModelVesicles(mi,n,vindex,doCTF,fPW,doCrossSection)
 % function v=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 % function v=meMakeModelVesicles(mi,imgToFitAmp,vindex,doCTF,doPW,doCrossSection)
 % function v=meMakeModelVesicles(mi,sclStruct,vindex,doCTF,doPW,doCrossSection)
@@ -20,6 +20,7 @@ function [v,hFilt]=meMakeModelVesicles(mi,n,vindex,doCTF,doPW,doCrossSection)
 %
 % function [v,hFilt]=meMakeModelVesicles(...) returns the filtering funcion
 % (CTF, PW or CTF.*PW), zero centered, that was applied to v.
+% if fPW is nonzero, we do prewhitening/hp filtering
 
 if isa(n,'struct')% has n and an affine matrix
 %     dsShift=-n.M(1:2,3)';
@@ -29,15 +30,19 @@ if isa(n,'struct')% has n and an affine matrix
     doFitImage=0;
 else % in th other cases, we assume mi.imageSize is simply a multiple of n
 %     And we construct M with no shift.
-    if numel(n)>2 % we supplied an image
+    if numel(n)>2 % we supplied an image. We use its exact size
         m0=n;
         n=size(m0);
         doFitImage=1;  % We'll do least-squares to the image.
     else
         doFitImage=0;
-    end;
-    ds=mi.imageSize(1)/n(1);   % downsample factor
+        if isfield(mi,'padImageSize')
+            ds=mi.padImageSize(1)/n(1);
+        else
+            ds=NextNiceNumber(mi.imageSize(1))/n(1);
+        end;
     M=[ds 0 0; 0 ds 0; 0 0 1]; 
+    end;
 end;
 
 v=zeros(n,'single');  % default is a zero image.
@@ -74,7 +79,10 @@ if nargin<4
     doCTF=1;
 end;
 if nargin<5
-    doPW=0;
+    fPW=0;
+end;
+if fPW>.1; % way too large
+    fPW=.001; % default value
 end;
 if nargin<6
     doCrossSection=false;
@@ -136,10 +144,10 @@ hFilt=1;
 if doCTF % operate with the CTF
     hFilt=meGetEffectiveCTF(mi,n,ds);
 end;
-if doPW  % Pre-whitening filter
-    hFilt=hFilt.*meGetNoiseWhiteningFilter(mi,n,ds);
+if fPW>0  % Pre-whitening filter
+    hFilt=hFilt.*meGetNoiseWhiteningFilter(mi,n,ds,1,fHP);
 end;
-if doCTF || doPW  % do the filtering
+if doCTF || fPW  % do the filtering
     v=single(real(ifftn(fftn(double(sumv)).*ifftshift(double(hFilt)))));  % Filter with the ctf.
 end;
 
