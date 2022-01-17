@@ -30,7 +30,7 @@ initStepA=30;  % initial step is ~ membrane width
 convCriterion=1e-3; % std of simplex variations
 minUnmaskedFraction=0.3; % Don't mask at all if less than this remains of a vesicle.
 maskWeight=0.2;  % Scaling of old fit to replace the masked region.
-termStepFraction=.5; % decrement of simplex steps per term
+termStepFraction=1; % decrement of simplex steps per term
 roundStepFraction=.8; % decrement of simplex steps per round
 ndis=size(effCTF,1);
 stepNTerms=2;
@@ -216,7 +216,9 @@ for j=1:nj
 end;
 [minErr,ij]=min(errs);
 
-if p.displayOn
+if p.displayOn && pars.extraRound % display without and with the bang
+%     --my conclusion is that the bang doesn't help at all. Instead we use
+%     larger starting steps.
     marker=char(1,nj);
     marker(j)='*';
 for j=1:nj
