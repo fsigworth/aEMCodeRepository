@@ -1,4 +1,4 @@
-function rsRefineVesicleFits(miNames,mpars)
+function rsRefineVesicleFits3(miNames,mpars)
 % function rsRefineVesicleFits2(miNames,mpars)
 % Fits distorted vesicles.
 % Revised version with acceleration options.
@@ -289,7 +289,7 @@ end;
                 disp(['Round ' num2str(ind) '  ' miNames{fileIndex}]);
 
                 %       --------- Do the fitting  -----------
-                mi1=rsRefineVesicleFitsSub(mi,m8,m4,p,displayOn);
+                mi1=rsRefineVesicleFitsSub3(mi,m8,m4,p,displayOn);
                 mi=mi1;
             end;
             

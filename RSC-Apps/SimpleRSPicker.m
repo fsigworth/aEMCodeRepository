@@ -131,7 +131,7 @@ if exist(dis.basePath,'dir')
     ok=true;
     if dis.miIndex
         disp('Loading the file miNames.mat');
-        try
+        try % check if we are pointing to an extant directory
             ls;
         catch
             ok=false;

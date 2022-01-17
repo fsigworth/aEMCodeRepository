@@ -43,7 +43,7 @@ dpars.dsSmall=4; % downsampling factor for small output images
 dpars.maxPixA=4.5;  % downsampled image resolution for radius fitting
 dpars.forceDs4=4;  % Or, use this fixed downsampling factor instead
 dpars.forceAlpha=.02;
-
+dpars.fHP=.003; % Highpass filter for fitting
 % dpars.writeVesFiles=0;   % Write vesicle models into Temp/
 
 dpars.resetBasePath=1;   % update the basePath field of the mi file to the current directory.
@@ -72,7 +72,7 @@ dpars.fractionAmpTerms=[0 1]; % fraction of amp terms to use
 dpars.radiusStepsA=[-100 -50 0 50]; % repeat radius-only fitting with perturbed r(1)
 dpars.disA=1200;  % size of the fit window, in angstroms
 % dpars.disA=1600;  % for Mengqiu
-
+dpars.displayOn=2;
 %  We add extra peaks in the scattering profile when fitting amplitudes
 dpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
 dpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
@@ -92,7 +92,7 @@ disp(['host name: ' host]);
 isCluster=strncmp(host,'c',1); % if we are on a farnam node
 batchMode=isCluster  && (exist('miNames','var') && numel(miNames)>0);
 
-displayOn=~batchMode;
+displayOn=max(~batchMode,pars.displayOn);
 % displayOn=0; % 1: show results at end of each fit; 2 update while fitting.
 
 dsModel=2;  % net downsampling of "full res" model relative to orig micrograph
@@ -381,7 +381,7 @@ for fileIndex=1:numel(miNames)
                 % image.
                 mSub=(Crop(m1-vs1,mi.imageSize)/mi.imageNormScale)+mi.imageMedian;
                 outSubName=[mi.procPath mi.baseFilename '_v.mrc'];
-            else
+           else
                 mSub=m1-vs1;
                 outSubName=[mi.procPath mi.baseFilename 'mv.mrc'];
             end;
@@ -391,6 +391,7 @@ for fileIndex=1:numel(miNames)
         
         if pars.writeSmallMRC || pars.writeJpeg
             smSize=round(size(m1)/pars.dsSmall);
+<<<<<<< HEAD
             ms=Downsample(m1,smSize);
         end;
         
