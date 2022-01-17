@@ -2,18 +2,18 @@
 % Run the processing pipeline for K2 or K3 movies.
 % Simplified version does vesicle finding, refinement and picking
 % preprocessor.
-
-doFindVesicles        =1;
+doFindVesicles        =0;
 doPrelimInverseFilter =0;
-doRefineVesicles      =0;
+doRefineVesicles      =1;
 doInverseFilter       =0;
-doPickingPreprocessor =0;
+doPickingPreprocessor =1;
 
 % Directories must be set up
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20211122/';
+cd(workingDir);
 
-workingDir='/Users/fred/EMWork/Yangyu/20211122_sel/';
-infoDir='Info_all_temp/';
+%workingDir='/Users/fred/EMWork/Yangyu/20211122_sel/';
+infoDir='Info_C16-1/';
 logDir='Log/';
 
 pars=struct;
@@ -24,12 +24,17 @@ pars.filenameFile='allNames.mat'; % in the working directory
 pars.mapMode='Kv';
 
 % ---for rsRefineVesicleFits----
-pars.doPreSubtraction=1;  % rsRefineVesicleFits: pre-subtract old vesicle fit.
-% pars.rTerms=[100 150 200 300  inf];
-pars.rTerms=[90 100 120 150 200 250 300 inf];
-% pars.dsSmall=4; % downsampling of 'small' merged image
-% pars.overwrite=1;
-pars.modelMiName='~/data/MembraneRef/160909_sq02_1_01mi.txt';
+%  rpars.doPreSubtraction=1;  % rsRefineVesicleFits: pre-subtract old vesicle fit.
+%  rpars.rTerms=[100 150 200 300  inf];
+%  rpars.rTerms=[90 100 120 150 200 250 300 inf];
+rpars.peakPositionA=[];
+% rpars.dsSmall=4; % downsampling of 'small' merged image
+% rpars.overwrite=1;
+rpars.modelMiName='~/data/MembraneRef/160909_sq02_1_01mi.txt';
+rpars.skipFitting=1;
+rpars.writeSubMRC=0;
+rpars.writeSmallMRC=0;
+rpars.writeSmallSubMRC=0;
 
 % Figure out who we are
 host=getenv('HOSTNAME');
@@ -125,16 +130,6 @@ end;
 
         % refine vesicles (sequence 5)
     if doRefineVesicles
-        rpars=struct;
-%                 rpars.fitModes={'LinOnly'};
-%                 rpars.fractionStartingTerms=1; % total terms to use in each round
-%                 rpars.fractionAmpTerms=1;
-%                 % Extra peaks in the scattering profile
-%                 rpars.peakPositionA=[-37 0 37];  % empirical default.  Works a bit better than [37 37]
-%                 rpars.targetPixA=10;  % downsampled image resolution for radius fitting
-%                 
-%                 rpars.xPeakSigmaA={5 5}; % width of extra Gaussian peaks, in angstrom
-%                 %     The following must have at least as many elements as dpars.fitModes!            
             rsRefineVesicleFits(ourNames,rpars);
     end;
             % inverse filter (sequence 6)

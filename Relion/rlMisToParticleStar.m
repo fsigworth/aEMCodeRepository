@@ -1,4 +1,4 @@
-pwd% rlMisToParticleStar.m
+% rlMisToParticleStar.m
 % Given a set of mi files and a micrographs_ctf.star file,
 % create two particles.star files that can be used by
 % Relion's particle extraction jobs. One is for unsubtracted and one is for
@@ -19,33 +19,34 @@ pwd% rlMisToParticleStar.m
 % We can also write a vesicle star file which contains particle and vesicle
 % coordinates, for predicting psi angles from geometry.
 
-boxSize=256;
+boxSize=256; % Not critical, just written in optics groups.
 
 % ----Our picking data----
-% First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
-% Then give the name here:
-% allMisName='Picking_9/allMis9_intens+frac_7505.mat';
-%allMisName='Picking_9/allMis_holes_i2_ov_cls.mat';
-allMisName='RSC2/allMis.mat';
+infoDir='Info_C16-1/';
+forceLoadMiFiles=1; % Load each mi file individually instead of loading allMis.mat
 
-% ----Inputs Micrograph star file
-% inMicStarName='CtfFind/job003/micrographs_ctf.star'; % Existing file to read
-inMicStarName='CtfFind/job007/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
+% ----Input Micrograph star file
+inMicStarName='CtfFind/job127/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
+if ~exist(inMicStarName,'file')
+    disp(['the micrographs star file ' inMicStarName ' was''nt found. Exiting.']);
+    return
+end;
 
-% ----Output star files
-outStarDir='RSC2/';  % Place to put our particle star files
-CheckAndMakeDir(outStarDir,1);
-
+% ---Where to find micrographs. Special cases:
 useMergedUnsubMicrograph=0; % Look for Merged/_u.mrc for unsub micrographs.
 % We'll also write the new micrographs_ctf_unsub.star file.
 usePaddedSubMicrograph=0; % Look for Merged/*mv.mrc for padded micrographs.
 % Otherwise, look for Merged/*_v.mrc files.
 
-outMicrographStarBasename='micrograph_ctf';
+% ----Output star files
+outStarDir='RSC1_C16-1/';  % Place to put our particle star files
+CheckAndMakeDir(outStarDir,1);
+
+outMicrographStarBasename='micrograph_ctf1';
 writeMicrographStarU=1;
 writeMicrographStarV=1;
 
-outParticleStarBasename='particles';
+outParticleStarBasename='particles1';
 writeParticleStarU=1;
 writeParticleStarV=1;
 
@@ -62,15 +63,14 @@ maxNMicrographs=inf; % limit the number of micrographs to consider
 setParticlesActive=1; % ignore particle.picks(:,10) flag.
 setMisActive=1; % ignore mi.active field.
 
-checkForMicrographs=1;
-skipLoadingMis=0;
+checkForMicrographs=1; % Skip micrographs where the .mrc image is missing.
 
 if useMergedUnsubMicrograph
     unsubMicrographSuffix='_u.mrc';
 end;
 
 if usePaddedSubMicrograph
-    disp('Not yet implemented: use padded sub micrograph. ');
+    disp('usePaddedSubMicrograph is a feature not yet implemented. Exiting.');
     return
 else
     subMicrographSuffix='_v.mrc'; % for image made in micrograph coordinates, instead of 'mv.mrc'
@@ -96,15 +96,33 @@ uMicNames=cell(nMics,1);
 vMicNames=cell(nMics,1);
 % %
 
-if ~skipLoadingMis
-disp(['Loading ' allMisName ' ...']);
-load(allMisName); % Get allMis cell array
+
+% Does an allMis.mat file already exist in the infoDir?
+allMisFilename=[AddSlash(infoDir) 'allMis.mat'];
+
+if forceLoadMiFiles || ~exist(allMisFilename,'file')
+    allMiNames=f2FindInfoFiles(infoDir);
+    nmi=numel(allMiNames);
+    allMis=cell(0,1);
+    disp('Reading...');
+    tic
+    for i=1:nmi
+        allMis{i,1}=ReadMiFile(allMiNames{i});
+        if mod(i,500)==0
+            disp(i);
+        end;
+    end;
+    toc
+    disp(['Writing ' allMisFilename]);
+    save(allMisFilename,'allMis');
+    % We'll have to add the '-v7.3' option if allMis is >2GB in size
+else
+    disp(['Loading ' allMisFilename]);
+    load(allMisFilename);
 end;
-ni=numel(allMis);
-disp([num2str(ni) ' mi files']);
 disp(' ');
 %
-ni=nMics; %%%%%%%
+% ni=nMics; %%%%%%%
 
 pts=struct;
 partSubMicName=cell(1,1);
@@ -126,8 +144,9 @@ zSkip=0; % counter of micrographs with group=0
 nSkip=0; % total micrographs skipped.
 miSkip=0; % no. mi files skipped.
 
-disp('Accumulating the structures. List: line; micrograph; particles; total particles.');
-for i=1:ni
+disp('Accumulating the structures:')
+disp(' star line    micrograph    single, total particles.');
+for i=1:nmi
     mi=allMis{i};
 %     if ~isfield(mi,'opticsGroup')
 %         mi.opticsGroup=1;
@@ -308,7 +327,7 @@ for i=1:ni
 
 end; % for loop over micrograph mi files
 
-disp([num2str(nSkip) ' micrographs skipped, of ' num2str(ni)]);
+disp([num2str(nSkip) ' micrographs skipped, of ' num2str(nmi)]);
 disp(['Micrographs skipped with unassigned group: ' num2str(zSkip)]);
 disp(['Micrographs skipped with group but no particles: ' num2str(pSkip)]);
 

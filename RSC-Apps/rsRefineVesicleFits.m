@@ -25,19 +25,20 @@ dpars.modelMiName=[pa 'ModelMi.txt'];
 
 dpars.overwrite=1;
 dpars.writeMiFile=1;
+dpars.skipFitting=0; % Do no refinement, just write out files.
 dpars.doPreSubtraction=1; % subtract all vesicles except the one being fitted
 dpars.listFits=1;  % print out each fit's parameters
 dpars.scaleOriginalAmplitudes=1; % multiply amplitudes by this value
 
 dpars.writeSubMRC=1; % Write out subtracted image <basename>mv.mrc
 
-dpars.writeSmallMRC=1; % Write out image downsampled to M4. Otherwise, we 
+dpars.writeSmallMRC=1; % Write out image downsampled to M4. Otherwise, we
 % match the size of any existing small image e.g. Merged_sm/*ms.mrc when we
 % write a small sub mrc.
 dpars.writeJpeg=1;
 dpars.writeSmallSubMRC=1; % Write out a downsampled subtracted image
 dpars.writeSubJpeg=1;
-dpars.jpegPath='Merged_jpeg/';
+dpars.jpegPath='Merged_jpeg/'; % Use this if mi.jpegPath is missing.
 dpars.dsSmall=4; % downsampling factor for small output images
 dpars.maxPixA=4.5;  % downsampled image resolution for radius fitting
 dpars.forceDs4=4;  % Or, use this fixed downsampling factor instead
@@ -63,7 +64,7 @@ dpars.stepNTerms=3;
 dpars.fitModes={'RadiusOnly' 'LinOnly'}; % First fit shape, then amplitudes
 % dpars.fitModes={'LinOnly'};
 %    dpars.fitModes={'RadiusAndLin'};
-dpars.fractionStartingTerms=[.5 1]; % in radius-fitting modes, 
+dpars.fractionStartingTerms=[.5 1]; % in radius-fitting modes,
 %    thefraction of terms to use in each round
 dpars.fractionAmpTerms=[0 1]; % fraction of amp terms to use
 %  To avoid crazy fits, we repeat the whole radius-only fitting with the base
@@ -98,7 +99,7 @@ dsModel=2;  % net downsampling of "full res" model relative to orig micrograph
 dsSmall=pars.dsSmall;  % net downsampling of 'small' output file.
 
 forceNewModel=0;   % Always ask the user to select a new refined model
-  % on the first micrograph (can be from the same micrograph)
+% on the first micrograph (can be from the same micrograph)
 resetBasePath=pars.resetBasePath;
 writeMiFile=pars.writeMiFile;     % Save the updated mi file
 
@@ -114,7 +115,7 @@ if ~(exist('miNames','var') && numel(miNames)>0)
     [rootPath, infoPath]=ParsePath(pa);
     cd(rootPath);
 else
-        infoPath='';  % We assume that names include path
+    infoPath='';  % We assume that names include path
     rootPath=AddSlash(pwd);
 end;
 if ~iscell(miNames)
@@ -129,12 +130,13 @@ maxErr=10; % Max number of error messages to print out
 %% --------loop over files --------
 for fileIndex=1:numel(miNames)
     %%
-    disp(['Reading ' num2str(fileIndex) ' ' infoPath miNames{fileIndex}]);
+    inputName=[infoPath miNames{fileIndex}];
+    disp(['Reading ' num2str(fileIndex) ' ' inputName]);
     mi=ReadMiFile([infoPath miNames{fileIndex}]);
     % Make changes to the mi structure
     originalAlpha=mi.ctf(1).alpha;
     if pars.modifiedAlpha>0
-        mi.ctf(1).alpha=pars.modifiedAlpha;        
+        mi.ctf(1).alpha=pars.modifiedAlpha;
     end;
     if pars.modifiedB>0
         mi.ctf(1).B=pars.modifiedB;
@@ -200,16 +202,16 @@ for fileIndex=1:numel(miNames)
             vm=mi;
         end;
         
-% ----------Read the image and normalize to fractional contrast----------
-%         The final coordinates will all be with respect to the original
-%         raw image, regardless of whether we are working from a merged
-%         image or not. We mark this so:
+        % ----------Read the image and normalize to fractional contrast----------
+        %         The final coordinates will all be with respect to the original
+        %         raw image, regardless of whether we are working from a merged
+        %         image or not. We mark this so:
         mi.useMicrographCoords=1;
-%         Otherwise the coordinates would be, as before, with respect to
-%         the padded "merged" image.
-
-%           Load the full-sized, padded and scaled image, with M1
-%           indicating the shift wrt the original micrograph.
+        %         Otherwise the coordinates would be, as before, with respect to
+        %         the padded "merged" image.
+        
+        %           Load the full-sized, padded and scaled image, with M1
+        %           indicating the shift wrt the original micrograph.
         [m1,M1,ok,isRawImg]=meLoadNormalizedImage(mi,mi.padImageSize,'m');
         if ~ok
             disp(['No image found for ' mi.baseFilename]);
@@ -220,71 +222,78 @@ for fileIndex=1:numel(miNames)
                 continue; % Go on to the next file index.
             end;
         end;
-%           Make downsampled copies for fitting. m4 is taken to be "full
-%           size" for amplitude fitting. maxPixA ~ 3A.
-if pars.forceDs4
-    ds4=pars.forceDs4;
-else
-        dsMin=pars.maxPixA/mi.pixA;
-        ds4=NextNiceNumber(dsMin,5,1); % Downsampling for good fits
-%         some possible values: 1, 2, 3, 4, 5, 6, 8, ....
-%         ds4 is typically 2 or 3.
-end;
-        disp(['First downsampling is by ' num2str(ds4)]);
-        n4=round(mi.padImageSize/ds4);
-        [m4,M4]=meDownsampleImage(m1,M1,n4);
-        ds8=2*ds4;
-%        The second downsampling is twice that. Images used for radius
-%        fitting.
-        n8=round(mi.padImageSize/ds8);
-        [m8,M8]=meDownsampleImage(m4,M4,n8);
 
-        % % %         pixAWork=pars.scl.ds0*mi.pixA;
-        
-%        % [m0, mergePath]=meReadMergedImage(mi);
-%         [mergedName,ok]=CheckForAltImage([mi.procPath mi.baseFilename 'm.mrc'],sufExts);
-%         if ok
-%             disp(['Merged image: ' mergedName]);
-%             m0=ReadEMFile(mergedName);
-%         end;
-%         if ok && numel(m0)>1 % we've got an image
-%             n0=size(m0,1);  % merged image size
-%             dsm=mi.imageSize(1)/size(m0,1);  % downsampling factor of merged image
-%             if dsModel>dsm
-%                 disp(['Merged image will be downsampled by ' num2str(dsModel/dsm) ' for fitting.']);
-%                 m=DownsampleGeneral(m0,n0/(dsModel/dsm));
-%             else
-%                 m=m0;
-%             end;
-%             %     Check that we have a temp directory
-%             if ~isfield(mi,'tempPath')
-%                 mi.tempPath='Temp/';
-%             end;
-%             if ~exist(mi.tempPath,'dir')
-%                 mkdir('Temp');
-%             end;
-%             if ~isfield(mi,'mask')
-%                 mi.mask=[];
-%             end;
-%             
-%             if pars.scaleOriginalAmplitudes~=1
-%                 mi.vesicle.s=mi.vesicle.s*pars.scaleOriginalAmplitudes;
-%             end;
-%             
-%             %                    mi.vesicle.s=mi.vesicle.s*dsm/2;  % scale down if not downsamping....
-%             
+        inputName=[mi.imagePath mi.imageFilenames{1}];
+
+            %           Make downsampled copies for fitting. m4 is taken to be "full
+            %           size" for amplitude fitting. maxPixA ~ 3A.
+            if pars.forceDs4
+                ds4=pars.forceDs4;
+            else
+                dsMin=pars.maxPixA/mi.pixA;
+                ds4=NextNiceNumber(dsMin,5,1); % Downsampling for good fits
+                %         some possible values: 1, 2, 3, 4, 5, 6, 8, ....
+                %         ds4 is typically 2 or 3.
+            end;
+            disp(['First downsampling is by ' num2str(ds4)]);
+            n4=round(mi.padImageSize/ds4);
+            [m4,M4]=meDownsampleImage(m1,M1,n4);
+                    if pars.skipFitting
+           disp('Fitting skipped.');
+        else
+
+            ds8=2*ds4;
+            %        The second downsampling is twice that. Images used for radius
+            %        fitting.
+            n8=round(mi.padImageSize/ds8);
+            [m8,M8]=meDownsampleImage(m4,M4,n8);
+            
+            % % %         pixAWork=pars.scl.ds0*mi.pixA;
+            
+            %        % [m0, mergePath]=meReadMergedImage(mi);
+            %         [mergedName,ok]=CheckForAltImage([mi.procPath mi.baseFilename 'm.mrc'],sufExts);
+            %         if ok
+            %             disp(['Merged image: ' mergedName]);
+            %             m0=ReadEMFile(mergedName);
+            %         end;
+            %         if ok && numel(m0)>1 % we've got an image
+            %             n0=size(m0,1);  % merged image size
+            %             dsm=mi.imageSize(1)/size(m0,1);  % downsampling factor of merged image
+            %             if dsModel>dsm
+            %                 disp(['Merged image will be downsampled by ' num2str(dsModel/dsm) ' for fitting.']);
+            %                 m=DownsampleGeneral(m0,n0/(dsModel/dsm));
+            %             else
+            %                 m=m0;
+            %             end;
+            %             %     Check that we have a temp directory
+            %             if ~isfield(mi,'tempPath')
+            %                 mi.tempPath='Temp/';
+            %             end;
+            %             if ~exist(mi.tempPath,'dir')
+            %                 mkdir('Temp');
+            %             end;
+            %             if ~isfield(mi,'mask')
+            %                 mi.mask=[];
+            %             end;
+            %
+            %             if pars.scaleOriginalAmplitudes~=1
+            %                 mi.vesicle.s=mi.vesicle.s*pars.scaleOriginalAmplitudes;
+            %             end;
+            %
+            %             %                    mi.vesicle.s=mi.vesicle.s*dsm/2;  % scale down if not downsamping....
+            %
             
             %%  -------------------All the work is done here---------------------------
             %   do nRounds fits; each time fit all the vesicles in the
             %   image.
             nRounds=numel(pars.fitModes);
             for ind=1:nRounds  % We loop through 2-3 times, first with no extra peaks,
-%                                 and perhaps with no amplitude fitting
-%                                 (except the constant term).
+                %                                 and perhaps with no amplitude fitting
+                %                                 (except the constant term).
                 %                 The first time through we fit no peaks because xPeakPositionA{1}=[]
                 %                 later times include the extra peaks.
                 p=struct;
-%                 p.scl=pars.scl; % scaling of downsampled image
+                %                 p.scl=pars.scl; % scaling of downsampled image
                 p.extraPeaks=pars.xPeakPositionA{ind}/mi.pixA;
                 p.extraSD=pars.xPeakSigmaA{ind}/mi.pixA;
                 p.rTerms=pars.rTerms;
@@ -293,7 +302,7 @@ end;
                 p.M4=M4;
                 maxRTerms=numel(p.rTerms);
                 % Set up parameters
-%                 p.limitOrigNTerms=round(pars.fractionStartingTerms(ind)*maxRTerms+1);
+                %                 p.limitOrigNTerms=round(pars.fractionStartingTerms(ind)*maxRTerms+1);
                 p.limitOrigNTerms=pars.limitOrigNTerms;
                 p.fitMode=pars.fitModes{ind};
                 disp(['fitMode = ' p.fitMode]);
@@ -312,102 +321,114 @@ end;
             
             
             %% ---------------Outputting------------------
-%             Write the mi file.
-            outName='';
-%             mi.ctf(1).alpha=originalAlpha; %% Keeep the modified alpha!
+            %             Write the mi file.
+            %             mi.ctf(1).alpha=originalAlpha; %% Keeep the modified alpha!
             if writeMiFile
                 mi.log{end+1,1}=['rsRefineVesicleFits ' TimeStamp];
-                outName=WriteMiFile(mi,[infoPath miNames{fileIndex}]);
-                disp([infoPath outName ' saved']);
+                outMiName=WriteMiFile(mi,[infoPath miNames{fileIndex}]);
+                disp([infoPath outMiName ' saved']);
             end;
             
-            %             Compute and store model vesicles
-            pixAModel=mi.pixA*dsModel;  % pixel size of working merged image
-%             pixA0=mi.pixA*dsm;
-            
-            dfc=.1;  % display filter relative to raw data
-            %%
-            if displayOn
-                figure(1); clf;
-                imags(GaussFilt(m1,dfc*dsModel));  % show the unsubtracted image
-                title(['Original image ' outName],'interpreter','none');
-                drawnow;
-            end;
-            
-%             We'll make the vesicles at the m4 size and scale up.
-            scl4=struct;
-            scl4.n=size(m4);
-            scl4.M=M4;
-            disp('Making the final vesicle models');
-            vs4=meMakeModelVesicles(mi,scl4,find(mi.vesicle.ok(:,3)));
-            vs1=Crop(Downsample(vs4,M4(1,1)*size(vs4)),size(m1));  % scale up if needed to match m0
-            
-            if displayOn
-                imags(GaussFilt(m4-vs4,dfc*M4(1,1)));
-                title(['Final subtraction ' outName],'interpreter','none');
-                drawnow;
-            end;
-            
-%             
-%             if pars.writeVesFiles  % Write .mrc and .jpg files.
-%                 outVesName=[mi.tempPath mi.baseFilename 'v'];
-%                 %             WriteMRC(vsm,pixA0,[outVesName '.mrc']);
-%                 %             WriteJpeg(vsm,outVesName);
-%                 WriteMRC(vs4,pixAModel,[outVesName '.mrc']);
-%                 WriteJpeg(vs4,outVesName,0);
-%                 %             imwrite(uint8(imscale(rot90(vs1),256,0)),[outVesName '.jpg']);
-%                 disp([outVesName ' saved']);
-%             end;
-%             
-            if ~isfield(mi,'procPath_sm')
-                procPath_sm=mi.procPath;
+        end; % if ~skipFitting
+        %             Compute and store model vesicles
+        pixAModel=mi.pixA*dsModel;  % pixel size of working merged image
+        %             pixA0=mi.pixA*dsm;
+        
+        dfc=.1;  % display filter relative to raw data
+        %%
+        if displayOn
+            figure(1); clf;
+            imags(GaussFilt(m1,dfc*dsModel));  % show the unsubtracted image
+            title(['Original image ' inputName],'interpreter','none');
+            drawnow;
+        end;
+        
+        %             We'll make the vesicles at the m4 size and scale up.
+        scl4=struct;
+        scl4.n=size(m4);
+        scl4.M=M4;
+        disp('Making the final vesicle models');
+        vs4=meMakeModelVesicles(mi,scl4,find(mi.vesicle.ok(:,3)));
+        vs1=Crop(Downsample(vs4,M4(1,1)*size(vs4)),size(m1));  % scale up if needed to match m0
+        
+        if displayOn
+            imags(GaussFilt(m4-vs4,dfc*M4(1,1)));
+            title(['Final subtraction ' mi.procPath mi.baseFilename 'v'],'interpreter','none');
+            drawnow;
+        end;
+        
+        %
+        %             if pars.writeVesFiles  % Write .mrc and .jpg files.
+        %                 outVesName=[mi.tempPath mi.baseFilename 'v'];
+        %                 %             WriteMRC(vsm,pixA0,[outVesName '.mrc']);
+        %                 %             WriteJpeg(vsm,outVesName);
+        %                 WriteMRC(vs4,pixAModel,[outVesName '.mrc']);
+        %                 WriteJpeg(vs4,outVesName,0);
+        %                 %             imwrite(uint8(imscale(rot90(vs1),256,0)),[outVesName '.jpg']);
+        %                 disp([outVesName ' saved']);
+        %             end;
+        %
+        if ~isfield(mi,'procPath_sm')
+            procPath_sm=mi.procPath;
+        else
+            procPath_sm=mi.procPath_sm;
+        end;
+        
+        if pars.writeSubMRC  % write an MRC file
+            CheckAndMakeDir(mi.procPath);
+            if isRawImg % our input is a raw micrograph, make the output the same size.
+                % ...and undo the image normalization so it matches the raw
+                % image.
+                mSub=(Crop(m1-vs1,mi.imageSize)/mi.imageNormScale)+mi.imageMedian;
+                outSubName=[mi.procPath mi.baseFilename '_v.mrc'];
             else
-                procPath_sm=mi.procPath_sm;
+                mSub=m1-vs1;
+                outSubName=[mi.procPath mi.baseFilename 'mv.mrc'];
             end;
-            
-            if pars.writeSubMRC  % write an MRC file
-                CheckAndMakeDir(mi.procPath);
-                if isRawImg % our input is a raw micrograph, make the output the same size.
-                    % ...and undo the image normalization so it matches the raw
-                    % image.
-                    mSub=(Crop(m1-vs1,mi.imageSize)/mi.imageNormScale)+mi.imageMedian;
-                    outSubName=[mi.procPath mi.baseFilename '_v.mrc'];
-                else
-                    mSub=m1-vs1;
-                    outSubName=[mi.procPath mi.baseFilename 'mv.mrc'];
-                end;
-                WriteMRC(mSub,mi.pixA,outSubName);
-                disp([outSubName ' saved']);
-            end;
-
-            if pars.writeSmallMRC || pars.writeJpeg
+            WriteMRC(mSub,mi.pixA,outSubName);
+            disp([outSubName ' saved']);
+        end;
+        
+        if pars.writeSmallMRC || pars.writeJpeg
             smSize=round(size(m1)/pars.dsSmall);
-                ms=Downsample(m1,smSize);
+            ms=Downsample(m1,smSize);
+        end;
+        
+        if pars.writeSmallMRC
+            CheckAndMakeDir(procPath_sm);
+            outSmallName=[procPath_sm mi.baseFilename 'ms.mrc'];
+            WriteMRC(ms,mi.pixA*pars.dsSmall,outSmallName);
+            disp([outSmallName ' saved.']);
+        end;
+        if pars.writeJpeg || pars.writeSubJpeg
+            if ~isfield(mi,'jpegPath')
+                mi.jpegPath=pars.jpegPath;
             end;
-            
-            if pars.writeSmallMRC
-                CheckAndMakeDir(procPath_sm);
-                outSmallName=[procPath_sm mi.baseFilename 'ms.mrc'];
-                WriteMRC(ms,mi.pixA*pars.dsSmall,outSmallName);
-                disp([outName ' saved.']);
-            end;
-            if pars.writeJpeg
-                outJpegName=[pars.jpegPath mi.baseFilename 'ms.mrc'];
-                CheckAndMakeDir(pars.jpegPath);
-                WriteJpeg(ms,outJpegName);
-                disp([outJpegName ' saved.']);
-            end;
-            
-            if pars.writeSmallSubMRC || pars.writeSubJpeg
-                mvs=Downsample(m1-vs1,smSize);
-            end;
-            if pars.writeSubJpeg
-                CheckAndMakeDir(pars.jpegPath);
-                outJpegName=[pars.jpegPath mi.baseFilename 'mvs.mrc'];
-                WriteJpeg(mvs,outJpegName);
-                disp([outJpegName ' saved.']);
-            end;
-            
+            CheckAndMakeDir(mi.jpegPath);
+        end;
+
+        if pars.writeJpeg
+            outJpegName=[mi.jpegPath mi.baseFilename 'ms.jpg'];
+            WriteJpeg(ms,outJpegName);
+            disp([outJpegName ' saved.']);
+        end;
+        
+        if pars.writeSmallSubMRC || pars.writeSubJpeg
+            mvs=Downsample(m1-vs1,smSize);
+        end;
+        if pars.writeSmallSubMRC
+            CheckAndMakeDir(procPath_sm);
+            outSmallSubName=[procPath_sm mi.baseFilename 'mvs.mrc'];
+            WriteMRC(mvs,mi.pixA*pars.dsSmall, outSmallSubName);
+            disp([outSmallSubName ' saved.']);
+        end;
+        
+        if pars.writeSubJpeg
+            outJpegName=[mi.jpegPath mi.baseFilename 'mvs.jpg'];
+            WriteJpeg(mvs,outJpegName);
+            disp([outJpegName ' saved.']);
+        end;
+        
     else  % No vesicles have been found to refine
         if numel(mi.vesicle.x)<1
             disp('  ...no vesicles');
