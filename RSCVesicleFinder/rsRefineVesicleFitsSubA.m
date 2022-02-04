@@ -76,6 +76,7 @@ if pars.doPreSubtraction
     vs=meMakeModelVesicles(miOld,scls,vesList,0,0);
     vsf=real(ifftn(fftn(vs).*ifftshift(nsPW.*nsCTF)));
     if pars.displayOn
+        figure(3);
         imags(GaussFilt(m-vsf,.1*pixAs));
         title(['Preliminary subtraction ' miOld.baseFilename],'interpreter','none');
         drawnow;
@@ -100,8 +101,8 @@ if pars.fitRadius % we're doing nonlinear fit
 
     %%  Actual radius fitting is done here
     if pars.listFits
-        disp('  ind 1000s  ---r (A)----   pick   ok   nTerms ------- 100s/s(1) -------------');
-        %        1  2.779  205   0  20     2  1 1 1 1    4    24.80   23.71    0.00    0.00   0
+        disp('  ind 1000s  ---r (A)------------   pick      ok   nTerms ');
+        %        1  2.779  205.12  1.28  2.28          2  1 1 1 1    4  
     end;
 
     miNew.vesicle.ok(:,3)=miNew.vesicle.ok(:,1);  % we'll mark unfitted vesicles here.
@@ -132,6 +133,8 @@ if pars.fitRadius % we're doing nonlinear fit
         ps.fHP=pars.fHP;
         ps.hfVar=hfVar;
         ps.extraRound=pars.extraRound;
+        ps.nv=nvToFit;
+        
         if pars.doPreSubtraction
             % First, compute the one vesicle in question
             vs1=meMakeModelVesicles(miOld,scls,ind,0,0); % no ctf or prewhitening
@@ -186,13 +189,14 @@ if pars.fitRadius % we're doing nonlinear fit
                 title([num2str(errs(k)) str]);
             end;
         end;
-        rvals=zeros(1,3);
-        str=sprintf(['%4d %6.3f %4.1d %4.1d %4.1d  %2d %2d%2d%2d%2d  %2d  '],...
-            ind, 1000*miNew.vesicle.s(ind,1),...
-            rvals(1),rvals(2),rvals(3),...
-            jr-jr0,...
-            miNew.vesicle.ok(ind,:), sum(miNew.vesicle.r(ind,:)~=0),0);
-        disp(str);
+        if pars.listFits
+            rvals=miNew.vesicle.r(ind,:)*miNew.pixA;
+            rvals(5)=0;
+            str=sprintf(['%4d %6.3f  %6.2f %6.2f %6.2f  %2d %2d%2d%2d%2d  %2d  '],...
+            ind, 1000*miNew.vesicle.s(ind,1),abs(rvals([1 3 4])),...
+            jr-jr0, miNew.vesicle.ok(ind,:), sum(miNew.vesicle.r(ind,:)~=0));
+            disp(str);
+        end;
     end; % for j over nv
 
     %% -------------Amplitude fitting done here ---------
@@ -205,6 +209,13 @@ else % ~pars.fitRadius
     miNew=miOld;
     miNew.vesicle.s=miOld.vesicle.s(:,1,1); % truncate all the amplitudes
 
+    if pars.listFits
+        disp('  ind   R         1000s  ---------------  nSTerms    ok  nRTerms');
+        %    '   1  277.9          24.80  23.71           4     1 1 1 1 '
+    end;
+
+    
+    
     for j=1:nvToFit
         ind=vesList(j);
         %             Look up the number of amplitude terms to use.
@@ -218,23 +229,42 @@ else % ~pars.fitRadius
             vs1f=0;
         end;
         miNew=rsRefineVesAmplitude(msf-vsf,vs1f,msmask,miNew,ind,ndsCTF.*ndsPW,ps);
+       
+        if pars.listFits
+            sVals=miNew.vesicle.s(ind,:,1);
+            nSTerms=sum(miNew.vesicle.s(ind,:,1)~=0);
+            sVals(4)=0; % make sure it's this long
+            str=sprintf(['%4d  %6.2fÅ   %6.2f %6.2f %6.2f %6.2f   %2d  %2d%2d%2d%2d  %2d  '],...
+                ind, miNew.vesicle.r(ind,1)*miNew.pixA, 1000*sVals(1:4),...
+                nSTerms, miNew.vesicle.ok(ind,:), sum(miNew.vesicle.r(ind,:)~=0));
+            disp(str);
+        end;
+    
+    
     end; % for j over nv
 
 %         Disallow negative amplitudes, and nan values
-% for i=1:nv
-%     miNew.vesicle.s(isnan(miNew.vesicle.s))=0;
-%     if any(isnan(miNew.vesicle.s(i,:)));
-%         miNew.vesicle.s(i,:)=0;
-%         miNew.vesicle.ok(i,:)=0;
-%     end;
-% end;
+        allVes=size(miNew.vesicle.s,1);
+    for i=1:allVes
+        if any(isnan(miNew.vesicle.s(i,:,:))) | miNew.vesicle.s(i,1,1)<0;
+        miNew.vesicle.s(i,:,:)=0;
+        miNew.vesicle.ok(i,:)=0;
+        end;
+    end;
 
+okVes=miNew.vesicle.ok(:,1);
+if sum(okVes)>1
+    medS=median(miNew.vesicle.s(:,1,1));
+    crazyS=miNew.vesicle.s(:,1,1)>3*medS;
+    miNew.vesicle.s(crazyS,:,:)=0;
+    miNew.vesicle.s(crazyS,1,1)=medS;
+end;
 
 
 end;
 % numberRefined=sum(miNew.vesicle.ok(:,3))
 % numberGood=sum(all(miNew.vesicle.ok(:,1:3),2))  %    exists, in range, refined
-% miNew.vesicle.refined=1;
+miNew.vesicle.refined=1;
 
 return
 

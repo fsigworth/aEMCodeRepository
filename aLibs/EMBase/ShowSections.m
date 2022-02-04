@@ -254,8 +254,8 @@ end;
         
     end
     function subplot1(nr,nc,ind)
-%       mysubplot(nr,nc,ind,0,0,0,0);
-         subplot(nr,nc,ind);
+       mysubplot(nr,nc,ind,0,0,0,0);
+%         subplot(nr,nc,ind);
     end;
     
 end

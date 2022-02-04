@@ -8,8 +8,8 @@ doRefineVesicles      =1;
 doInverseFilter       =0;
 doPickingPreprocessor =1;
 
-jobStart=1001;
-jobEnd=inf;
+jobStart=1;
+jobEnd=1000; % Set to inf to process all micrographs.
 
 % Directories must be set up
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20211122/';
@@ -108,12 +108,10 @@ if nNames<1
 end;
 
 % Figure out what we will do
-% jobOffset tells how many files to skip at beginning or at end
-jobStart=max(1,min(nNames,jobStart));
 jobEnd=min(nNames, jobEnd);
 blockSize=(jobEnd-jobStart+1)/numJobs;
 ourBlockStart=round(jobStart+(jobIndex-1)*blockSize);
-ourBlockEnd=min(jobEnd,round(jobIndex*blockSize+jobStart-1));
+ourBlockEnd=min(jobEnd,round(jobIndex*blockSize));
 mprintf(pars.logs.handles,'files %d to %d\n',ourBlockStart,ourBlockEnd);
 
 ourNames=allNames(ourBlockStart:ourBlockEnd);

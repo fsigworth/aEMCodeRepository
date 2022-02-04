@@ -65,7 +65,7 @@ end; % if ~skipLoading
 n=size(maps,1);
 n2=ceil((n+1)/2);
 nz=round(n*zFraction);
-ShowSections(maps(:,:,[1 5 6 9]),[n2,n2,nz],displayAngle,opts); % not using opts because ShowSections can't make labels.
+ShowSections(maps,[n2,n2,nz],displayAngle,opts); % not using opts because ShowSections can't make labels.
 %ShowSections(maps(:,:,:,[1 5 6 9]),[n2,n2,nz],displayAngle); % not using opts because ShowSections can't make labels.
 
 return;

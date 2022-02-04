@@ -5,11 +5,15 @@ insertVesiclePsis=0;
 
 % Load a particles.star file, may contsain a selected subset from Refine3D etc.
 % pStarName='Refine3D/job140/run_data.star';
-pStarName='Refine3D/job097/run_data.star';  % 2o0211122 dataset
+%pStarName='Refine3D/job020/run_data.star';  % 20220125 dataset
+pStarName='Select/job017/particles.star';
 
 % Load a vesicle-particle file from the entire dataset.
-vStarName='RSC2/ves_particles_v.star';
-
+vStarName='RSC1_C25-3/ves_particles2_v.star';
+if ~exist(vStarName,'file')
+    disp([vStarName ' doesn''t exist.']);
+    return
+end;
 
 % We'll find the entries iVes in the ves-part file corresponding to each line of
 % the particles.star file.
@@ -111,7 +115,7 @@ disp('done.');
      [outPath]=AddSlash(fileparts(vStarName));
      ok=MyInput('Write a star file? ',0);
      while ok
-         selRSO=MyInput('RSO (-1 for both orientations) ? ',1);
+         selRSO=MyInput('RSO (-1 to combine both orientations) ? ',1);
          if selRSO<0
              orString='riso'
              orFlags=true(nParticles,1);

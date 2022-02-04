@@ -184,5 +184,3 @@ miNew.vesicle.s(vIndex,pars.finalTerms,nt)=0; % expand the array if needed
 miNew.vesicle.s(vIndex,1:pars.finalTerms,:)=s; % amplitude values.
 
 
-
-

@@ -22,11 +22,14 @@
 boxSize=256; % Not critical, just written in optics groups.
 
 % ----Our picking data----
-infoDir='Info_C16-1/';
-forceLoadMiFiles=1; % Load each mi file individually instead of loading allMis.mat
+% infoDir='Info_C15-2/';
+suffix='_C16-2';
+infoDir=AddSlash(['Info' suffix]);
+forceLoadMiFiles=0; % Load each mi file individually instead of loading allMis.mat
 
 % ----Input Micrograph star file
-inMicStarName='CtfFind/job127/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
+%inMicStarName='CtfFind/job127/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
+inMicStarName='CtfFind/job221/micrographs_ctf.star'; % Existing file to  % 20211112 C15-2 dataset
 if ~exist(inMicStarName,'file')
     disp(['the micrographs star file ' inMicStarName ' was''nt found. Exiting.']);
     return
@@ -39,14 +42,15 @@ usePaddedSubMicrograph=0; % Look for Merged/*mv.mrc for padded micrographs.
 % Otherwise, look for Merged/*_v.mrc files.
 
 % ----Output star files
-outStarDir='RSC1_C16-1/';  % Place to put our particle star files
+% outStarDir='RSC1_C16-1/';  % Place to put our particle star files
+outStarDir=AddSlash(['RSC1' suffix]);
 CheckAndMakeDir(outStarDir,1);
 
-outMicrographStarBasename='micrograph_ctf1';
+outMicrographStarBasename='micrograph_ctf2';
 writeMicrographStarU=1;
 writeMicrographStarV=1;
 
-outParticleStarBasename='particles1';
+outParticleStarBasename='particles2';
 writeParticleStarU=1;
 writeParticleStarV=1;
 
@@ -104,7 +108,7 @@ if forceLoadMiFiles || ~exist(allMisFilename,'file')
     allMiNames=f2FindInfoFiles(infoDir);
     nmi=numel(allMiNames);
     allMis=cell(0,1);
-    disp('Reading...');
+    disp(['Reading files in ' infoDir]);
     tic
     for i=1:nmi
         allMis{i,1}=ReadMiFile(allMiNames{i});
@@ -123,7 +127,7 @@ end;
 disp(' ');
 %
 % ni=nMics; %%%%%%%
-
+%%
 pts=struct;
 partSubMicName=cell(1,1);
 partUnsubMicName=cell(1,1);
@@ -368,6 +372,7 @@ if writeMicrographStarU
     % We just use the optics block from the input micrograph star file.
     WriteStarFileStruct(opt,'optics',fStar);
     WriteStarFileStruct(uMics,'micrographs',fStar);
+    fprintf(fStar,'\n');
     fclose(fStar);
 end;
 
@@ -379,6 +384,7 @@ if writeMicrographStarV
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(opt,'optics',fStar);
     WriteStarFileStruct(vMics,'micrographs',fStar);
+    fprintf(fStar,'\n'); % somehow, prevent a partial last line.
     fclose(fStar);
 end;
 

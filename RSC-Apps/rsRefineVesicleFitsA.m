@@ -51,9 +51,9 @@ dpars.modifiedB=0.1;    % nonzero to change mi.CTF.B
 %    Note that 2 terms is the same as 1 term.
 %    e.g. dpars.rTerms=[100 100 120 150 200 300 inf];
 %    in this example, r>100A gets 3 terms, r>120 gets 4 terms, etc.
-dpars.rTerms=[100 100 140 180 220 250 300 inf]; % set 1
-dpars.rTerms=[100 100 150 200 250 300 inf]; % set 2
-dpars.rTerms=[120 120 180 240 300 inf]; % set 3
+% dpars.rTerms=[100 100 140 180 220 250 300 inf]; % set 1
+dpars.rTerms=[100 100 150 200 250 300 inf]; % set 2, best for Kv dataset
+% dpars.rTerms=[120 120 180 240 300 inf]; % set 3
 dpars.aTerms=dpars.rTerms;
 
 dpars.stepNTerms=2;
@@ -61,22 +61,22 @@ dpars.preservedTerms=3; % how many radius terms to preserve from previous fittin
 dpars.maxMaskLayers=inf;
 
 % Define the fitting mode for each round
-dpars.fitRadiusModes=[1 0]; % Only one pass, fit radius (shape) alone.
-% dpars.fitRadiusModes=[1 0]; % First fit shape, then amplitudes
+% dpars.fitRadiusModes=[0]; % Only one pass
+dpars.fitRadiusModes=[0 1 0]; % First fit amp, shape, then amplitudes
 
 %  To avoid crazy fits, we repeat the whole radius-only fitting with the base
 %  radius perturbed by these steps (in angstroms) and pick the best.
 % dpars.radiusStepsA=[-100 -50 0 50]; % repeat radius-only fitting with perturbed r(1)
-dpars.radiusStepsA=[0];
+dpars.radiusStepsA=[-20]; % oppose the initial step which is +30.
 
 dpars.disA=1200;  % size of the fit window, in angstroms
 dpars.nIters=300; % basic number of Simplex iterations
 dpars.fHP=.003; % highpass for fitting, in A^-1
 dpars.displayOn=2;
 %  We can add extra peaks in the scattering profile when fitting amplitudes
-dpars.peakPositionA=[]; % seems to work slightly better with one peak. Old favorite [-37 0 37]
+dpars.peakPositionA=[]; % seems to work slightly better with no peak. Old favorite [-37 0 37]
 dpars.peakSigmaA=5; % width of extra Gaussian peaks, in angstrom
-dpars.extraRound=1;
+dpars.extraRound=0; % Extra 'bang' round doesn't help.
 % -----------Merge the defaults with the given mpars-----------
 pars=SetOptionValues(dpars,mpars);
 
