@@ -83,7 +83,7 @@ for i=1:numel(d);
             mi=sum(single(mi),3);
         end;
         m=RemoveOutliers(mi,4);
-        n=size(m,1);
+        n=size(m);
         n=NextNiceNumber(n,5,4);
         me=mean(m(:));
         m=Crop(m,n,1,me);
@@ -113,7 +113,8 @@ for i=1:numel(d);
         fullOutName=[pars.outputDir nm pars.outputExtension];
         if ~exist(fullOutName,'file') || pars.overwrite
             %             imwrite(ms,fullOutName,'jpg');
-            WriteJpeg(m,fullOutName,0);
+            WriteJpeg(m,fullOutName,pars.clipThreshold);
+            disp(['    ' fullOutName]);
         else
             disp(' --exists, not written.');
         end;

@@ -5,7 +5,7 @@
 % fs 22.Apr.21
 
 doWriteFigs=0;
-doLowRes=1;
+doLowRes=0;
 fLow=.05;
 rotAngle=45;
 rotAngle=0

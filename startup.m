@@ -1,4 +1,4 @@
-f% startup.m
+% startup.m
 % Put this script somewhere where Matlab will look on startup, e.g. in home
 % folder or in ~/Documents/MATLAB
 host='MyHost';
@@ -33,6 +33,7 @@ folders={['aLibs' filesep 'EMBase']
          'RSCAnalysis'
          'AMPAR'
          'Kv'
+         'VesicleML'
 %         ['aLibs' filesep 'Others' filesep 'bfmatlab']
 %          'RSCAdaptiveBasis'
 %          'RSCAdaptiveBasis/utils'

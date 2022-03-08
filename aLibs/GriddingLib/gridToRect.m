@@ -8,7 +8,9 @@ function m=gridToRect(p)
 %  p(1:20,:)=1;
 % p(30,:)=1;
 
-[n2 ntheta]=size(p);
+realInput=isreal(p);
+
+[n2, ntheta]=size(p);
 n=2*n2;
 
 if ntheta<2
@@ -25,14 +27,14 @@ nw2=floor(nw/2);  % half-width of kernel, =1 for nw=3.
 np=n*gridfactor;  % padded size
 np1=np+NextNiceNumber(2*nw2,7,4);  % expanded to include a border for kernel points
 sp1=(np1-np)/2;  % offset into np1-sized volume.
-[w1 ov]=gridMakeKaiserTable(kernelsize,'grid');
+[w1,ov]=gridMakeKaiserTable(kernelsize,'grid');
 % w1(:,1025)=w1(:,1024);  % extend the table by 1.
 % Get the extra-padded plane.
 mp1=zeros(np1,np1);
 cp1=np1/2+1;  % Center of the padded plane.
 
 ovctr=ov/2+1;
-square=zeros(nw,nw);
+% square=zeros(nw,nw);
 % loop over r and t, the coordinates of the input p.
 dt=2*pi/ntheta;
 for r=1:n2
@@ -68,7 +70,12 @@ comp=gridMakePreComp(n,nw);
 %   comp=1;
 % Multiply by the compensation function, ift, center and crop to n x n.
 fm=Crop(fftshift(fmp).*kron(comp,comp'),n).*fuzzymask(n,2,n/2-2,4);
-m=real(ifftn(fftshift(fm)));
+if realInput
+    m=real(ifftn(fftshift(fm)));
+else
+    m=ifftn(fftshift(fm));
+end;
+
 % 
 % subplot(2,2,3); imacs(p);
 % subplot(2,2,4); imacs(m);

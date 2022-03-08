@@ -1,10 +1,11 @@
 function line = ExtractLine3(m, n, vector, origin)
-% line = ExtractLine3(m, n, vector, origin)
-% Extract a line of length n from a 3D volume m3d map m, with the center of the line from map(origin) and
-% with the points of the line beyond the center being in the direction of vector from the origin.
-% Trilinear interpolation is used. Based on the code of ERotate3.
-% If coordinates go out of bounds, we clip to the nearest in-bound
-% coordinate.
+% function line = ExtractLine3(m, n, vector, origin)
+% Extract, as an n x 1 vector, values of the 3D volume m along a line
+% of length n, with the center of the line from map(origin) and with the
+% points of the line beyond the center being in the direction of vector
+% from the origin. (vector and origin are 1 x 3 vectors.) Trilinear interpolation is used. Based on the code of
+% ERotate3. If coordinates go out of bounds, we clip to the nearest
+% in-bound coordinate.
 
 nearest=0; % nearest-neighbor interpolation instead of trilinear.
 

@@ -1,4 +1,4 @@
-function [miNew, imgc, vesFit]=rsRefineVesRadius(img,oldVes,mask,mi,vIndex,effCTF,pars,displayOn)
+function [miNew, imgc, vesFit]=rsRefineVesRadius(img,oldVes,mask,mi,vIndex,effCTF,pars)
 % Fit the radius (i.e. shape) to a single vesicle vIndex in the (downsampled, vesicle-subtracted, CTF-filtered)
 % micrograph img. To do the fitting we'll add back the model of
 % vesicle(vIndex) if it was pre-subtracted.
@@ -116,6 +116,7 @@ mask1=mask0+(1-mask0)*maskWeight;  % use this mask for fitting
 % prewhitening has been done to img, it should also be included in effCTF.
 
 if pars.displayOn % Show the region to be fitted.
+    clf;
     subplot(3,2,1);
     imags(imgc); % original image
     title(['Vesicle ' num2str(vIndex)]);

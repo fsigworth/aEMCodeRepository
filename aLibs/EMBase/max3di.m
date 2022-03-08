@@ -1,11 +1,15 @@
 function [val, coords, A]=max3di(m,shiftToOrigin)
 % function [val, coords, A]=max3di(m)
+% function [val, coords, A]=max3di(m, shiftToOrigin)
 % find the interpolated maximum value and its interpolated
 % maximum location in the matrix m(i,j,k).  Interpolation is quadratic and
 % uses InterpMax3.
+% If shiftToOrigin (default 0) is set to 1, the returned 3x1 vector coords
+% will be zero if the peak of m is in the center.
+
+    shiftToOrigin=0;
 
 if nargin<2
-    shiftToOrigin=0;
 else
     shiftToOrigin=floor((size(m)/2+1));
 end;

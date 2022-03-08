@@ -30,7 +30,7 @@ for j=1:numel(ptrsI)
         yVals(1:range,j)=rVals(end:-1:2);
         yVals(range+1:2*range+1,j)=rVals;
         P=Simplex(-rVals(1));
-        if mod(i,10)==0 && doDisplay
+        if mod(i,25)==0 && doDisplay
             disp(P);
 %             plot(xVals,yVals);
 %             drawnow;

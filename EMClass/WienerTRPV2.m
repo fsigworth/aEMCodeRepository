@@ -3,53 +3,58 @@
 % Version 2, plots 1D CTF as well.
 
 cd ~/aEMCodeRepository/EMClass/
+skipProjections=1;
 
+
+if ~skipProjections
 % Code to make projections
-% % psiAngle=180;
-% % [m,s]=ReadMRC('emd_5778.map');
-% % rotAngle=0;
-% % for iRot=0:1
-% %     rotAngle
-% %     if mod(rotAngle,90)~=0
-% %         disp('Rotating...');
-% %         mr=rsRotateImage(m,rotAngle); % rotate about z axis
-% %         disp('done.');
-% %     else
-% %         mr=m;
-% %     end;
-% %     mr=rsRotateImage(squeeze(sum(mr,1)),psiAngle); % projection
-% %     
-% %     % Solvent flattening
-% %     mr1=35+(mr+4*GaussFilt(mr,.0027));
-% %     mr2=mr1.*fuzzymask(256,2,100,20);
-% %     % plot(sect(m0))
-% %     
-% %     mTop=sum(m,3);
-% %     mt1=35+(mTop+4*GaussFilt(mTop,.0027));
-% %     mt2=mt1.*fuzzymask(256,2,100,20);
-% %     mt0=Crop(mt2,512);  % top view
-% %     % imags(mt0);
-% %     
-% %     if rotAngle==0
-% %         mr0=mr2;
-% %     else
-% %         md0=mr2;
-% %     end;
-% %     rotAngle=45;
-% % end;
-% % mt0=mt2;
-% % 
-% % % write out X and diagonal side projections, and top view.
-% % WriteMRC(mr0,s.pixA,'emd_5778_yz.mrc'); % all 256 pixels
-% % WriteMRC(md0,s.pixA,'emd_5778_dz.mrc');
-% % WriteMRC(mt0,s.pixA,'emd_5778_xy.mrc');
-% % save('emd_5778_projs.mat','mr0','md0','mt0','s');
+psiAngle=180;
+[m,s]=ReadMRC('emd_5778.map');
+rotAngle=0;
+for iRot=0:1
+    rotAngle
+    if mod(rotAngle,90)~=0
+        disp('Rotating...');
+        mr=rsRotateImage(m,rotAngle); % rotate about z axis
+        disp('done.');
+    else
+        mr=m;
+    end;
+    mr=rsRotateImage(squeeze(sum(mr,1)),psiAngle); % projection
+    
+    % Solvent flattening
+    mr1=35+(mr+4*GaussFilt(mr,.0027));
+    mr2=mr1.*fuzzymask(256,2,100,20);
+    % plot(sect(m0))
+    
+    mTop=sum(m,3);
+    mt1=35+(mTop+4*GaussFilt(mTop,.0027));
+    mt2=mt1.*fuzzymask(256,2,100,20);
+    mt0=Crop(mt2,512);  % top view
+    % imags(mt0);
+    
+    if rotAngle==0
+        mr0=mr2;
+    else
+        md0=mr2;
+    end;
+    rotAngle=45;
+end;
+mt0=mt2;
+
+% write out X and diagonal side projections, and top view.
+WriteMRC(mr0,s.pixA,'emd_5778_yz.mrc'); % all 256 pixels
+WriteMRC(md0,s.pixA,'emd_5778_dz.mrc');
+WriteMRC(mt0,s.pixA,'emd_5778_xy.mrc');
+save('emd_5778_projs.mat','mr0','md0','mt0','s');
+end;
 %%
 vlSetDarkGraphics;
 % vlSet1080Figure;
 
     cropFactor=2;
-    load emd_5778_projs.mat
+    [mr0,s]=ReadMRC('emd_5778.map');
+load emd_5778_projs.mat
     m0=Crop(mr0,512);  % side view, padded
     pixA=s.pixA;
     
@@ -264,6 +269,7 @@ return
 
 %% % Make the demo of phase-flipping and Wiener
 figure(2);
+n=256;
 ndis=n/2;
 fs=18;
 def0=1;

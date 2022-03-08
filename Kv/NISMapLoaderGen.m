@@ -1,4 +1,4 @@
-% NISMapLoader5.m
+% NISMapLoaderGen.m
 % Based on NISMapSubtraction, but cleaner, and operates on a single map/pdb
 % pair.
 %
@@ -10,7 +10,7 @@ doSave=1 % Write out .mat file with data.
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia')
 
 % ---Select here which problem to do---
-% [names,pd,ptrsI,ligandLabels5,sites,P]=NISGetFilesI;
+%[names,pd,ptrsI,ligandLabels5,sites,P]=NISGetFilesI;
 [names,pd,ptrsI,ligandLabels5,sites,P]=NISGetFilesRe;
 
 

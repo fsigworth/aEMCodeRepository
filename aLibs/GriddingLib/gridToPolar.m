@@ -4,7 +4,7 @@ function p=gridToPolar(m,ntheta)
 % - or stack of images - to
 % polar coordinates. The result p is n/2 x ntheta in size, where ntheta is
 % by default 3 x n.
-
+% This function handles complex m correctly.
 
 % % % test code
 % n=256;
@@ -21,6 +21,8 @@ function p=gridToPolar(m,ntheta)
 if nargin<2
     ntheta=3*n;
 end;
+
+realInput=isreal(m);
 
 mode='grid';
 kernelsize=3;
@@ -50,7 +52,7 @@ p=zeros(n/2,ntheta,nim);
 dt=2*pi/ntheta;
 
 % Object coordinates: zero-based
-[r t]=ndgrid(0:gridfactor:np/2-gridfactor,0:dt:2*pi-dt);
+[r,t]=ndgrid(0:gridfactor:np/2-gridfactor,0:dt:2*pi-dt);
 % These should be same size as p!
 ip=r.*cos(t)+np1/2;  % 0-based indices
 jp=r.*sin(t)+np1/2;    %
@@ -64,10 +66,16 @@ comp2=kron(comp,comp');
 
 for i=1:nim
     m1=m(:,:,i);
-    % Make the oversampled, precompensated image
+    % Make the oversampled, precompensated image. Then we interpolate in
+    % real space.
     fpm=Crop(fftshift(fftn(fftshift(m1))),np);  % pad the FT of m
-    pm1=Crop(fftshift(real(ifftn(fftshift(fpm.*comp2)))),np1);
-    
+    if realInput
+        pm1=Crop(fftshift(real(ifftn(fftshift(fpm.*comp2)))),np1);
+    else
+        pm1=Crop(fftshift(ifftn(fftshift(fpm.*comp2))),np1);
+
+    end;
+
     p1=zeros(n/2*ntheta,1);
     
     addrs=ipint+np1*(jpint)+1;  % 1-dim addresses in the PadFT array.

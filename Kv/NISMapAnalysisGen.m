@@ -1,17 +1,32 @@
 % NISMapAnalysisGen.m
+%  Version for making figures 17-feb-22
+% Call this after running NISMapLoaderGen.m
 
 doLoad=1;
 
 addpath ~/aEMCodeRepository/aLibs/HealpixLib
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Silvia/')
-dataName='NISMapDataI.mat';
 dataDir='220216/';
+
+% ----- Here we pick which dataset we're working on, I- or ReO- -----
+% dataName='NISMapDataI.mat';
+% isReo=0;
+% maxNIons=inf;
+% yLimsAll=[-1.2 2.8];
+% yLimsMean=[-.7 1.8];
+
+dataName='NISMapDataREO.mat';
+isReo=1;
+maxNIons=3;
+maxNIonsInMeanPlot=maxNIons;
+yLimsAll=[-1.5 5];
+yLimsMean=[-1 5];
+% -----------------------------------------------------
 fileName=[dataDir dataName];
 disp(fileName);
 
 if doLoad
     disp(['Loading ' fileName '...']);
-    % %
     load(fileName);
     disp('done.');
 end;
@@ -40,25 +55,11 @@ medianMode=0; % Use the median rather than mean over directions.
 showAllAngles=1;
 showSites=1;
 
-doSave=0;
+doSave=1;
 
 doOptimizeShifts=1; % choose the cdIShifts to maximize density at ion positions.
-iVersion=3;
+iVersion=4;
 
-% ptrsL=ptrsL1;
-% for data 5,6
-yLimsAll=[-1 2]; % iVersion=2.
-
-
-% % for data 6
-% yLimsAll=[-1 1.5];
-% yLims1=[-.5 1];
-
-% % for data 7
-yLimsAll=[-1.5 5];
-
-%        mv=circshift(m4v,[0 0 9]); % need to shift to match peaks.
-%         [0 0 9] for J322 works a bit better.
 mv=m5v;
 mapText=names.pdb;
 [~,modelName]=fileparts(mapText);
@@ -74,7 +75,7 @@ if ~medianMode
 end;
 figPrefix=[dataDir figPrefix num2str(iVersion)];
 pr=p5r;
-nIons=numel(ptrsI);
+nIons=min(maxNIons,numel(ptrsI));
 ctrv=ceil((nv+1)/2);
 
 % % % simulated map for checking cc of map to model
@@ -101,6 +102,9 @@ cdIShifts=zeros(nIons,3);
 if doOptimizeShifts
     disp('Optimizing shifts.');
     NISMapOptimizeShifts;
+    if isReo
+        cdIShifts(3,:)=0; % no shifts for the fake Na2
+    end;
     disp('Ion position shifts, A')
     for i=1:nIons
         disp([num2str(cdIShifts(i,:)/dsv) '   ... ' ligandLabels5{i}]);
@@ -122,7 +126,7 @@ disp(['C-alpha peak values before norm: ' num2str(pkVals',3)]);
 pkNorm=mean(pkVals)/2.2; % Makes Na+ to have density around 1.
 mv=mv/pkNorm;
 % cdIs(cIndices,:)=[]; % suppress these peaks.
-nIons=min(3,size(cdIs,1)); % now show only these ions.
+nIonsDis=min(nIons,size(cdIs,1)); % now show only these ions.
 
 
 % cdLs=[pr.X(ptrsL)' pr.Y(ptrsL)' pr.Z(ptrsL)']*dsv+ctrv;
@@ -209,15 +213,8 @@ switch mode
             yVals(1:range,j)=rVals(end:-1:2);
             yVals(range+1:2*range+1,j)=rVals;
 
-            if j==3
-                lw=1.5;
-            else
-                lw=1;
-            end;
 
             if showAllAngles
-                plot(xVals,yVals(:,j),'k-','linewidth',lw); % plot the mean/median
-                hold on;
                 textXs=zeros(nDirs,1);
                 for k=1:nDirs
                     %                     if sites.dirs(k)
@@ -235,22 +232,31 @@ switch mode
                     %                                 'HorizontalAlignment','center','verticalAlignment','middle');
                     %                         end;
                 end;
-                plot(xVals,lines); % and superimpose the colored individual lines
+                lw1=1.2;
+                plot(xVals,lines,'-','linewidth',lw1); % and superimpose the colored individual lines
+                hold on;
                 yLims=yLimsAll;
             else
-                plot(xVals,yVals(:,j),'-','color',colors(j,:),'linewidth',lw);
+                plot(xVals,yVals(:,j),'-','color',colors(j,:),'linewidth',lw1);
                 hold on;
                 yLims=yLims1;
             end;
-            plot(xVals,0*xVals,'k-');
+            %        Plot the mean
+                lwMean=3;
+                plot(xVals,yVals(:,j),'-','color',[.6 .6 .6],'linewidth',lwMean); % plot the mean/median
+            plot(xVals,0*xVals,'k-'); % baseline
             hold off;
             if showSites
-                legend([{'mean'} sites.res]);
+                legend([sites(j).res {'mean' ''}],'location','northwest');
             end;
+%             plot(xVals,0*xVals,'k-'); % baseline
+%             hold off; 
+
             grid on;
             axis([-inf inf yLims]);
             ylabel('Map density');
-            xlabel('Radius, Å');
+%             xlabel('Radius, Å');
+            xlabel('Distance toward ligand, Å');
         end; % for j
         if doSave
             if showAllAngles
@@ -261,24 +267,27 @@ switch mode
             print('-djpeg','-r300',[figPrefix figTxt]);
             disp(['Wrote ' figPrefix figTxt]);
         end;
-
+% ----------------- Show the means in one plot--------------
         figure(4);
+        lw2=2;
+        nIonsDis=min(nIons,maxNIonsInMeanPlot);
         set(gcf,'position',figSizes(4,:));
         clf;
         title('Means');
-        plot(xVals,yVals,'linewidth',1);
+        plot(xVals,yVals(:,1:nIonsDis),'linewidth',lw2);
         hold on;
         plot(xVals,0*xVals,'k-');
         hold off;
-        axis([min(xVals) max(xVals) yLims]);
+        axis([min(xVals) max(xVals) yLimsMean]);
         xlabel('Radial distance from center, Å');
         ylabel('Map density');
         grid on;
         legTxt=ionLabels;
         legend(legTxt);
         if doSave
-            print('-djpeg','-r300',[figPrefix '_Radial.jpg']);
-            disp(['Wrote ' figPrefix '_Radial.jpg']);
+            jpegName=[figPrefix '_Radial.jpg'];
+            print('-djpeg','-r300',jpegName);
+            disp(['Wrote ' jpegName]);
 
         end;
 

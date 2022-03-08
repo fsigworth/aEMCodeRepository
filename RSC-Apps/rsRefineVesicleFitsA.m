@@ -76,7 +76,7 @@ dpars.displayOn=2;
 %  We can add extra peaks in the scattering profile when fitting amplitudes
 dpars.peakPositionA=[]; % for Krios Kv data, no peak! Old favorite [-37 0 37]
 dpars.peakSigmaA=5; % width of extra Gaussian peaks, in angstrom
-dpars.extraRound=0;
+dpars.extraRound=0; % Extra round of radius fitting with big perturbation. Doesn't seem to help.
 % -----------Merge the defaults with the given mpars-----------
 pars=SetOptionValues(dpars,mpars);
 

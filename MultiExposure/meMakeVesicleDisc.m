@@ -34,7 +34,6 @@ for j=2:nTerms
 end;
 
 rNom=real(wi*a);  % nominal radius the shell, 2D function, as a function of theta
-% Correction of membrne thickness for radius variations
 
 if width>0
     m=0.5*(1-erf(k*(r-rNom)));

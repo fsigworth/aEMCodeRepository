@@ -12,6 +12,21 @@ function ShowSections( map, ctr, yAngle, options )
 %   ShowSections(map,ctr,exponent)
 % options.rowLabels doesn't work yet because mysubplot doesn't handle
 % ylabel or xlabel correctly.
+
+if nargin<4
+    options=struct;
+end;
+    defOpts=struct;
+    defOpts.showLines=1;
+    defOpts.showLabels=0;
+    defOpts.rowLabels={};
+    defOpts.useMySubplot=1;
+    defOpts.noAxis=0;
+options=SetOptionValues(defOpts,options);
+
+
+
+
 drawX=1;
 drawY=1;
 
@@ -41,15 +56,6 @@ ctr0=ceil(([nx ny nz]+1)/2);
 if nargin<2 || numel(ctr)<3
     ctr=ctr0;
 end;
-if nargin<4
-    options=struct;
-end;
-    defOpts=struct;
-    defOpts.showLines=1;
-    defOpts.showLabels=0;
-    defOpts.rowLabels={};
-
-options=SetOptionValues(defOpts,options);
 
 showRowLabels=numel(options.rowLabels)>=nim;
 
@@ -108,7 +114,9 @@ for iSlice=1:nim
         end;
         hold off;
     end
+if options.noAxis
     axis off equal
+end;
     if showRowLabels
         title(options.rowLabels{iSlice});
     elseif iSlice==1
@@ -134,7 +142,9 @@ for iSlice=1:nim
         xlabel('X');
         ylabel('Y');
     else
-        axis off equal;
+if options.noAxis
+    axis off equal
+end;
         if iSlice==1
             title('Projections XY');
         end;
@@ -154,7 +164,9 @@ for iSlice=1:nim
         ylabel('Z');
         title('Sections');
     else
-        axis off equal;
+if options.noAxis
+    axis off equal
+end;
         if iSlice==1
             title('XZ');
         end;
@@ -178,7 +190,9 @@ for iSlice=1:nim
         ylabel('Z');
         title('Projections');
     else
-        axis off equal;
+if options.noAxis
+    axis off equal
+end;
         if iSlice==1
             title('XZ');
         end;
@@ -197,7 +211,9 @@ for iSlice=1:nim
         xlabel(yString);
         ylabel('Z');
     else
-        axis off equal;
+if options.noAxis
+    axis off equal
+end;
         if iSlice==1
             title('YZ');
         end;
@@ -218,7 +234,9 @@ for iSlice=1:nim
         xlabel(yString);
         ylabel('Z');
     else
-        axis off equal;
+if options.noAxis
+    axis off equal
+end;
         if iSlice==1
             title('YZ');
         end;
@@ -254,8 +272,11 @@ end;
         
     end
     function subplot1(nr,nc,ind)
-%       mysubplot(nr,nc,ind,0,0,0,0);
-         subplot(nr,nc,ind);
-    end;
-    
+        if options.useMySubplot
+            mysubplot(nr,nc,ind,0,0,0,0);
+        else
+            subplot(nr,nc,ind);
+        end;
+    end
+
 end

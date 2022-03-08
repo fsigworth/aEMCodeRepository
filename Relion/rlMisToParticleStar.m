@@ -142,14 +142,14 @@ for i=1:ni
 % %         outOpt=rmfield(outOpt,'rlnMicrographPixelSize');
 %     end;
 
-            %         Get the micrograph names
+            %    Get the micrograph name and find it in the inMicStar file.
             fullImageName=[mi.imagePath mi.imageFilenames{1}];
             match=strcmp(fullImageName,mic.rlnMicrographName);
             micStarLine=find(match);
             if numel(micStarLine)<1
                 disp(['Image name couldn''t be matched. mi: ' fullImageName ' typical Star name: ' mic.rlnMicrographName{i}]);
                 nSkip=nSkip+1;
-                continue
+                continue % skip this mi file.
             elseif numel(micStarLine)>1
                 disp(['?duplicate micrograph names in star file? ' fullImageName]);
             end;
@@ -163,13 +163,13 @@ for i=1:ni
         if useMergedUnsubMicrograph
             newUnsubMicName=[mi.procPath mi.baseFilename '_u.mrc'];
         else
-            newUnsubMicName=[mi.imagePath mi.imageFilenames{1}];
+            newUnsubMicName=[mi.imagePath mi.imageFilenames{1}]; % usual case.
         end;
         if usePaddedSubMicrograph
             disp('Not yet implemented, using padded sub micrographs.');
             return
         else
-            newSubMicName=[mi.procPath mi.baseFilename '_v.mrc'];
+            newSubMicName=[mi.procPath mi.baseFilename '_v.mrc']; % usual case.
         end;
         
 %         % We might have new files missing.
