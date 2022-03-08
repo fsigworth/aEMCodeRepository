@@ -6,7 +6,8 @@ miNames=f2FindInfoFiles(infoDir);
 ds=4; % we know this is the image downsampling factor.
 
 nmi=numel(miNames);
-disp([num2str(nmi) ' micrographs.']);
+figure(1);
+clf;
 
 for i=1:1 % index of the micrograph
     mi=ReadMiFile(miNames{i});
@@ -34,12 +35,33 @@ for i=1:1 % index of the micrograph
     ly=localCoords(2,:);
     lr=mi.vesicle.r/ds;
 
-    figure(1);
+    subplot(2,1,1);
     imags(m);
     hold on;
     for j=1:nv
-        [xs,ys]=CircleLineSegments((lr(j,:))); % bug: have to take conjugate.
+        [xs,ys]=CircleLineSegments((lr(j,:)));
         plot(xs+lx(j),ys+ly(j),'b-','linewidth',1);
     end;
     hold off;
+    title([num2str(i) ':  ' imageName],'interpreter','none');
+    drawnow;
+%% we'll set single pixels in a blank image.
+    m2=zeros(size(m),'single');
+    [nx,ny]=size(m);
+    subplot(2,1,2);
+    for j=1:nv
+%         Ask for a distance of 0.5 between points.
+        [xs,ys]=CircleLineSegments(lr(j,:),0.5);
+        ixs=round(xs+lx(j));
+        iys=round(ys+ly(j));
+        badLocs=(ixs<1)|(ixs>nx)|(iys<1)|(iys>ny);
+        ixs(badLocs)=[];
+        iys(badLocs)=[];
+        for k=1:numel(ixs)
+            m2(ixs(k),iys(k))=1;
+        end;
+    end;
+    imags(m2);
+    drawnow;
+
 end;
