@@ -1,4 +1,4 @@
-pwd% rlMisToParticleStar.m
+% rlMisToParticleStar.m
 % Given a set of mi files and a micrographs_ctf.star file,
 % create two particles.star files that can be used by
 % Relion's particle extraction jobs. One is for unsubtracted and one is for
@@ -22,30 +22,34 @@ pwd% rlMisToParticleStar.m
 boxSize=256;
 
 % ----Our picking data----
-% First, use MiLoadAll to make an allMis.mat file containing all the mi file data.
-% Then give the name here:
-% allMisName='Picking_9/allMis9_intens+frac_7505.mat';
-%allMisName='Picking_9/allMis_holes_i2_ov_cls.mat';
-allMisName='RSC2/allMis.mat';
+% infoDir='Info_C15-2/';
+suffix='_C16-2';
+infoDir=AddSlash(['Info' suffix]);
+forceLoadMiFiles=0; % Load each mi file individually instead of loading allMis.mat
 
-% ----Inputs Micrograph star file
-% inMicStarName='CtfFind/job003/micrographs_ctf.star'; % Existing file to read
-inMicStarName='CtfFind/job007/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
-
-% ----Output star files
-outStarDir='RSC2/';  % Place to put our particle star files
-CheckAndMakeDir(outStarDir,1);
+% ----Input Micrograph star file
+%inMicStarName='CtfFind/job127/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
+inMicStarName='CtfFind/job221/micrographs_ctf.star'; % Existing file to  % 20211112 C15-2 dataset
+if ~exist(inMicStarName,'file')
+    disp(['the micrographs star file ' inMicStarName ' was''nt found. Exiting.']);
+    return
+end;
 
 useMergedUnsubMicrograph=0; % Look for Merged/_u.mrc for unsub micrographs.
 % We'll also write the new micrographs_ctf_unsub.star file.
 usePaddedSubMicrograph=0; % Look for Merged/*mv.mrc for padded micrographs.
 % Otherwise, look for Merged/*_v.mrc files.
 
-outMicrographStarBasename='micrograph_ctf';
+% ----Output star files
+% outStarDir='RSC1_C16-1/';  % Place to put our particle star files
+outStarDir=AddSlash(['RSC1' suffix]);
+CheckAndMakeDir(outStarDir,1);
+
+outMicrographStarBasename='micrograph_ctf2';
 writeMicrographStarU=1;
 writeMicrographStarV=1;
 
-outParticleStarBasename='particles';
+outParticleStarBasename='particles2';
 writeParticleStarU=1;
 writeParticleStarV=1;
 
@@ -96,16 +100,35 @@ uMicNames=cell(nMics,1);
 vMicNames=cell(nMics,1);
 % %
 
-if ~skipLoadingMis
-disp(['Loading ' allMisName ' ...']);
-load(allMisName); % Get allMis cell array
+% Does an allMis.mat file already exist in the infoDir?
+allMisFilename=[AddSlash(infoDir) 'allMis.mat'];
+
+if forceLoadMiFiles || ~exist(allMisFilename,'file')
+    allMiNames=f2FindInfoFiles(infoDir);
+    nmi=numel(allMiNames);
+    allMis=cell(0,1);
+    disp(['Reading files in ' infoDir]);
+    tic
+    for i=1:nmi
+        allMis{i,1}=ReadMiFile(allMiNames{i});
+        if mod(i,500)==0
+            disp(i);
+        end;
+    end;
+    toc
+    disp(['Writing ' allMisFilename]);
+    save(allMisFilename,'allMis');
+    % We'll have to add the '-v7.3' option if allMis is >2GB in size
+else
+    disp(['Loading ' allMisFilename]);
+    load(allMisFilename);
 end;
 ni=numel(allMis);
 disp([num2str(ni) ' mi files']);
 disp(' ');
 %
-ni=nMics; %%%%%%%
-
+% ni=nMics; %%%%%%%
+%%
 pts=struct;
 partSubMicName=cell(1,1);
 partUnsubMicName=cell(1,1);
@@ -349,6 +372,7 @@ if writeMicrographStarU
     % We just use the optics block from the input micrograph star file.
     WriteStarFileStruct(opt,'optics',fStar);
     WriteStarFileStruct(uMics,'micrographs',fStar);
+    fprintf(fStar,'\n');
     fclose(fStar);
 end;
 
@@ -360,6 +384,7 @@ if writeMicrographStarV
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(opt,'optics',fStar);
     WriteStarFileStruct(vMics,'micrographs',fStar);
+    fprintf(fStar,'\n'); % somehow, prevent a partial last line.
     fclose(fStar);
 end;
 

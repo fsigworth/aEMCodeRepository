@@ -272,11 +272,8 @@ end;
         
     end
     function subplot1(nr,nc,ind)
-        if options.useMySubplot
-            mysubplot(nr,nc,ind,0,0,0,0);
-        else
-            subplot(nr,nc,ind);
-        end;
-    end
-
+       mysubplot(nr,nc,ind,0,0,0,0);
+%         subplot(nr,nc,ind);
+    end;
+    
 end

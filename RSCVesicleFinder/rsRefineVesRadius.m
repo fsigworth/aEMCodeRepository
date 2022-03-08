@@ -30,7 +30,7 @@ initStepA=30;  % initial step is ~ membrane width
 convCriterion=1e-3; % std of simplex variations
 minUnmaskedFraction=0.3; % Don't mask at all if less than this remains of a vesicle.
 maskWeight=0.2;  % Scaling of old fit to replace the masked region.
-termStepFraction=1; % decrement of simplex steps per term
+termStepFraction=.8; % decrement of simplex steps per term
 roundStepFraction=.8; % decrement of simplex steps per round
 ndis=size(effCTF,1);
 stepNTerms=2;
@@ -119,7 +119,7 @@ if pars.displayOn % Show the region to be fitted.
     clf;
     subplot(3,2,1);
     imags(imgc); % original image
-    title(['Vesicle ' num2str(vIndex)]);
+    title(['Vesicle ' num2str(vIndex) ' / ' num2str(numel(mi.vesicle.x))]);
     drawnow;
     subplot(3,2,2); % Show the same, but with masking and presub
     imags(imgc0);
@@ -217,9 +217,7 @@ for j=1:nj
 end;
 [minErr,ij]=min(errs);
 
-if p.displayOn && pars.extraRound % display without and with the bang
-%     --my conclusion is that the bang doesn't help at all. Instead we use
-%     larger starting steps.
+if p.displayOn && pars.extraRound
     marker=char(1,nj);
     marker(j)='*';
 for j=1:nj
@@ -367,7 +365,8 @@ while tShift>.1 && iter<5
     fvFilt=fftn(v).*ifftshift(p.effCTF);
     vFilt=real(ifftn(fvFilt)).*p.mask1; % we really should fft this....
         % Compute the CCF
-    cc=fftshift(real(ifftn(fftn(p.imgc).*conj(fftn(vFilt))))).*p.ccMask;
+    ccMask=circshift(p.ccMask,round(ctr-p.t));
+    cc=fftshift(real(ifftn(fftn(p.imgc).*conj(fftn(vFilt))))).*ccMask;
     [~, xi, yi]=max2di(cc+p.logPScaled);
     tUpdate=[xi yi]-ctr;
     p.t=p.t+tUpdate;
