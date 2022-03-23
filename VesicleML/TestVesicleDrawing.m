@@ -1,16 +1,14 @@
 % TestVesicleDrawing.m
 
-infoDir='Info_C24-4/';
-tiffPath='Tiff_C24-4/';
-tiffPath='';
-fileSuffix='ms.tif';
-ds=4; % we know this is the image downsampling factor.
+% % The 20211122/C24-4 dataset
+% infoDir='/Users/fred/EMWork/Yangyu/20211122_farnam/C24-4_part/Info_C24-4/';
+% tiffPath='/Users/fred/EMWork/Yangyu/20211122_farnam/C24-4_part/Tiff_C24-4/';
+% fileSuffix='ms.tif';
 
 % The original Dec17 dataset
-infoDir='Info/';
-fileSuffix='ms.tiff';
-tiffPath='';
-ds=8; % we know this is the image downsampling factor.
+infoDir='/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Data for Chris/Chris sims/tmp/Info/';
+fileSuffix='ms.tif';
+tiffPath='~/Downloads/high_quality_tifs/';
 
 miNames=f2FindInfoFiles(infoDir);
 
@@ -18,17 +16,27 @@ nmi=numel(miNames);
 figure(1);
 clf;
 
-for i=1:1 % index of the micrograph
+for i=1:nmi % index of the micrograph
+    disp([num2str(i) ':  ' miNames{i}]);
     mi=ReadMiFile(miNames{i});
     nv=numel(mi.vesicle.x); % Check if there are any vesicles.
     if nv<1
         continue;
     end;
-
-    %     Create the affine matrix to handle scaling and image padding
     if ~isfield(mi,'padImageSize')
         mi.padImageSize=NextNiceNumber(mi.imageSize);
     end;
+
+    imageName=[tiffPath mi.baseFilename fileSuffix];
+    if ~exist(imageName,'file')
+        disp(['File not found: ' imageName]);
+        continue;
+%         return
+    end;
+    m=rot90(imread(imageName),-1); % rotation to correponds to EM convention
+    ds=round(mi.padImageSize(1)/size(m,1));
+
+    %     Create the affine matrix to handle scaling and image padding
     shft=(mi.imageSize-mi.padImageSize)/2;
     M=[ds 0 shft(1); 0 ds shft(2); 0 0 1];
     iM=inv(M);
@@ -38,12 +46,6 @@ for i=1:1 % index of the micrograph
     %     but because Matlab uses 1-based arrays, we have to add 1 to ix and iy
     %     if we use them to index the image.
 
-    imageName=[tiffPath mi.baseFilename fileSuffix];
-    if ~exist(imageName,'file')
-        disp(['File not found: ' imageName]);
-        return
-    end;
-    m=rot90(imread(imageName),-1); % rotation to correponds to EM convention
     % draw vesicle curves
     globalCoords=[mi.vesicle.x mi.vesicle.y ones(nv,1)];
     localCoords=iM*globalCoords'+1;
@@ -79,5 +81,5 @@ for i=1:1 % index of the micrograph
     end;
     imags(m2);
     drawnow;
-
+pause
 end;
