@@ -2,8 +2,17 @@
 
 infoDir='Info_C24-4/';
 tiffPath='Tiff_C24-4/';
-miNames=f2FindInfoFiles(infoDir);
+tiffPath='';
+fileSuffix='ms.tif';
 ds=4; % we know this is the image downsampling factor.
+
+% The original Dec17 dataset
+infoDir='Info/';
+fileSuffix='ms.tiff';
+tiffPath='';
+ds=8; % we know this is the image downsampling factor.
+
+miNames=f2FindInfoFiles(infoDir);
 
 nmi=numel(miNames);
 figure(1);
@@ -17,6 +26,9 @@ for i=1:1 % index of the micrograph
     end;
 
     %     Create the affine matrix to handle scaling and image padding
+    if ~isfield(mi,'padImageSize')
+        mi.padImageSize=NextNiceNumber(mi.imageSize);
+    end;
     shft=(mi.imageSize-mi.padImageSize)/2;
     M=[ds 0 shft(1); 0 ds shft(2); 0 0 1];
     iM=inv(M);
@@ -26,7 +38,11 @@ for i=1:1 % index of the micrograph
     %     but because Matlab uses 1-based arrays, we have to add 1 to ix and iy
     %     if we use them to index the image.
 
-    imageName=[tiffPath mi.baseFilename 'ms.tif'];
+    imageName=[tiffPath mi.baseFilename fileSuffix];
+    if ~exist(imageName,'file')
+        disp(['File not found: ' imageName]);
+        return
+    end;
     m=rot90(imread(imageName),-1); % rotation to correponds to EM convention
     % draw vesicle curves
     globalCoords=[mi.vesicle.x mi.vesicle.y ones(nv,1)];
@@ -35,7 +51,7 @@ for i=1:1 % index of the micrograph
     ly=localCoords(2,:);
     lr=mi.vesicle.r/ds;
 
-    subplot(2,1,1);
+    mysubplot(2,1,1);
     imags(m);
     hold on;
     for j=1:nv
@@ -48,7 +64,7 @@ for i=1:1 % index of the micrograph
 %% we'll set single pixels in a blank image.
     m2=zeros(size(m),'single');
     [nx,ny]=size(m);
-    subplot(2,1,2);
+    mysubplot(2,1,2);
     for j=1:nv
 %         Ask for a distance of 0.5 between points.
         [xs,ys]=CircleLineSegments(lr(j,:),0.5);

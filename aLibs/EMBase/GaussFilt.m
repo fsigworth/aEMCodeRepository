@@ -55,7 +55,8 @@ elseif ndim==2
 elseif ndim==3
     [x,y,z]=ndgrid(-m(1)/2:m(1)/2-1, -m(2)/2:m(2)/2-1, -m(3)/2:m(3)/2-1);
     q=exp(k(1)*x.^2+k(2)*y.^2+k(3)*z.^2);	% Gaussian kernel
-else error('GaussFilt', 'Input matrix has dimension > 3');
+else
+    error('GaussFilt', 'Input matrix has dimension > 3');
 end;
 q=fftshift(q);
 

@@ -5,6 +5,7 @@ function m = disco(n, r)
 %	are equal to 1.  The origin is [n/2+1, n/2+1].
 
 %	Construct the disc
+n=n(1);
 r0 = n/2+1;  % Coordinate of the center
 ep = 1e-4;
 m=zeros(n);

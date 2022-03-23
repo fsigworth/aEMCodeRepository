@@ -1,10 +1,11 @@
-function [rot, zsh]=AlignSymmetricMaps(m1,m2,ds,rot,zsh);
+function [rot, zsh, m1dr]=AlignSymmetricMaps(m1,m2,ds,rot,zsh);
 % function [rot, zsh]=AlignSymmetricMaps(m1,m2,ds,rot,zsh);
 % rotate m1 about the z-axis, and shift along the z-axis, to maximize cross
 % correlation, and return the angle in degrees and shift in pixels. ds is the downsampling factor to speed things up. If ds is a
 % vector, we repeat the alignment with each given factor; default is
 % [4 2 1]. rot and zSh are initial values for rotation (ccw in degrees) and
-% z-shift in original pixels; defaults are 0 and 0.
+% z-shift in original pixels; defaults are 0 and 0. The returned map m1dr
+% is the optimized transformation of m1.
 
 if nargin<3 || numel(ds)==0
     ds=[4 2 1];

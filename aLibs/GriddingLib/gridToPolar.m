@@ -5,6 +5,9 @@ function p=gridToPolar(m,ntheta)
 % polar coordinates. The result p is n/2 x ntheta in size, where ntheta is
 % by default 3 x n.
 % This function handles complex m correctly.
+% In image m, points on the positive x axis are mapped to p(r,1). Points on
+% the positive y axis are mapped to p(r,n/4+1). So increasing p(,y)
+% corresponds to ccw object rotation starting at the x-axis.
 
 % % % test code
 % n=256;

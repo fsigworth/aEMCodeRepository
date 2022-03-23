@@ -667,7 +667,6 @@ end;
 h.sav.baseName=mi.baseFilename;
 mi.ctf.B=60;
 
-
 [h, ok]=GetImageFile(mi,h);
 if ok
     h.imageLoaded=true;

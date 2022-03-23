@@ -1,7 +1,10 @@
 function plotcx(x,y)
 if nargin<2
     y=x;
-    x=1:numel(y);
+    if any(size(y)==1)
+        y=y(:);
+    end;
+    x=1:size(y,1);
 end;
 colors=[.9 .4 .4 ; .5 .5 1];
 

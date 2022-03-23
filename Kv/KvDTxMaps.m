@@ -1,4 +1,5 @@
 % KvDTXMaps.m
+% Try to make a difference map for Kv1.2 datasets with and without DTx
 
 cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Yangyu/KvDTX/Maps and model');
 % [mTx,s]=ReadMRC('Kv1.2_DenTx_2.8A.mrc');
@@ -7,11 +8,14 @@ mWt=ReadMRC('Kv1.2_WT_3.2A.mrc');
 % mTx=SharpFilt(rsRotateImage(mTx,45),.3);
 % mWt=SharpFilt(rsRotateImage(mWt,47),.3);
 
-%%
+%% Extract the TM regions
+    doWrite=0; % don't write out
+
 n0=size(mTx,1);
 ct0=ceil((n0+1)/2);
 n1=144;
 zsh=25;
+zsh=27; % matches the model better.
 tsh=1;
 % Mask the T1 domain
 mta=circshift(mTx,[0 0 zsh+tsh]);
@@ -69,7 +73,8 @@ ShowSections(a*SharpFilt(mt,.4)-mw,[],45)
 % end;
 mwx=mw;
 mtx=mt;
-%%
+%% Find a linear filter (sum of Gaussians) to allow the best subtraction
+
 ct=ceil((n1+1)/2);
 t=6; % slab half-thickness
 tm=12; % slab for projection image of masked maps
@@ -86,19 +91,14 @@ msk=msko.*(1-mski).*(1-mskp).*(1-mskp2);
 % ShowSections(msk.*mtx);
 
 
-
-
-
 mt=mtx;
 mtm=msk.*mt;
 
 % mw=SharpFilt(mwx,.33);
 mw=mwx;
 mwm=msk.*mw;
-
+% fc values for the many parallel Gaussian filters.
 fcs=[.6 .4 .37 .36 .35 .34 .33 .32 .3 .29 .28 .27 .26 .25 .24 .23 .22 .21 .2];
-% fcs=[.8 .5 .45 .4 .35 .3 .25 .2 .15]; .8 .7 .6 .5 .45
-% .1 .07 .05];
 nTerms=numel(fcs);
 n3=numel(mtm);
 F=zeros(n3,nTerms+1);
@@ -109,6 +109,7 @@ for i=1:nTerms
     F(:,i)=reshape(SharpFilt(mtm,fc),n3,1);
     F1(:,i)=reshape(SharpFilt(mt,fc),n3,1);
 end;
+%-------Least squares fitting here------
 a=lsqr(F,mwm(:));
 disp(a);
 mtmf=reshape(F*a,[n1 n1 n1]);
@@ -137,8 +138,7 @@ mysubplot(236);
 %     imaga(sum(mtf-mw,1)*mscl+100);
     imaga(mean(mtf(ct-t:ct+t,:,:)-mw(ct-t:ct+t,:,:),1)*mscl+100);
 
-    doWrite=0;
-%%
+%% Write out the diff map with various amounts of filtering
 pixA=s.pixA;
 diffMap=mtf-mw;
 
@@ -191,9 +191,20 @@ return
 
 %% make a mask based on the model.
 [comp,prot]=SolventAndProteinDensity('WT_fit_WTmap_molrep_ABCD_R1.pdb');
-%%
-protScl=DownsampleGeneral(prot,144,1/s.pixA);
-protMsk=(GaussFilt(protScl,.05)>.1);
+%
+protScl=DownsampleGeneral(circshift(prot,[0 0 0]),144,1/s.pixA);
+% align the maps
+% [rot,dz,protScla]=AlignSymmetricMaps(protScl,500*SharpFilt(mw,.2));
+% turns out that rot=0.3 degrees, dz=-.1: negligible.
+protScla=protScl;
+protMsk=GaussFilt(GaussFilt(protScla,.1)>.1,.2);
 ShowSections(protMsk.*diffMap);
-
-
+% WriteMRC(protMsk.*diffMap,s.pixA,'MaskedDiffMap.mrc');
+%% Make special masks to accomodate the DTx
+txSphere=fuzzymask(144,3,17,1,[0 0 -27]+73);
+txMsk=min(1,protMsk+txSphere);
+ShowSections(SharpFilt(diffMap,.25).*txMsk);
+WriteMRC(txSphere.*diffMap,s.pixA,'MaskedTx.mrc');
+WriteMRC(txMsk.*diffMap,s.pixA,'MaskedDiffMap.mrc');
+WriteMRC(mw.*protMsk,s.pixA,'MaskedWT.mrc');
+WriteMRC(mt.*txMsk,s.pixA,'MaskedKvTx.mrc');
