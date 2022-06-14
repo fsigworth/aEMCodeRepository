@@ -1,4 +1,5 @@
 % k3DistributedPipeline.m
+% 1st copy
 % Run the processing pipeline for K2 or K3 movies.
 % Simplified version does vesicle finding, refinement and picking
 % preprocessor.
@@ -7,20 +8,25 @@ doPrelimInverseFilter =0;
 doRefineVesicles      =1;
 doInverseFilter       =0;
 doPickingPreprocessor =1;
+doPicking             =0;
 
-jobStart=1001;
+dontRedo=1; %%% don't overwrite Vesicle finding, refinement etc.
+
+jobStart=1;
 jobEnd=inf;
 
 % Directories must be set up
-workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20211122/';
-%workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20220125/';
+%workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20211122/';
+workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20220608/';
+%workingDir='/gpfs/gibbs/pi/tomography/sigworth/20220407/';
 cd(workingDir);
 
 %workingDir='/Users/fred/EMWork/Yangyu/20211122_sel/';
-infoDir='Info_C24-4/';
-% infoDir='Info_C15-2/';
-%infoDir='Info/';
-logDir='Log/';
+%infoDir='Info_C24-4/';
+ infoDir='Info_C35-2/';
+ logDir='Log_C35-2/';
+%infoDir='Info_C34-1/';
+%logDir='Log_C34-1/';
 
 pars=struct;
 pars.loadFilenames=0; % pick up allNames.mat in base directory
@@ -117,33 +123,74 @@ ourBlockEnd=min(jobEnd,round(jobIndex*blockSize+jobStart-1));
 mprintf(pars.logs.handles,'files %d to %d\n',ourBlockStart,ourBlockEnd);
 
 ourNames=allNames(ourBlockStart:ourBlockEnd);
+
 numNames=numel(ourNames);
 if numNames<1  % nothing to do
     error(['No mi files found: ' pwd]);
 end;
 
+
+logSeqs=zeros(numNames,8);
+if dontRedo
+    disp('Cheking mi logs')
+    for i=1:numNames
+        logSeqs(i,:)=miDecodeLog(ReadMiFile(ourNames{i}));
+    end;
+end;
+
     % inverse filter (sequence 6)
     if doPrelimInverseFilter
+        active=logSeqs(:,6)==0;
+        activeNames=ourNames(active);
+        disp([num2str(sum(active)) ' mi files for vesicle finding.'])
+        if any(active)
         fpars=struct;
         fpars.useUnsubImage=1;
-            meInverseFilterAuto(ourNames,fpars);
+            meInverseFilterAuto(activeNames,fpars);
+        end;
     end;
 
     if doFindVesicles
-            Vesicle_finding_GUI(ourNames);
-        end;
+        active=logSeqs(:,4)==0;
+        activeNames=ourNames(active);
+        disp([num2str(sum(active)) ' mi files for vesicle finding.'])
+        if any(active)
+            Vesicle_finding_GUI(activeNames);
+        end; 
+     end;
 
         % refine vesicles (sequence 5)
     if doRefineVesicles
-            rsRefineVesicleFitsA(ourNames,rpars);
+        active=logSeqs(:,5)==0;
+        activeNames=ourNames(active);
+        disp([num2str(sum(active)) ' mi files for vesicle refinement.'])
+        if any(active)
+            rsRefineVesicleFitsA(activeNames,rpars);
+        end;
     end;
             % inverse filter (sequence 6)
     if doInverseFilter 
-            meInverseFilterAuto(ourNames);
+        active=logSeqs(:,6)==0;
+        activeNames=ourNames(active);
+        disp([num2str(sum(active)) ' mi files for vesicle finding.'])
+        if any(active)
+            meInverseFilterAuto(activeNames);
+        end;
     end;
 
     % picking preprocessor (sequence 8)
     if doPickingPreprocessor
-            rsPickingPreprocessor4(ourNames,pars);
+        active=logSeqs(:,8)==0;
+        activeNames=ourNames(active);
+        disp([num2str(sum(active)) ' mi files for preprocessor.'])
+        if any(active)
+            rsPickingPreprocessor4(activeNames,pars);
+        end;
+    end;
+    
+    if doPicking
+        batchStart=ourBlockStart;
+        batchEnd=ourBlockEnd;
+        SimpleRSPicker;
     end;
     

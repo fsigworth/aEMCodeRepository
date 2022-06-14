@@ -8,6 +8,22 @@ si=struct;
 version=102;
 disOk=0;
 
+% %To force batch mode, set batchStart and batchEnd as starting and ending 
+% if exist('batchStart','var')
+%     if batchStart==0
+%         clear('batchStart');
+%         disp('batchStart is zero. Deleted it and exiting.');
+%         return;
+%     end;
+%     % otherwise, batchEnd should be set too.
+%     batchStart
+%     batchEnd
+% else
+%     batchStart=0;
+%     batchEnd=inf;
+%     disp('Interactive mode.');
+% end;
+
 % Retrieve parameters from a file in the program directory
 pa=fileparts(which('SimpleRSPicker'));
 datName=[AddSlash(pa) 'SimpleRSPickerDat.mat'];
@@ -20,6 +36,18 @@ if exist(datName,'file')>0
         disp('Loading settings');
     end
 end;
+
+% if batchStart>0
+%     if ~disOk
+%         disp(['Batch mode: settings could not be loaded: ' datName]);
+%         return
+%     end;
+%     dis.miIndex=batchStart;
+%     dis.imageMode=dis.autosaveJpegs; % Don't draw unless we need.
+% else
+    dis.imageMode=1;
+% end;
+
 
 newDis=0;
 %  disOk=0;
@@ -168,9 +196,11 @@ dis.ndis=dis.maxSize;
 % Set the first command
 if (dis.finished || newDis || ~dis.miValid) % We need to open a new file
     b='O';  % ask for a new file
-    if dis.miIndex>1
+%     if dis.miIndex>1
         dis.miIndex=dis.miIndex-1; % back up to past file.
-    end;
+%     else
+%         dis.miIndex=batchStart;
+%     end;
 else
     b='V';  % 'revert' to latest file.
 end;
@@ -209,7 +239,10 @@ refreshReconstruct=0;  % flag to update the reconstruction display
 previousDisMode=1;
 axes3On=false;
 dis.roboFitStep=0;
-dis.roboFitEndIndex=inf;
+% dis.roboFitEndIndex=batchEnd;
+% if batchEnd==0
+    dis.roboFitEndIndex=inf;
+% end;
 roboChar='naa';
 
 % Automatic scanning, a variant of RoboFit.
@@ -491,7 +524,7 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     miNames=cell(0,1);
                 end;
                 dis.miIndex=min(dis.miIndex,numel(miNames));
-                if dis.miIndex>0
+                if dis.miIndex>0 % && batchStart==0 % not in batch mode
                     dis.miIndex=min(MyInput('File index ',dis.miIndex+1),numel(miNames));
                     if dis.miIndex>0
                         dis.infoName=miNames{dis.miIndex};
@@ -541,6 +574,10 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     end;
                     beep;
                     dis.roboFitStep=0;  % turn off robo fitting
+%                     if batchStart>0 % we're in batch mode
+%                         disp('Exiting.');
+%                         return
+%                     end;
                 else
                     dis.infoName=miNames{dis.miIndex};
                 end;
@@ -885,6 +922,9 @@ end;
     
     oldB=b(1);  % store the previous key
     if dis.roboFitStep==0 % not doing automatic fitting, wait for key
+%         if batchStart>0
+%             return % done auto-finding
+%         end
         [coords, b]=rspGetClick(dis);
     else
         dis.roboFitStep=dis.roboFitStep+1;
@@ -892,7 +932,11 @@ end;
             dis.roboFitStep=1+scan.active;
         end;
         %         RoboFit or Scan running: a keypress halts it.
+%         if batchStart==0 % Not a batch job
         [x,y,b]=MyBusyread;
+%         else
+%             b=0;
+%         end;
         if b>0  % a click of some sort
             dis.roboFitStep=0;  % turn off robo-fitting;
             MyBusyread('stop');
@@ -942,3 +986,5 @@ save(datName,'dis');
 if isa('si','struct')
     save([dis.basePath 'siTemp.mat'],'si');
 end;
+% clear batchStart
+

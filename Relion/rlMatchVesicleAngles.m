@@ -1,15 +1,15 @@
 % rlMatchVesicleAngles.m
 
-loadVesData=0;
+loadVesData=1;
 insertVesiclePsis=0;
 
 % Load a particles.star file, may contsain a selected subset from Refine3D etc.
 % pStarName='Refine3D/job140/run_data.star';
 %pStarName='Refine3D/job020/run_data.star';  % 20220125 dataset
-pStarName='Select/job017/particles.star';
+pStarName='Select/job030/particles.star';
 
 % Load a vesicle-particle file from the entire dataset.
-vStarName='RSC1_C25-3/ves_particles2_v.star';
+vStarName='RSC1/ves_particles1_v.star';
 if ~exist(vStarName,'file')
     disp([vStarName ' doesn''t exist.']);
     return

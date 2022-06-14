@@ -62,9 +62,9 @@ for iLine=1:nLines
         for iField=1:nFields
             x=s.(fnames{iField});
             if isa(x,'numeric')
-                fprintf(fi,'%g ',x(iLine));
+                fprintf(fi,'%8g  ',x(iLine));
             elseif isa(x,'char')
-                fprintf(fi,'%s ',x);
+                fprintf(fi,'%s  ',x);
                 if iLine>1
                     error([fnames{iField} ' is not a cell array.']);
                 end;

@@ -23,13 +23,13 @@ boxSize=256; % Not critical, just written in optics groups.
 
 % ----Our picking data----
 % infoDir='Info_C15-2/';
-suffix='_C16-2';
+suffix='';
 infoDir=AddSlash(['Info' suffix]);
 forceLoadMiFiles=0; % Load each mi file individually instead of loading allMis.mat
 
 % ----Input Micrograph star file
 %inMicStarName='CtfFind/job127/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
-inMicStarName='CtfFind/job221/micrographs_ctf.star'; % Existing file to  % 20211112 C15-2 dataset
+inMicStarName='CtfFind/job005/micrographs_ctf.star'; % Existing file to  % 20211112 C15-2 dataset
 if ~exist(inMicStarName,'file')
     disp(['the micrographs star file ' inMicStarName ' was''nt found. Exiting.']);
     return
@@ -46,11 +46,11 @@ usePaddedSubMicrograph=0; % Look for Merged/*mv.mrc for padded micrographs.
 outStarDir=AddSlash(['RSC1' suffix]);
 CheckAndMakeDir(outStarDir,1);
 
-outMicrographStarBasename='micrograph_ctf2';
-writeMicrographStarU=1;
+outMicrographStarBasename='micrograph_ctf1';
+writeMicrographStarU=1; %%%%
 writeMicrographStarV=1;
 
-outParticleStarBasename='particles2';
+outParticleStarBasename='particles1';
 writeParticleStarU=1;
 writeParticleStarV=1;
 
@@ -58,6 +58,8 @@ writeParticleStarV=1;
 outVesicleStarNameV=['ves_' outParticleStarBasename '_v.star'];
 writeVesicleStar=1;
 writeVesicleMat=1;
+
+writeExtendedVesicleStar=0; %%%
 
 useGroupsFromMi=0; % Read the assigned group no. from mi.ok(20)
 % OR ELSE just use an incrementing index of micrographs, with
@@ -123,6 +125,7 @@ if forceLoadMiFiles || ~exist(allMisFilename,'file')
 else
     disp(['Loading ' allMisFilename]);
     load(allMisFilename);
+    nmi=numel(allMis);
 end;
 disp(' ');
 %
@@ -150,8 +153,9 @@ miSkip=0; % no. mi files skipped.
 
 disp('Accumulating the structures:')
 disp(' star line    micrograph    single, total particles.');
-for i=1:nmi
-    mi=allMis{i};
+i=0;
+for ind=1:nmi
+    mi=allMis{ind};
 %     if ~isfield(mi,'opticsGroup')
 %         mi.opticsGroup=1;
 %     end;
@@ -166,6 +170,11 @@ for i=1:nmi
 %     end;
 
             %         Get the micrograph names
+            if ~isfield(mi,'imagePath')
+                disp(['bad mi: ' num2str(i)]);
+                continue;
+            end;
+            i=i+1;
             fullImageName=[mi.imagePath mi.imageFilenames{1}];
             match=strcmp(fullImageName,mic.rlnMicrographName);
             micStarLine=find(match);
@@ -360,6 +369,16 @@ vPts=pts;
 vPts.rlnMicrographName=partSubMicName;
 ves.vesMicrographName=partSubMicName;
 
+if writeExtendedVesicleStar
+    extVes=vPts;
+    extVes.vesCenterX=ves
+    extVes.vesCenterX=ves.vesCenterX;
+    extVes.vesCenterY=ves.vesCenterY;
+    extVes.vesR=ves.vesR;
+    extVes.vesPsi=ves.vesPsi;
+    extVes.vesRsos=ves.vesRsos;
+    extVes.vesInds=ves.vesInds;
+end;
 
 %%
 % Write the micrograph star files
@@ -418,6 +437,17 @@ if writeVesicleStar
     fprintf(fStar,'\n# version 30001\n');
     WriteStarFileStruct(outOpt,'optics',fStar);
     WriteStarFileStruct(ves,'vesicles',fStar);
+    fclose(fStar);
+end;
+
+% Write the extended vesicle star file
+if writeExtendedVesicleStar
+    outName=[outStarDir 'ext' outVesicleStarNameV];
+    disp(['Writing ' outName]);
+    fStar=fopen(outName,'wt');
+    fprintf(fStar,'\n# version 30001\n');
+    WriteStarFileStruct(outOpt,'optics',fStar);
+    WriteStarFileStruct(extVes,'vesicles',fStar);
     fclose(fStar);
 end;
 

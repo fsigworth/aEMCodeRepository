@@ -19,7 +19,7 @@ inStarName='movies.star';
 [pa,nm,ex]=fileparts(inStarName);
 outStarName=[nm '_optics' ex];
 
-useNameDigits=2; % 0 to use coordinate string instead
+useNameDigits=0; % 0 to use coordinate string instead
 
 [dnm,da]=ReadStarFile(inStarName);
 d=da{2};

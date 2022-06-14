@@ -1,41 +1,43 @@
-% rlAddReconstructImageName.m
-% This program does one of two things. 1. It can add the
-% rlReconstructImageName to a particle file to yield a particle+unsub.star
-% file for final reconstruction with unsubtracted particles; 2. Or it can
-% create a particles_unsub.star file that mirrors a subtracted particles
-% file. This can be used for re-extracting unsub particles in parallel with
-% the subtracted particles.
-%
-% For reference we read a pair of matching particles.star files, let's call
-% them ref_u.star and ref_v.star. These are typically from a pair of
-% Extract jobs. We depend on there being a line-for-line correspondence
-% between the rlnImageNames in the two files. We then match filenames in
-% the input file (which comes e.g. from selection or refinement) with those
-% in the _v star file, and obtain all the _u names. The _u names are placed
-% into the extra field rlnReconstructImageName in the output file (option
-% 1) or used to replace the field rlnImageName into the output file (option
-% 2). The modified input file is written out with "+unsub" or "_unsub"
-% appended to the name. It is written to the same directory that the input
-% file came from.
+% rlMatchUnsubWithSub.m
+% This program finds unsub particle image names matching the subtracted
+% particle names in the input star file, which is typically a
+% particles.star run_data.star file from a Select or Refine3D job. We'll
+% call it In_v.star. 
+% The program relies on two particle.star files from
+% extract jobs; call them Ex_v and Ex_u. We assume that (1) In_v.star
+% contains a subset of the Ex_v particles, all vesicle-subtracted; and (2)
+% there is a line-by-line match between Ex_v and Ex_u. (The latter occurx
+% if Ex_v and Ex_u are created from Extract jobs using the particle_v and
+% particle_u files created by rlMiToStarFiles, or if they are created from
+% Extract jobs based on such Extract jobs.) `
+% 
+% This program does one of two things. 
+% 1. It can add the rlReconstructImageName field to In_v.star to yield a
+% file whose modified name would be In_v+unsub.star. This allows Refine3D
+% to perform a final reconstruction with unsubtracted particles. This is
+% selected if insertReconstructImage = 1.
+% 2. Or it can create a file In_v_unsub.star file that mirrors In_v but
+% with unsub particles only. This can be used for re-extracting unsub
+% particles in parallel with the subtracted particles. This is made by
+% insertReconstructImage=0.
+% - In either case, the new files are written back into the directory where
+% In_v.star was found.
+
 
 % particles.star name
 % inStarName='Select/job023/particles.star';
 % inStarName='RSC1_C24-4/particles_rso_all.star';
 %inStarName='Refine3D/job263/run_data.star';
 
-%inStarName='Refine3D/job034/run_data.star'; % Subtracted stack!
-inStarName='Extract/job024/particles.star'; % Subtracted stack!
-refVStarName='Extract/job024/particles.star';
-refUStarName='Extract/job039/particles.star';
+inStarName='Refine3D/job312/run_data.star'; % Subtracted stack!
+refVStarName='Extract/job303/particles.star';
+refUStarName='Extract/job304/particles.star';
+insertReconstructImage=0; % 1: Yes, do put in the field
+          % 0: Instead, create a particle star with all unsub image names.
 
-% Here we select the two options
-insertReconstructImage=1; % Yes, do put in the field
-makeUnsubStar=0; % Create a particle star with all unsub image names.
 
 [pa, nm, ex]=fileparts(inStarName);
 outStarName1=[pa filesep nm '+unsub' ex];
-    outStarName1=[pa filesep nm '+unsub+0' ex]; %%% try extra
-    insertExtraField=1;
 outStarName2=[pa filesep nm '_unsub' ex];
 
 % Get the pair of micrograph.star files. We assume that the unsub and
@@ -112,9 +114,6 @@ end;
 
 % Insert the new field in case we want it
 dOut.rlnReconstructImageName=uNames;
-if insertExtraField
-    dOut.vesExtra=zeros(nparts,1);
-end;
 dato=datp;
 
 if insertReconstructImage
@@ -122,9 +121,7 @@ if insertReconstructImage
     dato{2}=dOut;
     WriteStarFile(nmp,dato,outStarName1);
     disp('done.')
-end;
-
-if makeUnsubStar
+else % Make the entire unsub stack
     dOut=rmfield(dOut,'rlnReconstructImageName'); % don't want it after all.
     dOut.rlnImageName=uNames;
     dOut.rlnMicrographName=umNames;

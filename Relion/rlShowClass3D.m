@@ -1,7 +1,7 @@
 % rlShowClass3D.m
 
 displayAngle=45;
-% displayAngle=90
+displayAngle=90
 zFraction=.75; % relative Z-height of slice
 skipLoading=0;
 

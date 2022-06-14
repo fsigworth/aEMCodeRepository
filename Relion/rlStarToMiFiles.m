@@ -30,7 +30,7 @@ dpars.cpe=14/4; % K3 is scaled up by 16, but mc2 handles superres incorrecly
 dpars.dose=50; % Approx total movie dose in e/A^2. We have to guess this
 % because MotionCor2 scaling doesn't allow the total dose to be calculated.
 dpars.estimateStatsFromNoise=0; % 1: don't use the above, estimate from image spectrum%
-dpars.nFrames=34;
+dpars.nFrames=40;
 dpars.motionCorFrames=dpars.nFrames; % either 1, or the number of frames if using MotionCor2
 dpars.scaleMode=0; % 0: K3 micrographs, already normalized; imageNormScale set to 1.
 % 1: read micrograph and scale for k2
