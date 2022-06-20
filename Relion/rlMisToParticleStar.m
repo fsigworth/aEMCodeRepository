@@ -23,13 +23,13 @@ boxSize=256; % Not critical, just written in optics groups.
 
 % ----Our picking data----
 % infoDir='Info_C15-2/';
-suffix='';
+suffix='_C35-2';
 infoDir=AddSlash(['Info' suffix]);
 forceLoadMiFiles=0; % Load each mi file individually instead of loading allMis.mat
 
 % ----Input Micrograph star file
 %inMicStarName='CtfFind/job127/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
-inMicStarName='CtfFind/job005/micrographs_ctf.star'; % Existing file to  % 20211112 C15-2 dataset
+inMicStarName='CtfFind/job009/micrographs_ctf.star'; % Existing file to  % 20211112 C15-2 dataset
 if ~exist(inMicStarName,'file')
     disp(['the micrographs star file ' inMicStarName ' was''nt found. Exiting.']);
     return
