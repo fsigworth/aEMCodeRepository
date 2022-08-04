@@ -1,14 +1,37 @@
 % TestVesicleDrawing.m
+% Given Info/*mi.txt metadata files, and .tif images, create the
+% corresponding vesicle models and center-of-membrane traces for the found
+% vesicles.
 
-% % The 20211122/C24-4 dataset
+numRots=-1; % default
+writeSubtractions=1;
+writeTracks=1;
+fileSuffix='ms.tif';
+
+% Set up directories for various datasets
+
+% % The 20211122/C24-4 "low quality" dataset
 % infoDir='/Users/fred/EMWork/Yangyu/20211122_farnam/C24-4_part/Info_C24-4/';
 % tiffPath='/Users/fred/EMWork/Yangyu/20211122_farnam/C24-4_part/Tiff_C24-4/';
 % fileSuffix='ms.tif';
 
-% The original Dec17 dataset
-infoDir='/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Data for Chris/Chris sims/tmp/Info/';
+% % The original Dec17 "high quality" dataset, ds=4
+cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Data for Chris/181217ds4');
+infoDir='Info/';
 fileSuffix='ms.tif';
-tiffPath='~/Downloads/high_quality_tifs/';
+tiffPath='Micrographs/';
+% 
+% %  Vesicle-finder only fits of simulated vesicles
+% cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Data for Chris/Chris sims VF only')
+% infoDir='Info/';
+% tiffPath='Micrographs/';
+% numRots=0;
+
+% % Refined fits of simulated vesicles
+% cd('/Users/fred/Documents/Documents - Katz/EMWorkOnDocs/Data for Chris/Chris sims/');
+% infoDir='Info/';
+% tiffPath='Micrographs/';
+% numRots=0;
 
 miNames=f2FindInfoFiles(infoDir);
 
@@ -33,7 +56,7 @@ for i=1:nmi % index of the micrograph
         continue;
 %         return
     end;
-    m=rot90(imread(imageName),-1); % rotation to correponds to EM convention
+    m=rot90(imread(imageName),numRots); % rotation to correponds to EM convention
     ds=round(mi.padImageSize(1)/size(m,1));
 
     %     Create the affine matrix to handle scaling and image padding
@@ -80,6 +103,19 @@ for i=1:nmi % index of the micrograph
         end;
     end;
     imags(m2);
+    if writeTracks
+        trackName=[tiffPath mi.baseFilename '_track.tif'];
+        imwrite(uint8(255*rot90(m2,0)),trackName,'TIFF');
+    end;
     drawnow;
-pause
+
+    if writeSubtractions
+        disp('Computing vesicle models...')
+        mq=meMakeModelVesicles(mi,[nx ny]);
+        imwrite((uint8(imscale(mq,256))),[tiffPath mi.baseFilename 'memb.tif'],'TIFF');
+        disp('done.')
+    end;
+
+
+pause(0.1)
 end;
