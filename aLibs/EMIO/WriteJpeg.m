@@ -26,7 +26,11 @@ return
 end;
 
 if doWrite
-    imwrite(msr,filename);
+    try
+        imwrite(msr,filename);
+    catch
+        warning(['Funny imwrite error at ' filename]);
+    end;
 end;
 
 if nargout>0

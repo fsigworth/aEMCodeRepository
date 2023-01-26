@@ -29,10 +29,10 @@
 % inStarName='RSC1_C24-4/particles_rso_all.star';
 %inStarName='Refine3D/job263/run_data.star';
 
-inStarName='Refine3D/job312/run_data.star'; % Subtracted stack!
-refVStarName='Extract/job303/particles.star';
-refUStarName='Extract/job304/particles.star';
-insertReconstructImage=0; % 1: Yes, do put in the field
+inStarName='Select/job016/particles.star'; % Subtracted stack!
+refVStarName='Extract/job014/particles.star';
+refUStarName='Extract/job028/particles.star';
+insertReconstructImage=1; % 1: Yes, do put in the field
           % 0: Instead, create a particle star with all unsub image names.
 
 

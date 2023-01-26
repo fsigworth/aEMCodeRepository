@@ -23,13 +23,14 @@ boxSize=256; % Not critical, just written in optics groups.
 
 % ----Our picking data----
 % infoDir='Info_C15-2/';
-suffix='_C35-2';
+suffix='C35-2';
 infoDir=AddSlash(['Info' suffix]);
-forceLoadMiFiles=0; % Load each mi file individually instead of loading allMis.mat
+forceLoadMiFiles=1; % Load each mi file individually instead of loading allMis.mat
 
 % ----Input Micrograph star file
 %inMicStarName='CtfFind/job127/micrographs_ctf.star'; % Existing file to  % 20211112 xchg dataset
-inMicStarName='CtfFind/job009/micrographs_ctf.star'; % Existing file to  % 20211112 C15-2 dataset
+inMicStarName='CtfFind/job003/micrographs_ctf.star'; % Existing file to  % 20211112 C15-2 dataset
+
 if ~exist(inMicStarName,'file')
     disp(['the micrographs star file ' inMicStarName ' was''nt found. Exiting.']);
     return
@@ -43,7 +44,7 @@ usePaddedSubMicrograph=0; % Look for Merged/*mv.mrc for padded micrographs.
 
 % ----Output star files
 % outStarDir='RSC1_C16-1/';  % Place to put our particle star files
-outStarDir=AddSlash(['RSC1' suffix]);
+outStarDir=AddSlash(['RSC' suffix]);
 CheckAndMakeDir(outStarDir,1);
 
 outMicrographStarBasename='micrograph_ctf1';
@@ -123,7 +124,7 @@ if forceLoadMiFiles || ~exist(allMisFilename,'file')
     save(allMisFilename,'allMis');
     % We'll have to add the '-v7.3' option if allMis is >2GB in size
 else
-    disp(['Loading ' allMisFilename]);
+    disp(['Loading mi files from ' allMisFilename]);
     load(allMisFilename);
     nmi=numel(allMis);
 end;

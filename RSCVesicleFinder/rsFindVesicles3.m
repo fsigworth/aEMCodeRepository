@@ -229,6 +229,7 @@ else % m is a string, 'next' or 'end'
             while t.nfound<nf0+maxN
                 [t.globalmax, jx, jy]=max2d(t.ccsmx2);
                 if t.globalmax<1e-6 % reasonable threshold should be >1e-4
+                    disp('Peak CC value is less than 1E-6. Terminating Find.')
                     break
                 end;
                 % Get the corrected peak value and interpolated radius index

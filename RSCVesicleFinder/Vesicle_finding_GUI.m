@@ -1745,12 +1745,13 @@ end;
 %%
 minAmp=h.sav.vesicleAmps(1);
 maxAmp=h.sav.vesicleAmps(2);
+bigVesAmpScale=h.sav.vesicleAmps(3);
 
 mins=1;
 nVesOld=0;
 extraTries=2;
 % Loop through finding groups of 50 vesicles.
-while mins>minAmp
+while mins>minAmp*bigVesAmpScale % Trying to get a lower bound on CC maximum value.
     [mi1, t]=rsFindVesicles3('next',50,h.sav.vesicleAmps);
     axes(h.axes1);
     ih = imshow(rot90(uint8(imscale(t.ms-t.umodel,256,1e-3))),...

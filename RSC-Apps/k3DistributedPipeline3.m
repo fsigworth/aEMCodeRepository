@@ -1,4 +1,4 @@
-% k3DistributedPipeline2.m
+% k3DistributedPipeline3.m
 % Run the processing pipeline for K2 or K3 movies.
 % Simplified version does vesicle finding, refinement and picking
 % preprocessor.
@@ -9,7 +9,7 @@
 %
 
 % execute 1/nRuns of the entire dataset
-runIndex=3;
+runIndex=2;
 nRuns=4;
 
 doFindVesicles        =0;

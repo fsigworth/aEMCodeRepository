@@ -5,11 +5,11 @@ insertVesiclePsis=0;
 
 % Load a particles.star file, may contsain a selected subset from Refine3D etc.
 % pStarName='Refine3D/job140/run_data.star';
-%pStarName='Refine3D/job020/run_data.star';  % 20220125 dataset
-pStarName='Select/job030/particles.star';
+pStarName='Class3D/job036/run_it025_data.star';
+%pStarName='Select/job030/particles.star';
 
 % Load a vesicle-particle file from the entire dataset.
-vStarName='RSC1/ves_particles1_v.star';
+vStarName='RSCC35-2/ves_particles1_v.star';
 if ~exist(vStarName,'file')
     disp([vStarName ' doesn''t exist.']);
     return

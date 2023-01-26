@@ -1,8 +1,11 @@
-% SimpleRSPicker.m
+function SimpleRoboPicker(miNames)
+% Headless SimpleRSPicker
 % F. Sigworth, Jan '13
 %  See rspLoadPicksFromMi.m to see assignment of ptrs
 %  See rspNewBox to see assignment of flag values
 % Modified so that 'j' and 'k' have the max amp track the min amp
+headless = 1;   %% headless
+
 si=struct;
 
 version=102;
@@ -154,7 +157,12 @@ end;
 % % dis.pars(3)=inf; %%%
 % % dis.pars(12)=1; %%%
 ok=false;
-if exist(dis.basePath,'dir')
+if headless % miNames exists     %% headless
+    dis.basePath=pwd;
+    dis.miIndex=1;
+    dis.infoName=miNames{1};
+    dis.infoPath=ParsePath(dis.infoName);
+elseif exist(dis.basePath,'dir') %% ~headless
     cd(dis.basePath);
     ok=true;
     if dis.miIndex
@@ -572,6 +580,9 @@ while ((b~='q') && (b~='Q')) % q = quit; Q = quit but return to this image later
                     if dis.miIndex>numel(miNames)
                         dis.miIndex=numel(miNames); % we're at the end.
                         disp('No more files!');
+                        if dis.roboFitStep>0
+                            b='q'; % quit the program.
+                        end;
                     end;
                     beep;
                     dis.roboFitStep=0;  % turn off robo fitting
@@ -922,7 +933,8 @@ end;
     % ----------get the next click or keypress----------
     
     oldB=b(1);  % store the previous key
-    if dis.roboFitStep==0 % not doing automatic fitting, wait for key
+%     if dis.roboFitStep==0 % not doing automatic fitting, wait for key
+      if ~headless || dis.roboFitStep==0
 %         if batchStart>0
 %             return % done auto-finding
 %         end
@@ -934,7 +946,15 @@ end;
         end;
         %         RoboFit or Scan running: a keypress halts it.
 %         if batchStart==0 % Not a batch job
-        [x,y,b]=MyBusyread;
+        if ~headless    %% headless
+            [x,y,b]=MyBusyread;
+        else
+            if b=='q' % in case we're quitting
+                break;
+            else
+                b=0;
+            end;
+        end;            %% ~headless
 %         else
 %             b=0;
 %         end;
@@ -981,11 +1001,15 @@ set(gcf,'name','Done');
 %     dis.miValid=0;
 %     disp('Exiting');
 % else
-    disp('Exiting, to continue this micrograph.');
+if headless
+    disp('SimpleRoboPicker done.')
+else
+disp('Exiting, to continue this micrograph.');
 close(1);
 save(datName,'dis');
 if isa('si','struct')
     save([dis.basePath 'siTemp.mat'],'si');
+end;
 end;
 % clear batchStart
 

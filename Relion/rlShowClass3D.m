@@ -1,9 +1,12 @@
 % rlShowClass3D.m
-
+% Given a model.star file, display 3D classes from relion refinement or 3D classification.
+% The 3D models are shown using our ShowSections function.
+%
 displayAngle=45;
-displayAngle=90
-zFraction=.75; % relative Z-height of slice
+%displayAngle=90
+zFraction=.72; % relative Z-height of slice
 skipLoading=0;
+rotY=0; % rotate 180 degrees about Y
 
 if ~(skipLoading && exist('maps','var'))
 [modelName,modelPath]=uigetfile('*model.star');
@@ -58,7 +61,11 @@ for i=1:nim
     probString=num2str(mapProbs(i),3);
     disp([mapNames{i} '  ' probString]);
     opts.rowLabels{i}=probString;
-    maps(:,:,:,i)=ReadMRC(mapNames{i});
+    mp=ReadMRC(mapNames{i});
+    if rotY
+        mp=shiftdim(rot90(shiftdim(mp,1),2),2);
+    end
+    maps(:,:,:,i)=mp;
 end;
 end; % if ~skipLoading
 %%

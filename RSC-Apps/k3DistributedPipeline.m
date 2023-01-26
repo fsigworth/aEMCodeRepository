@@ -1,14 +1,23 @@
 % k3DistributedPipeline.m
-% 1st copy
 % Run the processing pipeline for K2 or K3 movies.
 % Simplified version does vesicle finding, refinement and picking
 % preprocessor.
-doFindVesicles        =1;
+
+% Run this with
+%  sbatch --array=1-50 k3pRung (general)
+%  or using k3pRuns (sigworth) or k3pRunv (scavenge)
+%
+
+% execute 1/nRuns of the entire dataset
+runIndex=1;
+nRuns=1;
+
+doFindVesicles        =0;
 doPrelimInverseFilter =0;
-doRefineVesicles      =1;
+doRefineVesicles      =0;
 doInverseFilter       =0;
-doPickingPreprocessor =1;
-doPicking             =0;
+doPickingPreprocessor =0;
+doPicking             =1;
 
 dontRedo=1; %%% don't overwrite Vesicle finding, refinement etc.
 
@@ -18,18 +27,19 @@ jobEnd=inf;
 % Directories must be set up
 %workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20211122/';
 workingDir='/gpfs/ysm/scratch60/sigworth/fjs2/20220608/';
-%workingDir='/gpfs/gibbs/pi/tomography/sigworth/20220407/';
+%workingDir='/gpfs/gibbs/pi/tomography/sigworth/20220920/';
 cd(workingDir);
 
 %workingDir='/Users/fred/EMWork/Yangyu/20211122_sel/';
 %infoDir='Info_C24-4/';
- infoDir='Info_C35-2/';
- logDir='Log_C35-2/';
+ infoDir='InfoC35-2/';
+ logDir='Log352/';
+
 %infoDir='Info_C34-1/';
 %logDir='Log_C34-1/';
 
 pars=struct;
-pars.loadFilenames=0; % pick up allNames.mat in base directory
+pars.loadFilenames=1; % pick up allNames.mat in base directory
 pars.filenameFile='allNames.mat'; % in the working directory
 
 % for picking preprocessor
@@ -104,8 +114,11 @@ else
     disp('Finding the mi files');
     allNames=f2FindInfoFiles(infoDir);
 end;
-nNames=numel(allNames);
-disp([num2str(nNames) ' files total']);
+totalNames=numel(allNames);
+nNames=ceil(totalNames/nRuns);
+runOffset=nNames*(runIndex-1);
+
+disp([num2str(nNames) ' files total in this run.']);
 
 if nNames<1
     msg=['No mi files found in ' pwd filesep infoDir];
@@ -118,8 +131,9 @@ end;
 jobStart=max(1,min(nNames,jobStart));
 jobEnd=min(nNames, jobEnd);
 blockSize=(jobEnd-jobStart+1)/numJobs;
-ourBlockStart=round(jobStart+(jobIndex-1)*blockSize);
-ourBlockEnd=min(jobEnd,round(jobIndex*blockSize+jobStart-1));
+ourBlockStart=round(jobStart+(jobIndex-1)*blockSize)+runOffset;
+ourBlockEnd=min(jobEnd,round(jobIndex*blockSize+jobStart-1))+runOffset;
+ourBlockEnd=min(totalNames,ourBlockEnd);
 mprintf(pars.logs.handles,'files %d to %d\n',ourBlockStart,ourBlockEnd);
 
 ourNames=allNames(ourBlockStart:ourBlockEnd);
@@ -131,10 +145,13 @@ end;
 
 
 logSeqs=zeros(numNames,8);
+nParticles=zeros(numNames,1);
 if dontRedo
-    disp('Cheking mi logs')
+    disp('Checking mi logs')
     for i=1:numNames
-        logSeqs(i,:)=miDecodeLog(ReadMiFile(ourNames{i}));
+        mi=ReadMiFile(ourNames{i});
+        logSeqs(i,:)=miDecodeLog(mi);
+        nParticles(i)=numel(mi.particle.picks);
     end;
 end;
 
@@ -189,8 +206,15 @@ end;
     end;
     
     if doPicking
-        batchStart=ourBlockStart;
-        batchEnd=ourBlockEnd;
-        SimpleRSPicker;
+        ready=logSeqs(:,8)~=0;
+        unpicked=nParticles==0;
+        active = ready & unpicked;
+        activeNames=ourNames(active);
+                    disp([num2str(sum(active)) ' micrographs to pick.'])
+        if any(active)
+            BatchRSPicker(ourNames);
+        else
+            disp('No preprocessed images available.')
+        end
     end;
     

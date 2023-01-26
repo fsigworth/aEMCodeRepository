@@ -196,7 +196,6 @@ end;
         ampFactor=ampFactor+dis.ampCorrectionCoeffs(i)*x;
     end;
     dis.pars(12)=ampFactor;
-ampFactor
 
 %        rs.blanks=rscc.mxVars==0;
        rs.blanks=~BinaryConvolve(rscc.mxVesInds>0,ones(3,3));

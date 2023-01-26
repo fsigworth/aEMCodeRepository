@@ -20,6 +20,17 @@ end;
 
 dpars=struct; % Set up the defaults.
 
+% %%%% special settings
+% cd('~/scratch60/20220920')
+% pars.pathNameSuffix='C34'; % we now construct the filenames using this suffix, e.g.
+% starName='CtfFind/job003/micrographs_ctf.star';
+% pars.replaceCorruptedMiFiles=0;
+% pars.writeMergedSmall=0;
+% pars.writeJpeg=0;
+% pars.writeJpegInv=0;  % Make -1 to reverse the contrast.
+%%%%%
+
+
 dpars.basePath=pwd; % assume we're in the relion project directory
 dpars.cameraIndex=7; % 5 for K2, 7 for K3
 % dpars.cpe=0.8;  % counts per electron, 0.8 for K2 counting mode, but
@@ -69,7 +80,8 @@ dpars.firstLine=1; % Set first and last lines of star file to interpret.
 dpars.lastLine=inf;
 dpars.firstPeakAmp=.5; %??
 dpars.displayOn=1;
-
+dpars.replaceCorruptedMiFiles=0;
+dpars.maxSkipCount=50; % Maximum files to skip (no micrograph) before quitting.
 pars=SetDefaultValues(dpars,pars,1); % 1 means check for undefined fieldnames.
 
 
@@ -134,10 +146,17 @@ for i=pars.firstLine:endLine
     if ~readOk
         error(['Error reading star file data at line ' num2str(i)]);
     end;
-    
+
     mi.infoPath=pars.infoPath;
     mi.procPath=pars.mergedPath;
     mi.procPath_sm=pars.mergedPath_sm;
+
+    if pars.replaceCorruptedMiFiles
+        if MiFileValid(mi)
+            continue;
+        end;
+    end;
+
 
 
     if first
@@ -162,6 +181,9 @@ for i=pars.firstLine:endLine
         if ~micFound
             skipCount=skipCount+1;
             continue;
+        elseif skipCount>pars.maxSkipCount
+            disp([num2str(skipCount) ' files skipped, exiting.']);
+                return
         elseif skipCount>0
             disp([num2str(skipCount) ' files skipped, up to ' mi.baseFilename]);
             skipCount=0;
