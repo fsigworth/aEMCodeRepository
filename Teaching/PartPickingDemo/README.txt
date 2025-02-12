@@ -1,0 +1,1 @@
+This is code I originally wrote for a class, to demonstrate template-based particle picking. It uses a 3D template from which projections are computed, and it also makes decoy templates (discs and half-discs) to capture edges and ice blobs. The code was refined somewhat with time, and version 
